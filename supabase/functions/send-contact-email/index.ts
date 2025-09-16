@@ -40,7 +40,7 @@ const handler = async (req: Request): Promise<Response> => {
     `;
 
     const emailResponse = await resend.emails.send({
-      from: "SicurAzienda <onboarding@resend.dev>",
+      from: "SicurAzienda <noreply@sicurazienda.com>",
       to: ["gestioneappuntamenti@sicurazienda.com"],
       subject: `Nuova richiesta: ${contactData.serviceType} - ${contactData.name}`,
       html: emailHtml,
