@@ -7,6 +7,7 @@ import Home from "./pages/Home";
 import NewClient from "./pages/NewClient";
 import ExistingClient from "./pages/ExistingClient";
 import Documents from "./pages/Documents";
+import AdminDashboard from "./pages/AdminDashboard";
 import ContactRequest from "./pages/ContactRequest";
 import NotFound from "./pages/NotFound";
 
@@ -23,6 +24,7 @@ const App = () => (
           <Route path="/new-client" element={<NewClient />} />
           <Route path="/existing-client" element={<ExistingClient />} />
           <Route path="/documents" element={<Documents />} />
+          <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/contact-request" element={<ContactRequest />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

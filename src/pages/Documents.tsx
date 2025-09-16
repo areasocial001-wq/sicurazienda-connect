@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "@/hooks/useAuth";
+import { useUserRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { 
@@ -16,11 +17,13 @@ import {
   FileText,
   AlertCircle,
   LogOut,
-  User
+  User,
+  Settings
 } from "lucide-react";
 
 const Documents = () => {
   const { user, loading, signOut } = useAuth();
+  const { isAdmin, loading: roleLoading } = useUserRole();
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [documents, setDocuments] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -201,10 +204,21 @@ const Documents = () => {
               Benvenuto, {user.email}
             </p>
           </div>
-          <Button variant="outline" onClick={handleSignOut}>
-            <LogOut className="h-4 w-4 mr-2" />
-            Esci
-          </Button>
+          <div className="flex gap-2">
+            {!roleLoading && isAdmin && (
+              <Button 
+                variant="default" 
+                onClick={() => window.location.href = '/admin'}
+              >
+                <Settings className="h-4 w-4 mr-2" />
+                Dashboard Admin
+              </Button>
+            )}
+            <Button variant="outline" onClick={handleSignOut}>
+              <LogOut className="h-4 w-4 mr-2" />
+              Esci
+            </Button>
+          </div>
         </div>
 
         <Card className="mb-4">
