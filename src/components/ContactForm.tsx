@@ -60,13 +60,9 @@ const ContactForm = ({ title, serviceType, clientType = "new" }: ContactFormProp
         throw new Error('Errore nel salvataggio: ' + dbError.message);
       }
 
-      // Invia email
-      const response = await fetch(`https://obzflzotzvwlmgyjxfpv.supabase.co/functions/v1/send-contact-email`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      // Invia email usando supabase.functions.invoke
+      const { data: emailData, error: emailError } = await supabase.functions.invoke('send-contact-email', {
+        body: {
           name: formData.name,
           email: formData.email,
           phone: formData.phone,
@@ -74,11 +70,11 @@ const ContactForm = ({ title, serviceType, clientType = "new" }: ContactFormProp
           message: formData.message,
           serviceType: serviceType,
           userType: userType,
-        }),
+        }
       });
 
-      if (!response.ok) {
-        throw new Error('Errore nell\'invio dell\'email');
+      if (emailError) {
+        throw new Error('Errore nell\'invio dell\'email: ' + emailError.message);
       }
 
       toast({
