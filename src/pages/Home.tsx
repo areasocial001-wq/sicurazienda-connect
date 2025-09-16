@@ -82,15 +82,15 @@ const Home = () => {
             <div className="space-y-2 text-sm">
               <div className="flex items-center gap-2">
                 <Mail className="h-4 w-4 text-muted-foreground" />
-                <span>info@sicurazienda.com</span>
+                <span>gestioneappuntamenti@sicurazienda.com</span>
               </div>
               <div className="flex items-center gap-2">
                 <Phone className="h-4 w-4 text-muted-foreground" />
-                <span>+39 011 123 4567</span>
+                <span>+ 39 011 1950 3922</span>
               </div>
               <div className="flex items-center gap-2">
                 <Clock className="h-4 w-4 text-muted-foreground" />
-                <span>Lun-Ven 8:30-17:30</span>
+                <span>Lun-Ven 9:00 - 18:00</span>
               </div>
             </div>
           </CardContent>
