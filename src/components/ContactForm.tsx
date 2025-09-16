@@ -29,12 +29,15 @@ const ContactForm = ({ title, serviceType }: ContactFormProps) => {
     e.preventDefault();
     
     try {
+      // Determina il tipo di utente dal titolo
+      const userType = title.toLowerCase().includes('nuovo cliente') ? 'new_client' : 'existing_client';
+      
       // Salva nel database
       const { error: dbError } = await supabase
         .from('contact_requests')
         .insert({
-          user_type: serviceType,
-          service_type: title,
+          user_type: userType,
+          service_type: serviceType,
           name: formData.name,
           email: formData.email,
           phone: formData.phone || null,
@@ -58,8 +61,8 @@ const ContactForm = ({ title, serviceType }: ContactFormProps) => {
           phone: formData.phone,
           company: formData.company,
           message: formData.message,
-          serviceType: title,
-          userType: serviceType,
+          serviceType: serviceType,
+          userType: userType,
         }),
       });
 
