@@ -42,7 +42,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Attempting to send email to gestioneappuntamenti@sicurazienda.com");
     const emailResponse = await resend.emails.send({
-      from: "SicurAzienda <noreply@sicurazienda.com>",
+      from: "SicurAzienda <onboarding@resend.dev>",
       to: ["gestioneappuntamenti@sicurazienda.com"],
       subject: `Nuova richiesta: ${contactData.serviceType} - ${contactData.name}`,
       html: emailHtml,
