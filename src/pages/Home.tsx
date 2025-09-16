@@ -4,6 +4,7 @@ import ServiceCard from "@/components/ServiceCard";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import heroBackground from "@/assets/hero-background.jpg";
 import { 
   UserPlus, 
   Users, 
@@ -24,8 +25,12 @@ const Home = () => {
       
       <main className="container mx-auto p-4 pb-20">
         {/* Hero Section */}
-        <Card className="mb-6 gradient-sicur text-white">
-          <CardContent className="p-6 text-center">
+        <Card className="mb-6 gradient-sicur text-white relative overflow-hidden">
+          <div 
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-20"
+            style={{ backgroundImage: `url(${heroBackground})` }}
+          />
+          <CardContent className="relative z-10 p-6 text-center">
             <Shield className="h-16 w-16 mx-auto mb-4 opacity-90" />
             <h2 className="text-2xl font-bold mb-2">Sicurezza sul Lavoro</h2>
             <p className="text-lg opacity-90 mb-4">
