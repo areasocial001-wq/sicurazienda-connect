@@ -1,112 +1,248 @@
+import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import BottomNav from "@/components/BottomNav";
+import AuthModal from "@/components/AuthModal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/lib/supabase";
+import { useToast } from "@/hooks/use-toast";
 import { 
   Lock,
   Database,
   Upload,
   Download,
   FileText,
-  AlertCircle
+  AlertCircle,
+  LogOut,
+  User
 } from "lucide-react";
 
 const Documents = () => {
+  const { user, loading, signOut } = useAuth();
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [documents, setDocuments] = useState<any[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const { toast } = useToast();
+
+  const documentCategories = [
+    "Registro AGEA APS",
+    "Manutenzione 24-25-26", 
+    "Verbale Informazione",
+    "DVR",
+    "Neo Assunzione",
+    "Consegna"
+  ];
+
+  useEffect(() => {
+    if (user) {
+      fetchDocuments();
+    }
+  }, [user]);
+
+  const fetchDocuments = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('documents')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setDocuments(data || []);
+    } catch (error) {
+      console.error('Error fetching documents:', error);
+    }
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      setUploading(true);
+      
+      if (!event.target.files || event.target.files.length === 0) {
+        throw new Error('Devi selezionare un file da caricare.');
+      }
+
+      const file = event.target.files[0];
+      const fileExt = file.name.split('.').pop();
+      const filePath = `${user!.id}/${Math.random()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('documents')
+        .upload(filePath, file);
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      const { error: dbError } = await supabase
+        .from('documents')
+        .insert({
+          user_id: user!.id,
+          name: file.name,
+          file_path: filePath,
+          file_type: file.type,
+          category: 'Upload Utente'
+        });
+
+      if (dbError) throw dbError;
+
+      toast({
+        title: "Upload completato",
+        description: "Il documento è stato caricato con successo.",
+      });
+
+      fetchDocuments();
+    } catch (error: any) {
+      toast({
+        title: "Errore upload",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDownload = async (filePath: string, fileName: string) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from('documents')
+        .download(filePath);
+
+      if (error) throw error;
+
+      const url = URL.createObjectURL(data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error: any) {
+      toast({
+        title: "Errore download",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSignOut = async () => {
+    const { error } = await signOut();
+    if (!error) {
+      toast({
+        title: "Disconnessione effettuata",
+        description: "A presto!",
+      });
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p>Caricamento...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        
+        <main className="container mx-auto p-4 pb-20">
+          <div className="text-center mb-6">
+            <Lock className="h-12 w-12 mx-auto mb-3 text-muted-foreground" />
+            <h2 className="text-2xl font-bold mb-2">Area Documenti Riservata</h2>
+            <p className="text-muted-foreground">
+              Accesso sicuro ai documenti aziendali
+            </p>
+          </div>
+
+          <Alert className="mb-6">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Per accedere all'area documenti è necessario effettuare l'accesso.
+            </AlertDescription>
+          </Alert>
+
+          <div className="text-center">
+            <Button onClick={() => setAuthModalOpen(true)} size="lg">
+              <User className="h-5 w-5 mr-2" />
+              Accedi / Registrati
+            </Button>
+          </div>
+
+          <AuthModal 
+            open={authModalOpen} 
+            onOpenChange={setAuthModalOpen} 
+          />
+        </main>
+        
+        <BottomNav />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
       
       <main className="container mx-auto p-4 pb-20">
-        <div className="text-center mb-6">
-          <Lock className="h-12 w-12 mx-auto mb-3 text-muted-foreground" />
-          <h2 className="text-2xl font-bold mb-2">Area Documenti Riservata</h2>
-          <p className="text-muted-foreground">
-            Accesso sicuro ai documenti aziendali
-          </p>
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h2 className="text-2xl font-bold">Area Documenti</h2>
+            <p className="text-muted-foreground">
+              Benvenuto, {user.email}
+            </p>
+          </div>
+          <Button variant="outline" onClick={handleSignOut}>
+            <LogOut className="h-4 w-4 mr-2" />
+            Esci
+          </Button>
         </div>
-
-        <Alert className="mb-6">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            Per accedere all'area documenti è necessaria l'integrazione con il database aziendale.
-          </AlertDescription>
-        </Alert>
 
         <Card className="mb-4">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Database className="h-5 w-5" />
-              Documenti Disponibili
+              I Tuoi Documenti
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              <div className="flex items-center justify-between p-3 border rounded-lg">
-                <div className="flex items-center gap-3">
-                  <FileText className="h-5 w-5 text-muted-foreground" />
-                  <span className="font-medium">Registro AGEA APS</span>
+              {documents.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <FileText className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                  <p>Nessun documento disponibile</p>
+                  <p className="text-sm">Carica il tuo primo documento qui sotto</p>
                 </div>
-                <Button variant="outline" size="sm" disabled>
-                  <Download className="h-4 w-4 mr-1" />
-                  Download
-                </Button>
-              </div>
-              
-              <div className="flex items-center justify-between p-3 border rounded-lg">
-                <div className="flex items-center gap-3">
-                  <FileText className="h-5 w-5 text-muted-foreground" />
-                  <span className="font-medium">Manutenzione 24-25-26</span>
-                </div>
-                <Button variant="outline" size="sm" disabled>
-                  <Download className="h-4 w-4 mr-1" />
-                  Download
-                </Button>
-              </div>
-              
-              <div className="flex items-center justify-between p-3 border rounded-lg">
-                <div className="flex items-center gap-3">
-                  <FileText className="h-5 w-5 text-muted-foreground" />
-                  <span className="font-medium">Verbale Informazione</span>
-                </div>
-                <Button variant="outline" size="sm" disabled>
-                  <Download className="h-4 w-4 mr-1" />
-                  Download
-                </Button>
-              </div>
-              
-              <div className="flex items-center justify-between p-3 border rounded-lg">
-                <div className="flex items-center gap-3">
-                  <FileText className="h-5 w-5 text-muted-foreground" />
-                  <span className="font-medium">DVR</span>
-                </div>
-                <Button variant="outline" size="sm" disabled>
-                  <Download className="h-4 w-4 mr-1" />
-                  Download
-                </Button>
-              </div>
-              
-              <div className="flex items-center justify-between p-3 border rounded-lg">
-                <div className="flex items-center gap-3">
-                  <FileText className="h-5 w-5 text-muted-foreground" />
-                  <span className="font-medium">Neo Assunzione</span>
-                </div>
-                <Button variant="outline" size="sm" disabled>
-                  <Download className="h-4 w-4 mr-1" />
-                  Download
-                </Button>
-              </div>
-              
-              <div className="flex items-center justify-between p-3 border rounded-lg">
-                <div className="flex items-center gap-3">
-                  <FileText className="h-5 w-5 text-muted-foreground" />
-                  <span className="font-medium">Consegna</span>
-                </div>
-                <Button variant="outline" size="sm" disabled>
-                  <Download className="h-4 w-4 mr-1" />
-                  Download
-                </Button>
-              </div>
+              ) : (
+                documents.map((doc) => (
+                  <div key={doc.id} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <FileText className="h-5 w-5 text-muted-foreground" />
+                      <div>
+                        <span className="font-medium block">{doc.name}</span>
+                        <span className="text-sm text-muted-foreground">{doc.category}</span>
+                      </div>
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleDownload(doc.file_path, doc.name)}
+                    >
+                      <Download className="h-4 w-4 mr-1" />
+                      Download
+                    </Button>
+                  </div>
+                ))
+              )}
             </div>
           </CardContent>
         </Card>
@@ -122,23 +258,25 @@ const Documents = () => {
             <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center">
               <Upload className="h-12 w-12 mx-auto mb-3 text-muted-foreground" />
               <p className="text-muted-foreground mb-3">
-                Trascina qui i tuoi documenti o clicca per selezionarli
+                Carica i tuoi documenti aziendali
               </p>
-              <Button variant="outline" disabled>
-                Seleziona File
+              <input
+                type="file"
+                onChange={handleFileUpload}
+                style={{ display: 'none' }}
+                id="file-upload"
+                accept=".pdf,.doc,.docx,.xlsx,.xls,.jpg,.jpeg,.png"
+              />
+              <Button 
+                variant="outline" 
+                onClick={() => document.getElementById('file-upload')?.click()}
+                disabled={uploading}
+              >
+                {uploading ? 'Caricamento...' : 'Seleziona File'}
               </Button>
             </div>
           </CardContent>
         </Card>
-
-        <div className="mt-6 text-center">
-          <p className="text-sm text-muted-foreground mb-3">
-            Per attivare l'area documenti completa è necessario configurare il database aziendale.
-          </p>
-          <Button variant="secondary">
-            Richiedi Attivazione
-          </Button>
-        </div>
       </main>
       
       <BottomNav />
