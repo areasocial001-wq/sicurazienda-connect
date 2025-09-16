@@ -39,7 +39,7 @@ const Home = () => {
             <Button 
               onClick={() => navigate("/new-client")}
               variant="secondary"
-              className="bg-white text-primary hover:bg-white/90"
+              className="bg-white text-secondary hover:bg-white/90"
             >
               Richiedi Check-up Gratuito
             </Button>
