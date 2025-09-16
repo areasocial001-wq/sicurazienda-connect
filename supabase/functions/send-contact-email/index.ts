@@ -26,6 +26,7 @@ const handler = async (req: Request): Promise<Response> => {
 
   try {
     const contactData: ContactRequest = await req.json();
+    console.log("Received contact data:", contactData);
 
     const emailHtml = `
       <h2>Nuova richiesta di contatto</h2>
@@ -39,12 +40,20 @@ const handler = async (req: Request): Promise<Response> => {
       <p><strong>Data richiesta:</strong> ${new Date().toLocaleString('it-IT')}</p>
     `;
 
+    console.log("Attempting to send email to gestioneappuntamenti@sicurazienda.com");
     const emailResponse = await resend.emails.send({
       from: "SicurAzienda <noreply@sicurazienda.com>",
       to: ["gestioneappuntamenti@sicurazienda.com"],
       subject: `Nuova richiesta: ${contactData.serviceType} - ${contactData.name}`,
       html: emailHtml,
     });
+
+    console.log("Resend response:", emailResponse);
+
+    if (emailResponse.error) {
+      console.error("Resend error:", emailResponse.error);
+      throw new Error(`Resend error: ${emailResponse.error.message}`);
+    }
 
     return new Response(JSON.stringify(emailResponse), {
       status: 200,
