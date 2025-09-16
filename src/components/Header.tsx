@@ -1,4 +1,4 @@
-import logoImg from "@/assets/sicurazienda-logo.png";
+import logoImg from "@/assets/sicurazienda-logo-optimized.png";
 import headerBg from "@/assets/header-background.jpg";
 
 const Header = () => {
@@ -11,7 +11,7 @@ const Header = () => {
         <img 
           src={logoImg} 
           alt="SicurAzienda - l'azione di tanti per la sicurezza di tutti" 
-          className="h-40 object-contain"
+          className="h-48 object-contain"
         />
       </div>
     </header>
