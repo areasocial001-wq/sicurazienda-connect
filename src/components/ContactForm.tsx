@@ -28,22 +28,26 @@ const ContactForm = ({ title, serviceType }: ContactFormProps) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    try {
-      // Determina il tipo di utente dal titolo
-      const userType = title.toLowerCase().includes('nuovo cliente') ? 'new_client' : 'existing_client';
-      
-      // Salva nel database
-      const { error: dbError } = await supabase
-        .from('contact_requests')
-        .insert({
-          user_type: userType,
-          service_type: serviceType,
-          name: formData.name,
-          email: formData.email,
-          phone: formData.phone || null,
-          company: formData.company || null,
-          message: formData.message || null,
-        });
+     try {
+       // Determina il tipo di utente dal titolo
+       const userType = title.toLowerCase().includes('nuovo cliente') ? 'new_client' : 'existing_client';
+       
+       console.log('DEBUG - Title:', title);
+       console.log('DEBUG - ServiceType:', serviceType);
+       console.log('DEBUG - UserType determinato:', userType);
+       
+       // Salva nel database
+       const { error: dbError } = await supabase
+         .from('contact_requests')
+         .insert({
+           user_type: userType,
+           service_type: serviceType,
+           name: formData.name,
+           email: formData.email,
+           phone: formData.phone || null,
+           company: formData.company || null,
+           message: formData.message || null,
+         });
 
       if (dbError) {
         throw new Error('Errore nel salvataggio: ' + dbError.message);
