@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ContactFormProps {
   title: string;
@@ -24,23 +25,69 @@ const ContactForm = ({ title, serviceType }: ContactFormProps) => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Simula invio form
-    toast({
-      title: "Richiesta inviata!",
-      description: "Vi contatteremo entro 24 ore lavorative.",
-    });
-    
-    // Reset form
-    setFormData({
-      name: "",
-      email: "",
-      phone: "",
-      company: "",
-      message: ""
-    });
+    try {
+      // Salva nel database
+      const { error: dbError } = await supabase
+        .from('contact_requests')
+        .insert({
+          user_type: serviceType,
+          service_type: title,
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone || null,
+          company: formData.company || null,
+          message: formData.message || null,
+        });
+
+      if (dbError) {
+        throw new Error('Errore nel salvataggio: ' + dbError.message);
+      }
+
+      // Invia email
+      const response = await fetch(`https://obzflzotzvwlmgyjxfpv.supabase.co/functions/v1/send-contact-email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+          company: formData.company,
+          message: formData.message,
+          serviceType: title,
+          userType: serviceType,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Errore nell\'invio dell\'email');
+      }
+
+      toast({
+        title: "Richiesta inviata!",
+        description: "Vi contatteremo entro 24 ore lavorative.",
+      });
+      
+      // Reset form
+      setFormData({
+        name: "",
+        email: "",
+        phone: "",
+        company: "",
+        message: ""
+      });
+    } catch (error) {
+      console.error('Errore:', error);
+      toast({
+        title: "Errore",
+        description: "Errore nell'invio della richiesta. Riprova.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
