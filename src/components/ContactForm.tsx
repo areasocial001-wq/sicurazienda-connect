@@ -12,9 +12,10 @@ import { supabase } from "@/integrations/supabase/client";
 interface ContactFormProps {
   title: string;
   serviceType: string;
+  clientType?: string;
 }
 
-const ContactForm = ({ title, serviceType }: ContactFormProps) => {
+const ContactForm = ({ title, serviceType, clientType = "new" }: ContactFormProps) => {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -29,11 +30,17 @@ const ContactForm = ({ title, serviceType }: ContactFormProps) => {
     e.preventDefault();
     
      try {
-       // Determina il tipo di utente dal titolo
-       const userType = title.toLowerCase().includes('nuovo cliente') ? 'new_client' : 'existing_client';
+       // Determina il tipo di utente dal clientType o dal titolo
+       let userType: string;
+       if (clientType) {
+         userType = clientType === 'new' ? 'new_client' : 'existing_client';
+       } else {
+         userType = title.toLowerCase().includes('nuovo cliente') ? 'new_client' : 'existing_client';
+       }
        
        console.log('DEBUG - Title:', title);
        console.log('DEBUG - ServiceType:', serviceType);
+       console.log('DEBUG - ClientType:', clientType);
        console.log('DEBUG - UserType determinato:', userType);
        
        // Salva nel database
