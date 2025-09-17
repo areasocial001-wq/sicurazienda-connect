@@ -70,6 +70,13 @@ const Home = () => {
             icon={FileCheck}
             onClick={() => navigate("/documents")}
           />
+          
+          <ServiceCard
+            title="Dashboard Admin"
+            description="Amministrazione e gestione utenti"
+            icon={Shield}
+            onClick={() => navigate("/admin")}
+          />
         </div>
 
         {/* Quick Contact */}

@@ -7,7 +7,7 @@ import AuthModal from '@/components/AuthModal'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { FileText, Download, User, Calendar, Building, Shield } from 'lucide-react'
+import { FileText, Download, User, Calendar, Building, Shield, Settings } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface DocumentWithUser {
@@ -274,15 +274,29 @@ export default function AdminDashboard() {
       <div className="min-h-screen bg-gradient-to-br from-primary/20 via-background to-secondary/20 py-8 px-4">
         <div className="max-w-7xl mx-auto">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-foreground mb-2">
-              Dashboard {getRoleDisplayName()}
-            </h1>
-            <p className="text-muted-foreground">
-              {isAdmin 
-                ? 'Gestisci tutti i documenti e gli utenti della piattaforma'
-                : `Visualizza e gestisci i documenti di competenza dell'${getRoleDisplayName()}`
-              }
-            </p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold text-foreground mb-2">
+                  Dashboard {getRoleDisplayName()}
+                </h1>
+                <p className="text-muted-foreground">
+                  {isAdmin 
+                    ? 'Gestisci tutti i documenti e gli utenti della piattaforma'
+                    : `Visualizza e gestisci i documenti di competenza dell'${getRoleDisplayName()}`
+                  }
+                </p>
+              </div>
+              {isAdmin && (
+                <Button 
+                  onClick={() => window.location.href = '/user-roles'}
+                  variant="outline"
+                  className="flex items-center gap-2"
+                >
+                  <Settings className="h-4 w-4" />
+                  Gestione Ruoli
+                </Button>
+              )}
+            </div>
           </div>
 
           {/* Stats Cards */}
