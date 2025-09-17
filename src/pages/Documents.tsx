@@ -16,7 +16,7 @@ import {
   Upload,
   Download,
   FileText,
-  AlertCircle,
+  AlertTriangle,
   LogOut,
   User,
   Settings
@@ -170,7 +170,7 @@ const Documents = () => {
           </div>
 
           <Alert className="mb-6">
-            <AlertCircle className="h-4 w-4" />
+            <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
               Per accedere all'area documenti è necessario effettuare l'accesso.
             </AlertDescription>
@@ -271,25 +271,42 @@ const Documents = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center">
-              <Upload className="h-12 w-12 mx-auto mb-3 text-muted-foreground" />
-              <p className="text-muted-foreground mb-3">
-                Carica i tuoi documenti aziendali
-              </p>
-              <input
-                type="file"
-                onChange={handleFileUpload}
-                style={{ display: 'none' }}
-                id="file-upload"
-                accept=".pdf,.doc,.docx,.xlsx,.xls,.jpg,.jpeg,.png"
-              />
-              <Button 
-                variant="outline" 
-                onClick={() => document.getElementById('file-upload')?.click()}
-                disabled={uploading}
-              >
-                {uploading ? 'Caricamento...' : 'Seleziona File'}
-              </Button>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium mb-2 block">Area di Competenza</label>
+                <Select value={selectedArea} onValueChange={setSelectedArea}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleziona area di competenza" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {areaCompetenza.map((area) => (
+                      <SelectItem key={area.value} value={area.value}>
+                        {area.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center">
+                <Upload className="h-12 w-12 mx-auto mb-3 text-muted-foreground" />
+                <p className="text-muted-foreground mb-3">
+                  Carica i tuoi documenti aziendali
+                </p>
+                <input
+                  type="file"
+                  onChange={handleFileUpload}
+                  style={{ display: 'none' }}
+                  id="file-upload"
+                  accept=".pdf,.doc,.docx,.xlsx,.xls,.jpg,.jpeg,.png"
+                />
+                <Button 
+                  variant="outline" 
+                  onClick={() => document.getElementById('file-upload')?.click()}
+                  disabled={uploading}
+                >
+                  {uploading ? 'Caricamento...' : 'Seleziona File'}
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
