@@ -16,6 +16,7 @@ interface DocumentWithUser {
   file_path: string
   file_type: string | null
   category: string | null
+  area_competenza?: string | null
   created_at: string
   updated_at: string
   user_id: string
@@ -27,7 +28,7 @@ interface DocumentWithUser {
 
 export default function AdminDashboard() {
   const { user, signOut } = useAuth()
-  const { isAdmin, loading: roleLoading } = useUserRole()
+  const { isAdmin, isAreaAziendale, role, getRoleDisplayName, loading: roleLoading } = useUserRole()
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [documents, setDocuments] = useState<DocumentWithUser[]>([])
   const [loading, setLoading] = useState(true)
@@ -37,39 +38,44 @@ export default function AdminDashboard() {
     documentsThisMonth: 0
   })
 
+  // Permettere accesso ad admin e ruoli aziendali
+  const hasAccess = isAdmin || isAreaAziendale
+
   useEffect(() => {
-    if (!roleLoading && user && isAdmin) {
+    if (!roleLoading && user && hasAccess) {
       fetchDocuments()
       fetchStats()
-    } else if (!roleLoading && !isAdmin) {
+    } else if (!roleLoading && !hasAccess) {
       setLoading(false)
     }
-  }, [user, isAdmin, roleLoading])
+  }, [user, hasAccess, roleLoading])
 
   const fetchDocuments = async () => {
     try {
+      if (!role) return
+      
+      // Usare la funzione RPC per ottenere documenti filtrati per ruolo
       const { data: documentsData, error: docsError } = await supabase
-        .from('documents')
-        .select('*')
-        .order('created_at', { ascending: false })
+        .rpc('get_documents_for_role', { user_role: role })
 
       if (docsError) throw docsError
 
-      // Get user profiles for each document
-      const documentsWithProfiles = await Promise.all(
-        (documentsData || []).map(async (doc) => {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('full_name, company_name')
-            .eq('user_id', doc.user_id)
-            .single()
-
-          return {
-            ...doc,
-            profiles: profile || { full_name: null, company_name: null }
-          }
-        })
-      )
+      // Trasformare i dati nel formato corretto
+      const documentsWithProfiles = (documentsData || []).map((doc: any) => ({
+        id: doc.id,
+        name: doc.name,
+        file_path: doc.file_path,
+        file_type: doc.file_type,
+        category: doc.category,
+        area_competenza: doc.area_competenza,
+        created_at: doc.created_at,
+        updated_at: doc.updated_at,
+        user_id: doc.user_id,
+        profiles: {
+          full_name: doc.full_name,
+          company_name: doc.company_name
+        }
+      }))
 
       setDocuments(documentsWithProfiles)
     } catch (error) {
@@ -200,7 +206,7 @@ export default function AdminDashboard() {
     )
   }
 
-  if (!isAdmin) {
+  if (!hasAccess) {
     return (
       <>
         <header className="bg-primary text-primary-foreground shadow-lg">
@@ -229,7 +235,7 @@ export default function AdminDashboard() {
             <CardContent className="space-y-4">
               <p className="text-center text-muted-foreground">
                 Non hai i permessi necessari per accedere a questa area. 
-                Solo gli amministratori possono visualizzare questa dashboard.
+                Solo gli amministratori e le aree aziendali possono visualizzare questa dashboard.
               </p>
               <Button 
                 onClick={() => window.location.href = '/documents'}
@@ -268,8 +274,15 @@ export default function AdminDashboard() {
       <div className="min-h-screen bg-gradient-to-br from-primary/20 via-background to-secondary/20 py-8 px-4">
         <div className="max-w-7xl mx-auto">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-foreground mb-2">Dashboard Amministrativa</h1>
-            <p className="text-muted-foreground">Gestisci tutti i documenti e gli utenti della piattaforma</p>
+            <h1 className="text-3xl font-bold text-foreground mb-2">
+              Dashboard {getRoleDisplayName()}
+            </h1>
+            <p className="text-muted-foreground">
+              {isAdmin 
+                ? 'Gestisci tutti i documenti e gli utenti della piattaforma'
+                : `Visualizza e gestisci i documenti di competenza dell'${getRoleDisplayName()}`
+              }
+            </p>
           </div>
 
           {/* Stats Cards */}
@@ -323,13 +336,18 @@ export default function AdminDashboard() {
                   {documents.map((doc) => (
                     <div key={doc.id} className="flex items-center justify-between p-4 border rounded-lg">
                       <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <FileText className="h-5 w-5 text-primary" />
-                          <h3 className="font-medium">{doc.name}</h3>
-                          {doc.category && (
-                            <Badge variant="secondary">{doc.category}</Badge>
-                          )}
-                        </div>
+                         <div className="flex items-center gap-3 mb-2">
+                           <FileText className="h-5 w-5 text-primary" />
+                           <h3 className="font-medium">{doc.name}</h3>
+                           {doc.category && (
+                             <Badge variant="secondary">{doc.category}</Badge>
+                           )}
+                           {doc.area_competenza && (
+                             <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+                               {doc.area_competenza.charAt(0).toUpperCase() + doc.area_competenza.slice(1).replace('_', ' ')}
+                             </Badge>
+                           )}
+                         </div>
                         <div className="flex items-center gap-4 text-sm text-muted-foreground">
                           <div className="flex items-center gap-1">
                             <User className="h-4 w-4" />

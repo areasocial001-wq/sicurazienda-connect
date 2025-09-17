@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { 
   Lock,
   Database,
@@ -27,15 +28,15 @@ const Documents = () => {
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [documents, setDocuments] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [selectedArea, setSelectedArea] = useState<string>('generale');
   const { toast } = useToast();
 
-  const documentCategories = [
-    "Registro AGEA APS",
-    "Manutenzione 24-25-26", 
-    "Verbale Informazione",
-    "DVR",
-    "Neo Assunzione",
-    "Consegna"
+  const areaCompetenza = [
+    { value: 'generale', label: 'Generale' },
+    { value: 'contabilita', label: 'Contabilità' },
+    { value: 'area_tecnica', label: 'Area Tecnica' },
+    { value: 'gestione_corsi', label: 'Gestione Corsi' },
+    { value: 'consulenti_tecnici', label: 'Consulenti Tecnici' }
   ];
 
   useEffect(() => {
@@ -85,7 +86,8 @@ const Documents = () => {
           name: file.name,
           file_path: filePath,
           file_type: file.type,
-          category: 'Upload Utente'
+          category: 'Upload Utente',
+          area_competenza: selectedArea
         });
 
       if (dbError) throw dbError;

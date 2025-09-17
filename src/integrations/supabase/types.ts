@@ -142,6 +142,22 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_documents_for_role: {
+        Args: { user_role: Database["public"]["Enums"]["app_role"] }
+        Returns: {
+          area_competenza: string
+          category: string
+          company_name: string
+          created_at: string
+          file_path: string
+          file_type: string
+          full_name: string
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }[]
+      }
       get_user_role: {
         Args: { user_uuid: string }
         Returns: Database["public"]["Enums"]["app_role"]

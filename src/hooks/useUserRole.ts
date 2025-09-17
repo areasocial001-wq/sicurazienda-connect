@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/integrations/supabase/client'
 import { useAuth } from './useAuth'
 
-export type UserRole = 'admin' | 'user' | null
+export type UserRole = 'admin' | 'user' | 'contabilita' | 'area_tecnica' | 'gestione_corsi' | 'consulenti_tecnici' | null
 
 export function useUserRole() {
   const [role, setRole] = useState<UserRole>(null)
@@ -43,11 +43,34 @@ export function useUserRole() {
 
   const isAdmin = role === 'admin'
   const isUser = role === 'user'
+  const isContabilita = role === 'contabilita'
+  const isAreaTecnica = role === 'area_tecnica'
+  const isGestioneCorsi = role === 'gestione_corsi'
+  const isConsulentiTecnici = role === 'consulenti_tecnici'
+  const isAreaAziendale = ['contabilita', 'area_tecnica', 'gestione_corsi', 'consulenti_tecnici'].includes(role || '')
+
+  const getRoleDisplayName = () => {
+    switch (role) {
+      case 'admin': return 'Amministratore'
+      case 'contabilita': return 'Contabilità'
+      case 'area_tecnica': return 'Area Tecnica'
+      case 'gestione_corsi': return 'Gestione Corsi'
+      case 'consulenti_tecnici': return 'Consulenti Tecnici'
+      case 'user': return 'Utente'
+      default: return 'Non definito'
+    }
+  }
 
   return {
     role,
     loading,
     isAdmin,
     isUser,
+    isContabilita,
+    isAreaTecnica,
+    isGestioneCorsi,
+    isConsulentiTecnici,
+    isAreaAziendale,
+    getRoleDisplayName,
   }
 }
