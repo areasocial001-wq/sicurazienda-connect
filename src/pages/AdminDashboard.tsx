@@ -38,17 +38,17 @@ export default function AdminDashboard() {
     documentsThisMonth: 0
   })
 
-  // Permettere accesso ad admin e ruoli aziendali
-  const hasAccess = isAdmin || isAreaAziendale
-
   useEffect(() => {
+    // Calcolare hasAccess solo dopo che i ruoli sono caricati
+    const hasAccess = isAdmin || isAreaAziendale
+    
     if (!roleLoading && user && hasAccess) {
       fetchDocuments()
       fetchStats()
-    } else if (!roleLoading && !hasAccess) {
+    } else if (!roleLoading && user && !hasAccess) {
       setLoading(false)
     }
-  }, [user, hasAccess, roleLoading])
+  }, [user, isAdmin, isAreaAziendale, roleLoading])
 
   const fetchDocuments = async () => {
     try {
@@ -206,7 +206,8 @@ export default function AdminDashboard() {
     )
   }
 
-  if (!hasAccess) {
+  // Controllare accesso solo dopo che i ruoli sono caricati
+  if (!isAdmin && !isAreaAziendale) {
     return (
       <>
         <header className="bg-primary text-primary-foreground shadow-lg">
