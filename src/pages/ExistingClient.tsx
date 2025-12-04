@@ -60,7 +60,8 @@ const ExistingClient = () => {
       id: "documents",
       title: "Per Documenti",
       description: "Gestione documentazione aziendale",
-      icon: FileText
+      icon: FileText,
+      navigateTo: "/documents"
     },
     {
       id: "funding",
