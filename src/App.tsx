@@ -9,11 +9,13 @@ import ExistingClient from "./pages/ExistingClient";
 import Documents from "./pages/Documents";
 import Attestati from "./pages/Attestati";
 import QRCodeHistory from "./pages/QRCodeHistory";
+import QRRedirect from "./pages/QRRedirect";
 import AdminDashboard from "./pages/AdminDashboard";
 import UserRoleManager from "./pages/UserRoleManager";
 import ContactRequest from "./pages/ContactRequest";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
+import ScanNotifications from "./components/ScanNotifications";
 
 const queryClient = new QueryClient();
 
@@ -23,6 +25,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <ScanNotifications />
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/new-client" element={<NewClient />} />
@@ -30,6 +33,7 @@ const App = () => (
           <Route path="/documents" element={<Documents />} />
           <Route path="/attestati" element={<Attestati />} />
           <Route path="/qr-history" element={<QRCodeHistory />} />
+          <Route path="/qr/:id" element={<QRRedirect />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/user-roles" element={<UserRoleManager />} />
           <Route path="/contact-request" element={<ContactRequest />} />
