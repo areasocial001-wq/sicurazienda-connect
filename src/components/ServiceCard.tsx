@@ -7,9 +7,10 @@ interface ServiceCardProps {
   icon: LucideIcon;
   onClick: () => void;
   variant?: "primary" | "secondary" | "success";
+  animateIcon?: boolean;
 }
 
-const ServiceCard = ({ title, description, icon: Icon, onClick, variant = "primary" }: ServiceCardProps) => {
+const ServiceCard = ({ title, description, icon: Icon, onClick, variant = "primary", animateIcon = false }: ServiceCardProps) => {
   const getVariantClasses = () => {
     switch (variant) {
       case "secondary":
@@ -40,7 +41,7 @@ const ServiceCard = ({ title, description, icon: Icon, onClick, variant = "prima
       <CardContent className="p-6">
         <div className="flex items-center space-x-4">
           <div className={`p-3 rounded-full ${getIconClasses()}`}>
-            <Icon className="h-6 w-6" />
+            <Icon className={`h-6 w-6 ${animateIcon ? "animate-pulse" : ""}`} />
           </div>
           <div className="flex-1">
             <h3 className="font-semibold text-lg">{title}</h3>

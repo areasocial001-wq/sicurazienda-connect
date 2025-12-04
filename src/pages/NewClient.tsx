@@ -22,7 +22,8 @@ const NewClient = () => {
       title: "Check-up Gratuito",
       description: "Analisi completa della situazione aziendale",
       icon: CheckCircle,
-      variant: "success" as const
+      variant: "success" as const,
+      animateIcon: true
     },
     {
       id: "inspection",
@@ -100,6 +101,7 @@ const NewClient = () => {
               icon={service.icon}
               onClick={() => handleServiceClick(service)}
               variant={service.variant}
+              animateIcon={service.animateIcon}
             />
           ))}
         </div>
