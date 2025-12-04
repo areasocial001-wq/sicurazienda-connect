@@ -30,7 +30,9 @@ const ContactForm = ({ title, serviceType, clientType = "new" }: ContactFormProp
     startDate: "",
     endDate: "",
     contractType: "",
-    jobRole: ""
+    contractTypeOther: "",
+    jobRole: "",
+    jobRoleOther: ""
   });
   const [fiscalCodeError, setFiscalCodeError] = useState("");
   const { toast } = useToast();
@@ -76,13 +78,20 @@ const ContactForm = ({ title, serviceType, clientType = "new" }: ContactFormProp
        // Costruisci il messaggio includendo i campi extra se presenti
        let fullMessage = formData.message || "";
        if (showExtraFields) {
+         const contractTypeDisplay = formData.contractType === "altro" 
+           ? `Altro: ${formData.contractTypeOther}` 
+           : formData.contractType;
+         const jobRoleDisplay = formData.jobRole === "altro" 
+           ? `Altro: ${formData.jobRoleOther}` 
+           : formData.jobRole;
+         
          const extraInfo = [
            `Luogo di nascita: ${formData.birthPlace}`,
            `Data di nascita: ${formData.birthDate}`,
            `Codice Fiscale: ${formData.fiscalCode}`,
            isNeoInserimento ? `Data inizio: ${formData.startDate}` : `Data fine: ${formData.endDate}`,
-           `Tipologia contratto: ${formData.contractType}`,
-           `Mansione: ${formData.jobRole}`
+           `Tipologia contratto: ${contractTypeDisplay}`,
+           `Mansione: ${jobRoleDisplay}`
          ].join("\n");
          fullMessage = extraInfo + (fullMessage ? "\n\nNote aggiuntive:\n" + fullMessage : "");
        }
@@ -139,7 +148,9 @@ const ContactForm = ({ title, serviceType, clientType = "new" }: ContactFormProp
         startDate: "",
         endDate: "",
         contractType: "",
-        jobRole: ""
+        contractTypeOther: "",
+        jobRole: "",
+        jobRoleOther: ""
       });
     } catch (error) {
       console.error('Errore:', error);
@@ -315,6 +326,16 @@ const ContactForm = ({ title, serviceType, clientType = "new" }: ContactFormProp
                         <SelectItem value="altro">Altro</SelectItem>
                       </SelectContent>
                     </Select>
+                    {formData.contractType === "altro" && (
+                      <Input
+                        className="mt-2"
+                        name="contractTypeOther"
+                        value={formData.contractTypeOther}
+                        onChange={handleChange}
+                        placeholder="Specifica tipologia contratto..."
+                        required
+                      />
+                    )}
                   </div>
                   <div>
                     <Label htmlFor="jobRole">Mansione *</Label>
@@ -336,6 +357,16 @@ const ContactForm = ({ title, serviceType, clientType = "new" }: ContactFormProp
                         <SelectItem value="altro">Altro</SelectItem>
                       </SelectContent>
                     </Select>
+                    {formData.jobRole === "altro" && (
+                      <Input
+                        className="mt-2"
+                        name="jobRoleOther"
+                        value={formData.jobRoleOther}
+                        onChange={handleChange}
+                        placeholder="Specifica mansione..."
+                        required
+                      />
+                    )}
                   </div>
                 </div>
               </>
