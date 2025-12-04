@@ -146,6 +146,47 @@ export type Database = {
         }
         Relationships: []
       }
+      qr_codes: {
+        Row: {
+          created_at: string
+          created_by: string
+          document_id: string
+          document_name: string
+          id: string
+          public_url: string
+          sent_at: string | null
+          sent_to_email: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          document_id: string
+          document_name: string
+          id?: string
+          public_url: string
+          sent_at?: string | null
+          sent_to_email?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          document_id?: string
+          document_name?: string
+          id?: string
+          public_url?: string
+          sent_at?: string | null
+          sent_to_email?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qr_codes_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string | null

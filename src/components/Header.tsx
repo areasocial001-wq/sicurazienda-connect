@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import AuthModal from "@/components/AuthModal";
-import { User, LogOut, FileText } from "lucide-react";
+import { User, LogOut, FileText, QrCode } from "lucide-react";
 
 const Header = () => {
   const { user, signOut } = useAuth();
@@ -59,6 +59,10 @@ const Header = () => {
                 <DropdownMenuItem onClick={() => navigate("/profile")} className="cursor-pointer">
                   <FileText className="h-4 w-4 mr-2" />
                   Le mie bozze
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/qr-history")} className="cursor-pointer">
+                  <QrCode className="h-4 w-4 mr-2" />
+                  Cronologia QR
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-destructive">

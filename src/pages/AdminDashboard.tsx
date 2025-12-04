@@ -44,7 +44,7 @@ export default function AdminDashboard() {
   const [selectedUserId, setSelectedUserId] = useState<string>('')
   const [uploading, setUploading] = useState(false)
   const [qrModalOpen, setQrModalOpen] = useState(false)
-  const [selectedDocForQR, setSelectedDocForQR] = useState<{ url: string; name: string } | null>(null)
+  const [selectedDocForQR, setSelectedDocForQR] = useState<{ url: string; name: string; id: string } | null>(null)
   const [stats, setStats] = useState({
     totalDocuments: 0,
     totalUsers: 0,
@@ -257,12 +257,12 @@ export default function AdminDashboard() {
     }
   }
 
-  const handleShowQR = (filePath: string, fileName: string) => {
+  const handleShowQR = (docId: string, filePath: string, fileName: string) => {
     const { data } = supabase.storage
       .from('documents')
       .getPublicUrl(filePath)
     
-    setSelectedDocForQR({ url: data.publicUrl, name: fileName })
+    setSelectedDocForQR({ url: data.publicUrl, name: fileName, id: docId })
     setQrModalOpen(true)
   }
 
@@ -561,7 +561,7 @@ export default function AdminDashboard() {
                       </div>
                       <div className="flex items-center gap-2">
                         <Button
-                          onClick={() => handleShowQR(doc.file_path, doc.name)}
+                          onClick={() => handleShowQR(doc.id, doc.file_path, doc.name)}
                           size="sm"
                           variant="outline"
                           title="Genera QR Code"
@@ -602,6 +602,7 @@ export default function AdminDashboard() {
           onOpenChange={setQrModalOpen}
           url={selectedDocForQR.url}
           fileName={selectedDocForQR.name}
+          documentId={selectedDocForQR.id}
         />
       )}
     </>
