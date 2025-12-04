@@ -318,14 +318,24 @@ const ContactForm = ({ title, serviceType, clientType = "new" }: ContactFormProp
                   </div>
                   <div>
                     <Label htmlFor="jobRole">Mansione *</Label>
-                    <Input
-                      id="jobRole"
-                      name="jobRole"
+                    <Select
                       value={formData.jobRole}
-                      onChange={handleChange}
-                      placeholder="Es. Operaio, Impiegato..."
+                      onValueChange={(value) => setFormData({ ...formData, jobRole: value })}
                       required
-                    />
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleziona mansione..." />
+                      </SelectTrigger>
+                      <SelectContent className="bg-background">
+                        <SelectItem value="dirigente">Dirigente</SelectItem>
+                        <SelectItem value="quadro">Quadro</SelectItem>
+                        <SelectItem value="impiegato">Impiegato</SelectItem>
+                        <SelectItem value="operaio">Operaio</SelectItem>
+                        <SelectItem value="apprendista">Apprendista</SelectItem>
+                        <SelectItem value="tirocinante">Tirocinante</SelectItem>
+                        <SelectItem value="altro">Altro</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
               </>
