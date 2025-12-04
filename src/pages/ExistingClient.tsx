@@ -7,7 +7,8 @@ import {
   Headphones,
   UserPlus,
   GraduationCap,
-  Coins
+  Coins,
+  UserMinus
 } from "lucide-react";
 
 const ExistingClient = () => {
@@ -32,6 +33,13 @@ const ExistingClient = () => {
       description: "Gestione nuove assunzioni",
       icon: UserPlus,
       variant: "success" as const
+    },
+    {
+      id: "end-of-work",
+      title: "Rapporto di Fine Lavoro",
+      description: "Gestione cessazione rapporti di lavoro",
+      icon: UserMinus,
+      variant: "secondary" as const
     },
     {
       id: "training",
