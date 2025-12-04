@@ -31,7 +31,7 @@ const ExistingClient = () => {
       title: "Per Neo Inserimento",
       description: "Gestione nuove assunzioni",
       icon: UserPlus,
-      variant: "secondary" as const
+      variant: "success" as const
     },
     {
       id: "training",

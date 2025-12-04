@@ -21,10 +21,23 @@ const ContactForm = ({ title, serviceType, clientType = "new" }: ContactFormProp
     email: "",
     phone: "",
     company: "",
-    message: ""
+    message: "",
+    // Campi aggiuntivi per Neo Inserimento / Fine Lavoro
+    birthPlace: "",
+    birthDate: "",
+    fiscalCode: "",
+    startDate: "",
+    endDate: "",
+    contractType: "",
+    jobRole: ""
   });
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // Determina se mostrare i campi aggiuntivi
+  const isNeoInserimento = serviceType === "Per Neo Inserimento";
+  const isFineLavoro = serviceType === "Rapporto di Fine Lavoro";
+  const showExtraFields = isNeoInserimento || isFineLavoro;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,10 +51,19 @@ const ContactForm = ({ title, serviceType, clientType = "new" }: ContactFormProp
          userType = title.toLowerCase().includes('nuovo cliente') ? 'new_client' : 'existing_client';
        }
        
-       console.log('DEBUG - Title:', title);
-       console.log('DEBUG - ServiceType:', serviceType);
-       console.log('DEBUG - ClientType:', clientType);
-       console.log('DEBUG - UserType determinato:', userType);
+       // Costruisci il messaggio includendo i campi extra se presenti
+       let fullMessage = formData.message || "";
+       if (showExtraFields) {
+         const extraInfo = [
+           `Luogo di nascita: ${formData.birthPlace}`,
+           `Data di nascita: ${formData.birthDate}`,
+           `Codice Fiscale: ${formData.fiscalCode}`,
+           isNeoInserimento ? `Data inizio: ${formData.startDate}` : `Data fine: ${formData.endDate}`,
+           `Tipologia contratto: ${formData.contractType}`,
+           `Mansione: ${formData.jobRole}`
+         ].join("\n");
+         fullMessage = extraInfo + (fullMessage ? "\n\nNote aggiuntive:\n" + fullMessage : "");
+       }
        
        // Salva nel database
        const { error: dbError } = await supabase
@@ -53,7 +75,7 @@ const ContactForm = ({ title, serviceType, clientType = "new" }: ContactFormProp
            email: formData.email,
            phone: formData.phone || null,
            company: formData.company || null,
-           message: formData.message || null,
+           message: fullMessage || null,
          });
 
       if (dbError) {
@@ -61,13 +83,13 @@ const ContactForm = ({ title, serviceType, clientType = "new" }: ContactFormProp
       }
 
       // Invia email usando supabase.functions.invoke
-      const { data: emailData, error: emailError } = await supabase.functions.invoke('send-contact-email', {
+      const { error: emailError } = await supabase.functions.invoke('send-contact-email', {
         body: {
           name: formData.name,
           email: formData.email,
           phone: formData.phone,
           company: formData.company,
-          message: formData.message,
+          message: fullMessage,
           serviceType: serviceType,
           userType: userType,
         }
@@ -88,7 +110,14 @@ const ContactForm = ({ title, serviceType, clientType = "new" }: ContactFormProp
         email: "",
         phone: "",
         company: "",
-        message: ""
+        message: "",
+        birthPlace: "",
+        birthDate: "",
+        fiscalCode: "",
+        startDate: "",
+        endDate: "",
+        contractType: "",
+        jobRole: ""
       });
     } catch (error) {
       console.error('Errore:', error);
@@ -167,9 +196,96 @@ const ContactForm = ({ title, serviceType, clientType = "new" }: ContactFormProp
                 />
               </div>
             </div>
+
+            {/* Campi aggiuntivi per Neo Inserimento / Fine Lavoro */}
+            {showExtraFields && (
+              <>
+                <div className="border-t pt-4 mt-4">
+                  <h3 className="font-semibold mb-3 text-primary">
+                    {isNeoInserimento ? "Dati Nuovo Dipendente" : "Dati Dipendente in Uscita"}
+                  </h3>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="birthPlace">Luogo di Nascita *</Label>
+                    <Input
+                      id="birthPlace"
+                      name="birthPlace"
+                      value={formData.birthPlace}
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="birthDate">Data di Nascita *</Label>
+                    <Input
+                      id="birthDate"
+                      name="birthDate"
+                      type="date"
+                      value={formData.birthDate}
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="fiscalCode">Codice Fiscale *</Label>
+                    <Input
+                      id="fiscalCode"
+                      name="fiscalCode"
+                      value={formData.fiscalCode}
+                      onChange={handleChange}
+                      placeholder="RSSMRA85M01H501Z"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor={isNeoInserimento ? "startDate" : "endDate"}>
+                      {isNeoInserimento ? "Data Inizio *" : "Data Fine *"}
+                    </Label>
+                    <Input
+                      id={isNeoInserimento ? "startDate" : "endDate"}
+                      name={isNeoInserimento ? "startDate" : "endDate"}
+                      type="date"
+                      value={isNeoInserimento ? formData.startDate : formData.endDate}
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="contractType">Tipologia Contratto *</Label>
+                    <Input
+                      id="contractType"
+                      name="contractType"
+                      value={formData.contractType}
+                      onChange={handleChange}
+                      placeholder="Es. Tempo indeterminato, Determinato..."
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="jobRole">Mansione *</Label>
+                    <Input
+                      id="jobRole"
+                      name="jobRole"
+                      value={formData.jobRole}
+                      onChange={handleChange}
+                      placeholder="Es. Operaio, Impiegato..."
+                      required
+                    />
+                  </div>
+                </div>
+              </>
+            )}
             
             <div>
-              <Label htmlFor="message">Messaggio</Label>
+              <Label htmlFor="message">{showExtraFields ? "Note aggiuntive" : "Messaggio"}</Label>
               <Textarea
                 id="message"
                 name="message"
