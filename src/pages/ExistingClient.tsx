@@ -9,7 +9,8 @@ import {
   GraduationCap,
   Coins,
   UserMinus,
-  Award
+  Award,
+  FileText
 } from "lucide-react";
 
 const ExistingClient = () => {
@@ -54,6 +55,12 @@ const ExistingClient = () => {
       description: "Scarica i tuoi attestati",
       icon: Award,
       navigateTo: "/attestati"
+    },
+    {
+      id: "documents",
+      title: "Per Documenti",
+      description: "Gestione documentazione aziendale",
+      icon: FileText
     },
     {
       id: "funding",
