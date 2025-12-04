@@ -4,6 +4,8 @@ import BottomNav from "@/components/BottomNav";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,9 +19,12 @@ import {
   Calendar,
   FileText,
   Lock,
-  User
+  User,
+  Filter,
+  RefreshCw
 } from "lucide-react";
 import AuthModal from "@/components/AuthModal";
+import QRCodeModal from "@/components/QRCodeModal";
 
 interface QRCodeRecord {
   id: string;
@@ -36,14 +41,28 @@ const QRCodeHistory = () => {
   const { isAdmin } = useUserRole();
   const navigate = useNavigate();
   const [qrCodes, setQrCodes] = useState<QRCodeRecord[]>([]);
+  const [filteredQRCodes, setFilteredQRCodes] = useState<QRCodeRecord[]>([]);
   const [loadingQRs, setLoadingQRs] = useState(true);
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  
+  // Filters
+  const [emailFilter, setEmailFilter] = useState<string>("all");
+  const [dateFrom, setDateFrom] = useState<string>("");
+  const [dateTo, setDateTo] = useState<string>("");
+  
+  // QR Modal for regeneration
+  const [qrModalOpen, setQrModalOpen] = useState(false);
+  const [selectedQR, setSelectedQR] = useState<{ url: string; name: string; id: string } | null>(null);
 
   useEffect(() => {
     if (user) {
       fetchQRCodes();
     }
   }, [user]);
+
+  useEffect(() => {
+    applyFilters();
+  }, [qrCodes, emailFilter, dateFrom, dateTo]);
 
   const fetchQRCodes = async () => {
     try {
@@ -61,6 +80,39 @@ const QRCodeHistory = () => {
     } finally {
       setLoadingQRs(false);
     }
+  };
+
+  const applyFilters = () => {
+    let filtered = [...qrCodes];
+
+    // Email filter
+    if (emailFilter === "sent") {
+      filtered = filtered.filter(qr => qr.sent_to_email !== null);
+    } else if (emailFilter === "not_sent") {
+      filtered = filtered.filter(qr => qr.sent_to_email === null);
+    }
+
+    // Date from filter
+    if (dateFrom) {
+      const fromDate = new Date(dateFrom);
+      fromDate.setHours(0, 0, 0, 0);
+      filtered = filtered.filter(qr => new Date(qr.created_at) >= fromDate);
+    }
+
+    // Date to filter
+    if (dateTo) {
+      const toDate = new Date(dateTo);
+      toDate.setHours(23, 59, 59, 999);
+      filtered = filtered.filter(qr => new Date(qr.created_at) <= toDate);
+    }
+
+    setFilteredQRCodes(filtered);
+  };
+
+  const clearFilters = () => {
+    setEmailFilter("all");
+    setDateFrom("");
+    setDateTo("");
   };
 
   const handleDelete = async (id: string) => {
@@ -86,6 +138,11 @@ const QRCodeHistory = () => {
 
   const handleOpenLink = (url: string) => {
     window.open(url, '_blank');
+  };
+
+  const handleRegenerate = (qr: QRCodeRecord) => {
+    setSelectedQR({ url: qr.public_url, name: qr.document_name, id: qr.document_id });
+    setQrModalOpen(true);
   };
 
   if (loading) {
@@ -144,6 +201,59 @@ const QRCodeHistory = () => {
           </p>
         </div>
 
+        {/* Filters */}
+        <Card className="mb-4">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Filter className="h-4 w-4" />
+              Filtri
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex-1">
+                <label className="text-sm text-muted-foreground mb-1 block">Stato Email</label>
+                <Select value={emailFilter} onValueChange={setEmailFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Tutti" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tutti</SelectItem>
+                    <SelectItem value="sent">Inviati via email</SelectItem>
+                    <SelectItem value="not_sent">Non inviati</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex-1">
+                <label className="text-sm text-muted-foreground mb-1 block">Da data</label>
+                <Input 
+                  type="date" 
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                />
+              </div>
+              <div className="flex-1">
+                <label className="text-sm text-muted-foreground mb-1 block">A data</label>
+                <Input 
+                  type="date" 
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                />
+              </div>
+              <div className="flex items-end">
+                <Button variant="outline" onClick={clearFilters} size="sm">
+                  Pulisci
+                </Button>
+              </div>
+            </div>
+            {(emailFilter !== "all" || dateFrom || dateTo) && (
+              <p className="text-sm text-muted-foreground mt-2">
+                Mostrati {filteredQRCodes.length} di {qrCodes.length} risultati
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -157,24 +267,31 @@ const QRCodeHistory = () => {
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
                 <p className="text-muted-foreground">Caricamento...</p>
               </div>
-            ) : qrCodes.length === 0 ? (
+            ) : filteredQRCodes.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <QrCode className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                <p className="font-medium">Nessun QR Code generato</p>
-                <p className="text-sm mt-1">
-                  I QR Code che generi appariranno qui
+                <p className="font-medium">
+                  {qrCodes.length === 0 ? "Nessun QR Code generato" : "Nessun risultato con i filtri applicati"}
                 </p>
-                <Button 
-                  variant="outline" 
-                  className="mt-4"
-                  onClick={() => navigate('/documents')}
-                >
-                  Vai ai Documenti
-                </Button>
+                <p className="text-sm mt-1">
+                  {qrCodes.length === 0 
+                    ? "I QR Code che generi appariranno qui"
+                    : "Prova a modificare i filtri"
+                  }
+                </p>
+                {qrCodes.length === 0 && (
+                  <Button 
+                    variant="outline" 
+                    className="mt-4"
+                    onClick={() => navigate('/documents')}
+                  >
+                    Vai ai Documenti
+                  </Button>
+                )}
               </div>
             ) : (
               <div className="space-y-3">
-                {qrCodes.map((qr) => (
+                {filteredQRCodes.map((qr) => (
                   <div 
                     key={qr.id} 
                     className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors"
@@ -185,7 +302,7 @@ const QRCodeHistory = () => {
                       </div>
                       <div className="flex-1">
                         <span className="font-medium block">{qr.document_name}</span>
-                        <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1">
+                        <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground mt-1">
                           <span className="flex items-center gap-1">
                             <Calendar className="h-3 w-3" />
                             {new Date(qr.created_at).toLocaleDateString('it-IT', {
@@ -196,16 +313,28 @@ const QRCodeHistory = () => {
                               minute: '2-digit'
                             })}
                           </span>
-                          {qr.sent_to_email && (
+                          {qr.sent_to_email ? (
                             <Badge variant="secondary" className="flex items-center gap-1">
                               <Mail className="h-3 w-3" />
                               {qr.sent_to_email}
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="flex items-center gap-1 text-muted-foreground">
+                              Non inviato
                             </Badge>
                           )}
                         </div>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleRegenerate(qr)}
+                        title="Rigenera QR / Invia email"
+                      >
+                        <RefreshCw className="h-4 w-4" />
+                      </Button>
                       <Button 
                         variant="outline" 
                         size="sm"
@@ -232,6 +361,16 @@ const QRCodeHistory = () => {
       </main>
       
       <BottomNav />
+
+      {selectedQR && (
+        <QRCodeModal
+          open={qrModalOpen}
+          onOpenChange={setQrModalOpen}
+          url={selectedQR.url}
+          fileName={selectedQR.name}
+          documentId={selectedQR.id}
+        />
+      )}
     </div>
   );
 };
