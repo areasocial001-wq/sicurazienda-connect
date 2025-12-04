@@ -9,8 +9,9 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { FileText, Download, User, Calendar, Building, Shield, Settings, Upload, Award, Trash2, QrCode } from 'lucide-react'
+import { FileText, Download, User, Calendar, Building, Shield, Settings, Upload, Award, Trash2, QrCode, Mail, ExternalLink } from 'lucide-react'
 import { toast } from 'sonner'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
 interface DocumentWithUser {
   id: string
@@ -34,6 +35,20 @@ interface UserProfile {
   company_name: string | null
 }
 
+interface QRCodeRecord {
+  id: string
+  document_name: string
+  public_url: string
+  created_at: string
+  sent_to_email: string | null
+  sent_at: string | null
+}
+
+interface ChartDataPoint {
+  date: string
+  count: number
+}
+
 export default function AdminDashboard() {
   const { user, signOut } = useAuth()
   const { isAdmin, isAreaAziendale, role, getRoleDisplayName, loading: roleLoading } = useUserRole()
@@ -45,6 +60,8 @@ export default function AdminDashboard() {
   const [uploading, setUploading] = useState(false)
   const [qrModalOpen, setQrModalOpen] = useState(false)
   const [selectedDocForQR, setSelectedDocForQR] = useState<{ url: string; name: string; id: string } | null>(null)
+  const [recentQRCodes, setRecentQRCodes] = useState<QRCodeRecord[]>([])
+  const [qrChartData, setQrChartData] = useState<ChartDataPoint[]>([])
   const [stats, setStats] = useState({
     totalDocuments: 0,
     totalUsers: 0,
@@ -61,6 +78,8 @@ export default function AdminDashboard() {
     if (!roleLoading && user && hasAccess) {
       fetchDocuments()
       fetchStats()
+      fetchRecentQRCodes()
+      fetchQRChartData()
       if (isAdmin) {
         fetchUsers()
       }
@@ -152,6 +171,49 @@ export default function AdminDashboard() {
       })
     } catch (error) {
       console.error('Error fetching stats:', error)
+    }
+  }
+
+  const fetchRecentQRCodes = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('qr_codes')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(5)
+
+      if (error) throw error
+      setRecentQRCodes(data || [])
+    } catch (error) {
+      console.error('Error fetching recent QR codes:', error)
+    }
+  }
+
+  const fetchQRChartData = async () => {
+    try {
+      // Get QR codes from last 30 days
+      const thirtyDaysAgo = new Date()
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+
+      const { data, error } = await supabase
+        .from('qr_codes')
+        .select('created_at')
+        .gte('created_at', thirtyDaysAgo.toISOString())
+        .order('created_at', { ascending: true })
+
+      if (error) throw error
+
+      // Group by date
+      const grouped: Record<string, number> = {}
+      data?.forEach(qr => {
+        const date = new Date(qr.created_at).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' })
+        grouped[date] = (grouped[date] || 0) + 1
+      })
+
+      const chartData = Object.entries(grouped).map(([date, count]) => ({ date, count }))
+      setQrChartData(chartData)
+    } catch (error) {
+      console.error('Error fetching QR chart data:', error)
     }
   }
 
@@ -499,6 +561,93 @@ export default function AdminDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{stats.qrCodesSentByEmail}</div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* QR Code Chart and Recent */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            {/* Chart */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <QrCode className="h-5 w-5" />
+                  Andamento QR Code (ultimi 30 giorni)
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {qrChartData.length === 0 ? (
+                  <div className="flex items-center justify-center h-[200px] text-muted-foreground">
+                    Nessun dato disponibile
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height={200}>
+                    <LineChart data={qrChartData}>
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                      <XAxis dataKey="date" className="text-xs" tick={{ fill: 'hsl(var(--muted-foreground))' }} />
+                      <YAxis className="text-xs" tick={{ fill: 'hsl(var(--muted-foreground))' }} />
+                      <Tooltip 
+                        contentStyle={{ 
+                          backgroundColor: 'hsl(var(--background))', 
+                          border: '1px solid hsl(var(--border))',
+                          borderRadius: '8px'
+                        }} 
+                      />
+                      <Line 
+                        type="monotone" 
+                        dataKey="count" 
+                        stroke="hsl(var(--primary))" 
+                        strokeWidth={2}
+                        dot={{ fill: 'hsl(var(--primary))' }}
+                        name="QR Generati"
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Recent QR Codes */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <QrCode className="h-5 w-5" />
+                  QR Code Recenti
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {recentQRCodes.length === 0 ? (
+                  <div className="flex items-center justify-center h-[200px] text-muted-foreground">
+                    Nessun QR code generato
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {recentQRCodes.map((qr) => (
+                      <div key={qr.id} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium truncate">{qr.document_name}</p>
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Calendar className="h-3 w-3" />
+                            <span>{new Date(qr.created_at).toLocaleDateString('it-IT')}</span>
+                            {qr.sent_to_email && (
+                              <>
+                                <Mail className="h-3 w-3 ml-2" />
+                                <span className="truncate">{qr.sent_to_email}</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => window.open(qr.public_url, '_blank')}
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
