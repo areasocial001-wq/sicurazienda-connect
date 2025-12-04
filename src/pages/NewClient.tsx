@@ -39,18 +39,18 @@ const NewClient = () => {
       icon: Headphones
     },
     {
-      id: "end-of-work",
-      title: "Rapporto di Fine Lavoro",
-      description: "Gestione cessazione rapporti di lavoro",
-      icon: UserMinus,
-      variant: "secondary" as const
-    },
-    {
       id: "neo-hiring",
       title: "Per Neo Inserimento",
       description: "Gestione nuove assunzioni",
       icon: UserPlus,
       variant: "success" as const
+    },
+    {
+      id: "end-of-work",
+      title: "Rapporto di Fine Lavoro",
+      description: "Gestione cessazione rapporti di lavoro",
+      icon: UserMinus,
+      variant: "secondary" as const
     },
     {
       id: "training",
