@@ -22,7 +22,7 @@ const NewClient = () => {
       title: "Check-up Gratuito",
       description: "Analisi completa della situazione aziendale",
       icon: CheckCircle,
-      variant: "secondary" as const
+      variant: "success" as const
     },
     {
       id: "inspection",
