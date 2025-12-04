@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { FileText, Download, User, Calendar, Building, Shield, Settings, Upload, Award } from 'lucide-react'
+import { FileText, Download, User, Calendar, Building, Shield, Settings, Upload, Award, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface DocumentWithUser {
@@ -218,6 +218,39 @@ export default function AdminDashboard() {
     } catch (error) {
       console.error('Error downloading file:', error)
       toast.error('Errore durante il download')
+    }
+  }
+
+  const handleDeleteDocument = async (docId: string, filePath: string) => {
+    if (!confirm('Sei sicuro di voler eliminare questo documento?')) {
+      return
+    }
+
+    try {
+      // Delete from storage
+      const { error: storageError } = await supabase.storage
+        .from('documents')
+        .remove([filePath])
+
+      if (storageError) {
+        console.error('Storage error:', storageError)
+        // Continue anyway to delete db record
+      }
+
+      // Delete from database
+      const { error: dbError } = await supabase
+        .from('documents')
+        .delete()
+        .eq('id', docId)
+
+      if (dbError) throw dbError
+
+      toast.success('Documento eliminato con successo')
+      fetchDocuments()
+      fetchStats()
+    } catch (error: any) {
+      console.error('Error deleting document:', error)
+      toast.error(error.message || 'Errore durante l\'eliminazione')
     }
   }
 
@@ -514,14 +547,25 @@ export default function AdminDashboard() {
                           </div>
                         </div>
                       </div>
-                      <Button
-                        onClick={() => handleDownload(doc.file_path, doc.name)}
-                        size="sm"
-                        variant="outline"
-                      >
-                        <Download className="h-4 w-4 mr-2" />
-                        Scarica
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          onClick={() => handleDownload(doc.file_path, doc.name)}
+                          size="sm"
+                          variant="outline"
+                        >
+                          <Download className="h-4 w-4 mr-2" />
+                          Scarica
+                        </Button>
+                        {isAdmin && (
+                          <Button
+                            onClick={() => handleDeleteDocument(doc.id, doc.file_path)}
+                            size="sm"
+                            variant="destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
