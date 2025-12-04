@@ -41,7 +41,7 @@ const ServiceCard = ({ title, description, icon: Icon, onClick, variant = "prima
       <CardContent className="p-6">
         <div className="flex items-center space-x-4">
           <div className={`p-3 rounded-full ${getIconClasses()}`}>
-            <Icon className={`h-6 w-6 ${animateIcon ? "animate-pulse" : ""}`} />
+            <Icon className={`h-6 w-6 ${animateIcon ? "animate-bounce" : ""}`} />
           </div>
           <div className="flex-1">
             <h3 className="font-semibold text-lg">{title}</h3>
