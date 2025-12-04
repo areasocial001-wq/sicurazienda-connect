@@ -48,7 +48,10 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState({
     totalDocuments: 0,
     totalUsers: 0,
-    documentsThisMonth: 0
+    documentsThisMonth: 0,
+    totalQRCodes: 0,
+    qrCodesThisMonth: 0,
+    qrCodesSentByEmail: 0
   })
 
   useEffect(() => {
@@ -124,10 +127,28 @@ export default function AdminDashboard() {
         .select('*', { count: 'exact', head: true })
         .gte('created_at', startOfMonth.toISOString())
 
+      // QR Code stats
+      const { count: totalQR } = await supabase
+        .from('qr_codes')
+        .select('*', { count: 'exact', head: true })
+
+      const { count: monthlyQR } = await supabase
+        .from('qr_codes')
+        .select('*', { count: 'exact', head: true })
+        .gte('created_at', startOfMonth.toISOString())
+
+      const { count: emailedQR } = await supabase
+        .from('qr_codes')
+        .select('*', { count: 'exact', head: true })
+        .not('sent_to_email', 'is', null)
+
       setStats({
         totalDocuments: totalDocs || 0,
         totalUsers: totalUsersCount || 0,
-        documentsThisMonth: monthlyDocs || 0
+        documentsThisMonth: monthlyDocs || 0,
+        totalQRCodes: totalQR || 0,
+        qrCodesThisMonth: monthlyQR || 0,
+        qrCodesSentByEmail: emailedQR || 0
       })
     } catch (error) {
       console.error('Error fetching stats:', error)
@@ -425,7 +446,7 @@ export default function AdminDashboard() {
           </div>
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Documenti Totali</CardTitle>
@@ -446,11 +467,38 @@ export default function AdminDashboard() {
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Documenti Questo Mese</CardTitle>
+                <CardTitle className="text-sm font-medium">Doc. Questo Mese</CardTitle>
                 <Calendar className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{stats.documentsThisMonth}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">QR Code Totali</CardTitle>
+                <QrCode className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.totalQRCodes}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">QR Questo Mese</CardTitle>
+                <QrCode className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.qrCodesThisMonth}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">QR Inviati Email</CardTitle>
+                <Award className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.qrCodesSentByEmail}</div>
               </CardContent>
             </Card>
           </div>
