@@ -9,6 +9,7 @@ import ExistingClient from "./pages/ExistingClient";
 import Documents from "./pages/Documents";
 import Attestati from "./pages/Attestati";
 import QRCodeHistory from "./pages/QRCodeHistory";
+import QRCodeStats from "./pages/QRCodeStats";
 import QRRedirect from "./pages/QRRedirect";
 import AdminDashboard from "./pages/AdminDashboard";
 import UserRoleManager from "./pages/UserRoleManager";
@@ -33,6 +34,7 @@ const App = () => (
           <Route path="/documents" element={<Documents />} />
           <Route path="/attestati" element={<Attestati />} />
           <Route path="/qr-history" element={<QRCodeHistory />} />
+          <Route path="/qr-stats/:id" element={<QRCodeStats />} />
           <Route path="/qr/:id" element={<QRRedirect />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/user-roles" element={<UserRoleManager />} />

@@ -1,17 +1,17 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { QrCode, Loader2, AlertCircle } from "lucide-react";
+import { QrCode, Loader2, AlertCircle, Ban } from "lucide-react";
 
 const QRRedirect = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<'not_found' | 'disabled' | null>(null);
 
   useEffect(() => {
     const trackAndRedirect = async () => {
       if (!id) {
-        setError(true);
+        setError('not_found');
         return;
       }
 
@@ -19,13 +19,19 @@ const QRRedirect = () => {
         // Get QR code info
         const { data: qrCode, error: qrError } = await supabase
           .from('qr_codes')
-          .select('public_url')
+          .select('public_url, is_active')
           .eq('id', id)
           .maybeSingle();
 
         if (qrError || !qrCode) {
           console.error('QR code not found:', qrError);
-          setError(true);
+          setError('not_found');
+          return;
+        }
+
+        // Check if QR code is active
+        if (!qrCode.is_active) {
+          setError('disabled');
           return;
         }
 
@@ -42,14 +48,34 @@ const QRRedirect = () => {
         window.location.href = qrCode.public_url;
       } catch (err) {
         console.error('Error tracking QR scan:', err);
-        setError(true);
+        setError('not_found');
       }
     };
 
     trackAndRedirect();
   }, [id]);
 
-  if (error) {
+  if (error === 'disabled') {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="text-center">
+          <Ban className="h-16 w-16 text-destructive mx-auto mb-4" />
+          <h1 className="text-2xl font-bold mb-2">QR Code Disabilitato</h1>
+          <p className="text-muted-foreground mb-4">
+            Questo QR code è stato disabilitato e non è più possibile accedere al documento.
+          </p>
+          <button 
+            onClick={() => navigate('/')}
+            className="text-primary hover:underline"
+          >
+            Torna alla home
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (error === 'not_found') {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="text-center">
