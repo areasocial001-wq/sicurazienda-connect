@@ -8,7 +8,8 @@ import {
   UserPlus,
   GraduationCap,
   Coins,
-  UserMinus
+  UserMinus,
+  Award
 } from "lucide-react";
 
 const ExistingClient = () => {
@@ -48,6 +49,13 @@ const ExistingClient = () => {
       icon: GraduationCap
     },
     {
+      id: "attestati",
+      title: "Attestati",
+      description: "Scarica i tuoi attestati",
+      icon: Award,
+      navigateTo: "/attestati"
+    },
+    {
       id: "funding",
       title: "Per Fondi",
       description: "Nuovi finanziamenti e contributi",
@@ -56,13 +64,17 @@ const ExistingClient = () => {
   ];
 
   const handleServiceClick = (service: typeof services[0]) => {
-    navigate("/contact-request", { 
-      state: { 
-        title: "Richiesta Contatto - Già Cliente",
-        serviceType: service.title,
-        clientType: "existing"
-      } 
-    });
+    if (service.navigateTo) {
+      navigate(service.navigateTo);
+    } else {
+      navigate("/contact-request", { 
+        state: { 
+          title: "Richiesta Contatto - Già Cliente",
+          serviceType: service.title,
+          clientType: "existing"
+        } 
+      });
+    }
   };
 
   return (

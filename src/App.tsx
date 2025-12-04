@@ -7,6 +7,7 @@ import Home from "./pages/Home";
 import NewClient from "./pages/NewClient";
 import ExistingClient from "./pages/ExistingClient";
 import Documents from "./pages/Documents";
+import Attestati from "./pages/Attestati";
 import AdminDashboard from "./pages/AdminDashboard";
 import UserRoleManager from "./pages/UserRoleManager";
 import ContactRequest from "./pages/ContactRequest";
@@ -26,6 +27,7 @@ const App = () => (
           <Route path="/new-client" element={<NewClient />} />
           <Route path="/existing-client" element={<ExistingClient />} />
           <Route path="/documents" element={<Documents />} />
+          <Route path="/attestati" element={<Attestati />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/user-roles" element={<UserRoleManager />} />
           <Route path="/contact-request" element={<ContactRequest />} />
