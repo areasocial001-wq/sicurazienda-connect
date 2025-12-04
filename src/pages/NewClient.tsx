@@ -9,7 +9,8 @@ import {
   GraduationCap,
   FileText,
   Coins,
-  MoreHorizontal
+  MoreHorizontal,
+  UserMinus
 } from "lucide-react";
 
 const NewClient = () => {
@@ -34,6 +35,13 @@ const NewClient = () => {
       title: "Assistenza",
       description: "Supporto tecnico e consulenza",
       icon: Headphones
+    },
+    {
+      id: "end-of-work",
+      title: "Rapporto di Fine Lavoro",
+      description: "Gestione cessazione rapporti di lavoro",
+      icon: UserMinus,
+      variant: "secondary" as const
     },
     {
       id: "training",
