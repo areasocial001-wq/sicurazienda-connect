@@ -153,6 +153,7 @@ export type Database = {
           document_id: string
           document_name: string
           id: string
+          is_active: boolean
           public_url: string
           sent_at: string | null
           sent_to_email: string | null
@@ -163,6 +164,7 @@ export type Database = {
           document_id: string
           document_name: string
           id?: string
+          is_active?: boolean
           public_url: string
           sent_at?: string | null
           sent_to_email?: string | null
@@ -173,6 +175,7 @@ export type Database = {
           document_id?: string
           document_name?: string
           id?: string
+          is_active?: boolean
           public_url?: string
           sent_at?: string | null
           sent_to_email?: string | null

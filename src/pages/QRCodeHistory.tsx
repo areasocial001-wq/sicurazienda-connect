@@ -22,7 +22,9 @@ import {
   User,
   Filter,
   RefreshCw,
-  Download
+  Download,
+  BarChart3,
+  Power
 } from "lucide-react";
 import AuthModal from "@/components/AuthModal";
 import QRCodeModal from "@/components/QRCodeModal";
@@ -35,6 +37,7 @@ interface QRCodeRecord {
   created_at: string;
   sent_to_email: string | null;
   sent_at: string | null;
+  is_active: boolean;
 }
 
 const QRCodeHistory = () => {
@@ -48,6 +51,7 @@ const QRCodeHistory = () => {
   
   // Filters
   const [emailFilter, setEmailFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [dateFrom, setDateFrom] = useState<string>("");
   const [dateTo, setDateTo] = useState<string>("");
   
@@ -63,7 +67,7 @@ const QRCodeHistory = () => {
 
   useEffect(() => {
     applyFilters();
-  }, [qrCodes, emailFilter, dateFrom, dateTo]);
+  }, [qrCodes, emailFilter, statusFilter, dateFrom, dateTo]);
 
   const fetchQRCodes = async () => {
     try {
@@ -93,6 +97,13 @@ const QRCodeHistory = () => {
       filtered = filtered.filter(qr => qr.sent_to_email === null);
     }
 
+    // Status filter
+    if (statusFilter === "active") {
+      filtered = filtered.filter(qr => qr.is_active === true);
+    } else if (statusFilter === "disabled") {
+      filtered = filtered.filter(qr => qr.is_active === false);
+    }
+
     // Date from filter
     if (dateFrom) {
       const fromDate = new Date(dateFrom);
@@ -112,6 +123,7 @@ const QRCodeHistory = () => {
 
   const clearFilters = () => {
     setEmailFilter("all");
+    setStatusFilter("all");
     setDateFrom("");
     setDateTo("");
   };
@@ -122,12 +134,13 @@ const QRCodeHistory = () => {
       return;
     }
 
-    const headers = ['Nome Documento', 'Data Creazione', 'Email Invio', 'Data Invio', 'URL'];
+    const headers = ['Nome Documento', 'Data Creazione', 'Email Invio', 'Data Invio', 'Stato', 'URL'];
     const rows = filteredQRCodes.map(qr => [
       qr.document_name,
       new Date(qr.created_at).toLocaleString('it-IT'),
       qr.sent_to_email || '',
       qr.sent_at ? new Date(qr.sent_at).toLocaleString('it-IT') : '',
+      qr.is_active ? 'Attivo' : 'Disabilitato',
       qr.public_url
     ]);
 
@@ -255,8 +268,8 @@ const QRCodeHistory = () => {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="flex-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+              <div>
                 <label className="text-sm text-muted-foreground mb-1 block">Stato Email</label>
                 <Select value={emailFilter} onValueChange={setEmailFilter}>
                   <SelectTrigger>
@@ -269,7 +282,20 @@ const QRCodeHistory = () => {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex-1">
+              <div>
+                <label className="text-sm text-muted-foreground mb-1 block">Stato QR</label>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Tutti" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tutti</SelectItem>
+                    <SelectItem value="active">Attivi</SelectItem>
+                    <SelectItem value="disabled">Disabilitati</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
                 <label className="text-sm text-muted-foreground mb-1 block">Da data</label>
                 <Input 
                   type="date" 
@@ -277,7 +303,7 @@ const QRCodeHistory = () => {
                   onChange={(e) => setDateFrom(e.target.value)}
                 />
               </div>
-              <div className="flex-1">
+              <div>
                 <label className="text-sm text-muted-foreground mb-1 block">A data</label>
                 <Input 
                   type="date" 
@@ -286,12 +312,12 @@ const QRCodeHistory = () => {
                 />
               </div>
               <div className="flex items-end">
-                <Button variant="outline" onClick={clearFilters} size="sm">
+                <Button variant="outline" onClick={clearFilters} size="sm" className="w-full">
                   Pulisci
                 </Button>
               </div>
             </div>
-            {(emailFilter !== "all" || dateFrom || dateTo) && (
+            {(emailFilter !== "all" || statusFilter !== "all" || dateFrom || dateTo) && (
               <p className="text-sm text-muted-foreground mt-2">
                 Mostrati {filteredQRCodes.length} di {qrCodes.length} risultati
               </p>
@@ -368,10 +394,21 @@ const QRCodeHistory = () => {
                               Non inviato
                             </Badge>
                           )}
+                          <Badge variant={qr.is_active ? "default" : "destructive"} className="flex items-center gap-1">
+                            {qr.is_active ? "Attivo" : "Disabilitato"}
+                          </Badge>
                         </div>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => navigate(`/qr-stats/${qr.id}`)}
+                        title="Statistiche"
+                      >
+                        <BarChart3 className="h-4 w-4" />
+                      </Button>
                       <Button 
                         variant="outline" 
                         size="sm"
