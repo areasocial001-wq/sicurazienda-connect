@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -295,14 +296,25 @@ const ContactForm = ({ title, serviceType, clientType = "new" }: ContactFormProp
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="contractType">Tipologia Contratto *</Label>
-                    <Input
-                      id="contractType"
-                      name="contractType"
+                    <Select
                       value={formData.contractType}
-                      onChange={handleChange}
-                      placeholder="Es. Tempo indeterminato, Determinato..."
+                      onValueChange={(value) => setFormData({ ...formData, contractType: value })}
                       required
-                    />
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleziona tipologia..." />
+                      </SelectTrigger>
+                      <SelectContent className="bg-background">
+                        <SelectItem value="tempo_indeterminato">Tempo Indeterminato</SelectItem>
+                        <SelectItem value="tempo_determinato">Tempo Determinato</SelectItem>
+                        <SelectItem value="apprendistato">Apprendistato</SelectItem>
+                        <SelectItem value="stagionale">Stagionale</SelectItem>
+                        <SelectItem value="somministrazione">Somministrazione</SelectItem>
+                        <SelectItem value="collaborazione">Collaborazione</SelectItem>
+                        <SelectItem value="tirocinio">Tirocinio/Stage</SelectItem>
+                        <SelectItem value="altro">Altro</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div>
                     <Label htmlFor="jobRole">Mansione *</Label>
