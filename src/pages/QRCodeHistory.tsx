@@ -21,7 +21,8 @@ import {
   Lock,
   User,
   Filter,
-  RefreshCw
+  RefreshCw,
+  Download
 } from "lucide-react";
 import AuthModal from "@/components/AuthModal";
 import QRCodeModal from "@/components/QRCodeModal";
@@ -115,6 +116,39 @@ const QRCodeHistory = () => {
     setDateTo("");
   };
 
+  const exportToCSV = () => {
+    if (filteredQRCodes.length === 0) {
+      toast.error('Nessun dato da esportare');
+      return;
+    }
+
+    const headers = ['Nome Documento', 'Data Creazione', 'Email Invio', 'Data Invio', 'URL'];
+    const rows = filteredQRCodes.map(qr => [
+      qr.document_name,
+      new Date(qr.created_at).toLocaleString('it-IT'),
+      qr.sent_to_email || '',
+      qr.sent_at ? new Date(qr.sent_at).toLocaleString('it-IT') : '',
+      qr.public_url
+    ]);
+
+    const csvContent = [
+      headers.join(';'),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(';'))
+    ].join('\n');
+
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `qr-codes-export-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    toast.success('Export completato');
+  };
+
   const handleDelete = async (id: string) => {
     if (!confirm('Sei sicuro di voler eliminare questo QR Code dalla cronologia?')) {
       return;
@@ -204,10 +238,21 @@ const QRCodeHistory = () => {
         {/* Filters */}
         <Card className="mb-4">
           <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Filter className="h-4 w-4" />
-              Filtri
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Filter className="h-4 w-4" />
+                Filtri
+              </CardTitle>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={exportToCSV}
+                disabled={filteredQRCodes.length === 0}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Esporta CSV
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="flex flex-col sm:flex-row gap-3">
