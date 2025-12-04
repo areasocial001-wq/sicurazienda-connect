@@ -4,11 +4,12 @@ import { useUserRole } from '@/hooks/useUserRole'
 import { supabase } from '@/integrations/supabase/client'
 import BottomNav from '@/components/BottomNav'
 import AuthModal from '@/components/AuthModal'
+import QRCodeModal from '@/components/QRCodeModal'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { FileText, Download, User, Calendar, Building, Shield, Settings, Upload, Award, Trash2 } from 'lucide-react'
+import { FileText, Download, User, Calendar, Building, Shield, Settings, Upload, Award, Trash2, QrCode } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface DocumentWithUser {
@@ -42,6 +43,8 @@ export default function AdminDashboard() {
   const [users, setUsers] = useState<UserProfile[]>([])
   const [selectedUserId, setSelectedUserId] = useState<string>('')
   const [uploading, setUploading] = useState(false)
+  const [qrModalOpen, setQrModalOpen] = useState(false)
+  const [selectedDocForQR, setSelectedDocForQR] = useState<{ url: string; name: string } | null>(null)
   const [stats, setStats] = useState({
     totalDocuments: 0,
     totalUsers: 0,
@@ -252,6 +255,15 @@ export default function AdminDashboard() {
       console.error('Error deleting document:', error)
       toast.error(error.message || 'Errore durante l\'eliminazione')
     }
+  }
+
+  const handleShowQR = (filePath: string, fileName: string) => {
+    const { data } = supabase.storage
+      .from('documents')
+      .getPublicUrl(filePath)
+    
+    setSelectedDocForQR({ url: data.publicUrl, name: fileName })
+    setQrModalOpen(true)
   }
 
   const handleSignOut = async () => {
@@ -549,6 +561,14 @@ export default function AdminDashboard() {
                       </div>
                       <div className="flex items-center gap-2">
                         <Button
+                          onClick={() => handleShowQR(doc.file_path, doc.name)}
+                          size="sm"
+                          variant="outline"
+                          title="Genera QR Code"
+                        >
+                          <QrCode className="h-4 w-4" />
+                        </Button>
+                        <Button
                           onClick={() => handleDownload(doc.file_path, doc.name)}
                           size="sm"
                           variant="outline"
@@ -575,6 +595,15 @@ export default function AdminDashboard() {
         </div>
       </div>
       <BottomNav />
+      
+      {selectedDocForQR && (
+        <QRCodeModal
+          open={qrModalOpen}
+          onOpenChange={setQrModalOpen}
+          url={selectedDocForQR.url}
+          fileName={selectedDocForQR.name}
+        />
+      )}
     </>
   )
 }
