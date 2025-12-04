@@ -1,14 +1,16 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Save, FileText, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 interface ContactFormProps {
   title: string;
@@ -16,37 +18,161 @@ interface ContactFormProps {
   clientType?: string;
 }
 
+const initialFormData = {
+  name: "",
+  email: "",
+  phone: "",
+  company: "",
+  message: "",
+  birthPlace: "",
+  birthDate: "",
+  fiscalCode: "",
+  startDate: "",
+  endDate: "",
+  contractType: "",
+  contractTypeOther: "",
+  jobRole: "",
+  jobRoleOther: ""
+};
+
 const ContactForm = ({ title, serviceType, clientType = "new" }: ContactFormProps) => {
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    company: "",
-    message: "",
-    // Campi aggiuntivi per Neo Inserimento / Fine Lavoro
-    birthPlace: "",
-    birthDate: "",
-    fiscalCode: "",
-    startDate: "",
-    endDate: "",
-    contractType: "",
-    contractTypeOther: "",
-    jobRole: "",
-    jobRoleOther: ""
-  });
+  const [formData, setFormData] = useState(initialFormData);
   const [fiscalCodeError, setFiscalCodeError] = useState("");
+  const [hasDraft, setHasDraft] = useState(false);
+  const [savingDraft, setSavingDraft] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   // Determina se mostrare i campi aggiuntivi
   const isNeoInserimento = serviceType === "Per Neo Inserimento";
   const isFineLavoro = serviceType === "Rapporto di Fine Lavoro";
   const showExtraFields = isNeoInserimento || isFineLavoro;
 
+  // Carica bozza esistente all'avvio
+  useEffect(() => {
+    if (user) {
+      loadDraft();
+    }
+  }, [user, serviceType, clientType]);
+
+  const loadDraft = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('form_drafts')
+        .select('form_data')
+        .eq('user_id', user.id)
+        .eq('service_type', serviceType)
+        .eq('client_type', clientType)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (data?.form_data) {
+        setHasDraft(true);
+      }
+    } catch (error) {
+      console.error('Errore caricamento bozza:', error);
+    }
+  };
+
+  const restoreDraft = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('form_drafts')
+        .select('form_data')
+        .eq('user_id', user.id)
+        .eq('service_type', serviceType)
+        .eq('client_type', clientType)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (data?.form_data) {
+        const savedData = data.form_data as typeof initialFormData;
+        setFormData(savedData);
+        toast({
+          title: "Bozza ripristinata",
+          description: "I dati salvati sono stati caricati nel form.",
+        });
+      }
+    } catch (error) {
+      console.error('Errore ripristino bozza:', error);
+      toast({
+        title: "Errore",
+        description: "Impossibile ripristinare la bozza.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const saveDraft = async () => {
+    if (!user) {
+      toast({
+        title: "Accesso richiesto",
+        description: "Effettua il login per salvare la bozza.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSavingDraft(true);
+    try {
+      const { error } = await supabase
+        .from('form_drafts')
+        .upsert({
+          user_id: user.id,
+          service_type: serviceType,
+          client_type: clientType,
+          form_data: formData
+        }, {
+          onConflict: 'user_id,service_type,client_type'
+        });
+
+      if (error) throw error;
+
+      setHasDraft(true);
+      toast({
+        title: "Bozza salvata",
+        description: "Potrai completare il form in un secondo momento.",
+      });
+    } catch (error) {
+      console.error('Errore salvataggio bozza:', error);
+      toast({
+        title: "Errore",
+        description: "Impossibile salvare la bozza.",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingDraft(false);
+    }
+  };
+
+  const deleteDraft = async () => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from('form_drafts')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('service_type', serviceType)
+        .eq('client_type', clientType);
+
+      if (error) throw error;
+      setHasDraft(false);
+    } catch (error) {
+      console.error('Errore eliminazione bozza:', error);
+    }
+  };
+
   // Validazione Codice Fiscale Italiano
   const validateFiscalCode = (code: string): boolean => {
     if (!code) return false;
-    // Formato: 6 lettere + 2 numeri + 1 lettera + 2 numeri + 1 lettera + 3 caratteri alfanumerici + 1 lettera
     const cfRegex = /^[A-Z]{6}[0-9]{2}[A-Z][0-9]{2}[A-Z][0-9]{3}[A-Z]$/i;
     return cfRegex.test(code);
   };
@@ -66,54 +192,50 @@ const ContactForm = ({ title, serviceType, clientType = "new" }: ContactFormProp
     }
     setFiscalCodeError("");
     
-     try {
-       // Determina il tipo di utente dal clientType o dal titolo
-       let userType: string;
-       if (clientType) {
-         userType = clientType === 'new' ? 'new_client' : 'existing_client';
-       } else {
-         userType = title.toLowerCase().includes('nuovo cliente') ? 'new_client' : 'existing_client';
-       }
-       
-       // Costruisci il messaggio includendo i campi extra se presenti
-       let fullMessage = formData.message || "";
-       if (showExtraFields) {
-         const contractTypeDisplay = formData.contractType === "altro" 
-           ? `Altro: ${formData.contractTypeOther}` 
-           : formData.contractType;
-         const jobRoleDisplay = formData.jobRole === "altro" 
-           ? `Altro: ${formData.jobRoleOther}` 
-           : formData.jobRole;
-         
-         const extraInfo = [
-           `Luogo di nascita: ${formData.birthPlace}`,
-           `Data di nascita: ${formData.birthDate}`,
-           `Codice Fiscale: ${formData.fiscalCode}`,
-           isNeoInserimento ? `Data inizio: ${formData.startDate}` : `Data fine: ${formData.endDate}`,
-           `Tipologia contratto: ${contractTypeDisplay}`,
-           `Mansione: ${jobRoleDisplay}`
-         ].join("\n");
-         fullMessage = extraInfo + (fullMessage ? "\n\nNote aggiuntive:\n" + fullMessage : "");
-       }
-       
-       // Salva nel database
-       const { error: dbError } = await supabase
-         .from('contact_requests')
-         .insert({
-           user_type: userType,
-           service_type: serviceType,
-           name: formData.name,
-           email: formData.email,
-           phone: formData.phone || null,
-           company: formData.company || null,
-           message: fullMessage || null,
-         });
+    try {
+      let userType: string;
+      if (clientType) {
+        userType = clientType === 'new' ? 'new_client' : 'existing_client';
+      } else {
+        userType = title.toLowerCase().includes('nuovo cliente') ? 'new_client' : 'existing_client';
+      }
+      
+      let fullMessage = formData.message || "";
+      if (showExtraFields) {
+        const contractTypeDisplay = formData.contractType === "altro" 
+          ? `Altro: ${formData.contractTypeOther}` 
+          : formData.contractType;
+        const jobRoleDisplay = formData.jobRole === "altro" 
+          ? `Altro: ${formData.jobRoleOther}` 
+          : formData.jobRole;
+        
+        const extraInfo = [
+          `Luogo di nascita: ${formData.birthPlace}`,
+          `Data di nascita: ${formData.birthDate}`,
+          `Codice Fiscale: ${formData.fiscalCode}`,
+          isNeoInserimento ? `Data inizio: ${formData.startDate}` : `Data fine: ${formData.endDate}`,
+          `Tipologia contratto: ${contractTypeDisplay}`,
+          `Mansione: ${jobRoleDisplay}`
+        ].join("\n");
+        fullMessage = extraInfo + (fullMessage ? "\n\nNote aggiuntive:\n" + fullMessage : "");
+      }
+      
+      const { error: dbError } = await supabase
+        .from('contact_requests')
+        .insert({
+          user_type: userType,
+          service_type: serviceType,
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone || null,
+          company: formData.company || null,
+          message: fullMessage || null,
+        });
 
       if (dbError) {
         throw new Error('Errore nel salvataggio: ' + dbError.message);
       }
 
-      // Invia email usando supabase.functions.invoke
       const { error: emailError } = await supabase.functions.invoke('send-contact-email', {
         body: {
           name: formData.name,
@@ -130,28 +252,15 @@ const ContactForm = ({ title, serviceType, clientType = "new" }: ContactFormProp
         throw new Error('Errore nell\'invio dell\'email: ' + emailError.message);
       }
 
+      // Elimina la bozza dopo invio riuscito
+      await deleteDraft();
+
       toast({
         title: "Richiesta inviata!",
         description: "Vi contatteremo entro 24 ore lavorative.",
       });
       
-      // Reset form
-      setFormData({
-        name: "",
-        email: "",
-        phone: "",
-        company: "",
-        message: "",
-        birthPlace: "",
-        birthDate: "",
-        fiscalCode: "",
-        startDate: "",
-        endDate: "",
-        contractType: "",
-        contractTypeOther: "",
-        jobRole: "",
-        jobRoleOther: ""
-      });
+      setFormData(initialFormData);
     } catch (error) {
       console.error('Errore:', error);
       toast({
@@ -166,7 +275,6 @@ const ContactForm = ({ title, serviceType, clientType = "new" }: ContactFormProp
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
     
-    // Valida CF in tempo reale
     if (name === "fiscalCode") {
       if (value && !validateFiscalCode(value)) {
         setFiscalCodeError("Formato non valido");
@@ -186,6 +294,24 @@ const ContactForm = ({ title, serviceType, clientType = "new" }: ContactFormProp
         <ArrowLeft className="h-4 w-4" />
         Indietro
       </Button>
+
+      {/* Banner bozza esistente */}
+      {user && hasDraft && (
+        <Alert className="mb-4 bg-primary/10 border-primary">
+          <FileText className="h-4 w-4" />
+          <AlertDescription className="flex items-center justify-between">
+            <span>Hai una bozza salvata per questo form.</span>
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" onClick={restoreDraft}>
+                Ripristina
+              </Button>
+              <Button size="sm" variant="ghost" onClick={deleteDraft}>
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
       
       <Card>
         <CardHeader className="gradient-sicur text-white">
@@ -384,9 +510,29 @@ const ContactForm = ({ title, serviceType, clientType = "new" }: ContactFormProp
               />
             </div>
             
-            <Button type="submit" className="w-full bg-secondary hover:bg-secondary/90">
-              Invia Richiesta
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Button type="submit" className="flex-1 bg-secondary hover:bg-secondary/90">
+                Invia Richiesta
+              </Button>
+              {user && (
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={saveDraft}
+                  disabled={savingDraft}
+                  className="flex items-center gap-2"
+                >
+                  <Save className="h-4 w-4" />
+                  {savingDraft ? "Salvataggio..." : "Salva Bozza"}
+                </Button>
+              )}
+            </div>
+
+            {!user && (
+              <p className="text-sm text-muted-foreground text-center">
+                Effettua il login per salvare il form come bozza
+              </p>
+            )}
           </form>
         </CardContent>
       </Card>
