@@ -8,6 +8,7 @@ import NewClient from "./pages/NewClient";
 import ExistingClient from "./pages/ExistingClient";
 import Documents from "./pages/Documents";
 import Attestati from "./pages/Attestati";
+import QRCodeHistory from "./pages/QRCodeHistory";
 import AdminDashboard from "./pages/AdminDashboard";
 import UserRoleManager from "./pages/UserRoleManager";
 import ContactRequest from "./pages/ContactRequest";
@@ -28,6 +29,7 @@ const App = () => (
           <Route path="/existing-client" element={<ExistingClient />} />
           <Route path="/documents" element={<Documents />} />
           <Route path="/attestati" element={<Attestati />} />
+          <Route path="/qr-history" element={<QRCodeHistory />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/user-roles" element={<UserRoleManager />} />
           <Route path="/contact-request" element={<ContactRequest />} />

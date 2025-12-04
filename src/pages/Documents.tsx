@@ -32,7 +32,7 @@ const Documents = () => {
   const [uploading, setUploading] = useState(false);
   const [selectedArea, setSelectedArea] = useState<string>('generale');
   const [qrModalOpen, setQrModalOpen] = useState(false);
-  const [selectedDocForQR, setSelectedDocForQR] = useState<{ url: string; name: string } | null>(null);
+  const [selectedDocForQR, setSelectedDocForQR] = useState<{ url: string; name: string; id: string } | null>(null);
   const { toast } = useToast();
 
   const areaCompetenza = [
@@ -138,12 +138,12 @@ const Documents = () => {
     }
   };
 
-  const handleShowQR = (filePath: string, fileName: string) => {
+  const handleShowQR = (docId: string, filePath: string, fileName: string) => {
     const { data } = supabase.storage
       .from('documents')
       .getPublicUrl(filePath);
     
-    setSelectedDocForQR({ url: data.publicUrl, name: fileName });
+    setSelectedDocForQR({ url: data.publicUrl, name: fileName, id: docId });
     setQrModalOpen(true);
   };
 
@@ -265,7 +265,7 @@ const Documents = () => {
                       <Button 
                         variant="outline" 
                         size="sm"
-                        onClick={() => handleShowQR(doc.file_path, doc.name)}
+                        onClick={() => handleShowQR(doc.id, doc.file_path, doc.name)}
                         title="Genera QR Code"
                       >
                         <QrCode className="h-4 w-4" />
@@ -343,6 +343,7 @@ const Documents = () => {
           onOpenChange={setQrModalOpen}
           url={selectedDocForQR.url}
           fileName={selectedDocForQR.name}
+          documentId={selectedDocForQR.id}
         />
       )}
     </div>
