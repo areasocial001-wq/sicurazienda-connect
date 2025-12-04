@@ -7,7 +7,8 @@ import AuthModal from '@/components/AuthModal'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { FileText, Download, User, Calendar, Building, Shield, Settings } from 'lucide-react'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { FileText, Download, User, Calendar, Building, Shield, Settings, Upload, Award } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface DocumentWithUser {
@@ -26,12 +27,21 @@ interface DocumentWithUser {
   }
 }
 
+interface UserProfile {
+  user_id: string
+  full_name: string | null
+  company_name: string | null
+}
+
 export default function AdminDashboard() {
   const { user, signOut } = useAuth()
   const { isAdmin, isAreaAziendale, role, getRoleDisplayName, loading: roleLoading } = useUserRole()
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [documents, setDocuments] = useState<DocumentWithUser[]>([])
   const [loading, setLoading] = useState(true)
+  const [users, setUsers] = useState<UserProfile[]>([])
+  const [selectedUserId, setSelectedUserId] = useState<string>('')
+  const [uploading, setUploading] = useState(false)
   const [stats, setStats] = useState({
     totalDocuments: 0,
     totalUsers: 0,
@@ -45,6 +55,9 @@ export default function AdminDashboard() {
     if (!roleLoading && user && hasAccess) {
       fetchDocuments()
       fetchStats()
+      if (isAdmin) {
+        fetchUsers()
+      }
     } else if (!roleLoading && user && !hasAccess) {
       setLoading(false)
     }
@@ -115,6 +128,72 @@ export default function AdminDashboard() {
       })
     } catch (error) {
       console.error('Error fetching stats:', error)
+    }
+  }
+
+  const fetchUsers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('user_id, full_name, company_name')
+        .not('user_id', 'is', null)
+        .order('full_name')
+
+      if (error) throw error
+      setUsers(data || [])
+    } catch (error) {
+      console.error('Error fetching users:', error)
+    }
+  }
+
+  const handleUploadAttestato = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      if (!selectedUserId) {
+        toast.error('Seleziona un utente prima di caricare')
+        return
+      }
+
+      if (!event.target.files || event.target.files.length === 0) {
+        return
+      }
+
+      setUploading(true)
+      const file = event.target.files[0]
+      const fileExt = file.name.split('.').pop()
+      const filePath = `${selectedUserId}/attestati/${Date.now()}.${fileExt}`
+
+      // Upload to storage
+      const { error: uploadError } = await supabase.storage
+        .from('documents')
+        .upload(filePath, file)
+
+      if (uploadError) throw uploadError
+
+      // Insert record in documents table
+      const { error: dbError } = await supabase
+        .from('documents')
+        .insert({
+          user_id: selectedUserId,
+          name: file.name,
+          file_path: filePath,
+          file_type: file.type,
+          category: 'attestato',
+          area_competenza: 'gestione_corsi'
+        })
+
+      if (dbError) throw dbError
+
+      toast.success('Attestato caricato con successo')
+      fetchDocuments()
+      fetchStats()
+      
+      // Reset file input
+      event.target.value = ''
+    } catch (error: any) {
+      console.error('Error uploading attestato:', error)
+      toast.error(error.message || 'Errore durante il caricamento')
+    } finally {
+      setUploading(false)
     }
   }
 
@@ -330,6 +409,61 @@ export default function AdminDashboard() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Upload Attestati - Solo Admin */}
+          {isAdmin && (
+            <Card className="mb-8">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Award className="h-5 w-5" />
+                  Carica Attestato per Utente
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-end">
+                  <div className="flex-1 w-full">
+                    <label className="text-sm font-medium mb-2 block">Seleziona Utente</label>
+                    <Select value={selectedUserId} onValueChange={setSelectedUserId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleziona un utente..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {users.map((u) => (
+                          <SelectItem key={u.user_id} value={u.user_id}>
+                            {u.full_name || 'Nome non disponibile'} 
+                            {u.company_name && ` - ${u.company_name}`}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <input
+                      type="file"
+                      onChange={handleUploadAttestato}
+                      style={{ display: 'none' }}
+                      id="attestato-upload"
+                      accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                      disabled={!selectedUserId || uploading}
+                    />
+                    <Button 
+                      onClick={() => document.getElementById('attestato-upload')?.click()}
+                      disabled={!selectedUserId || uploading}
+                      className="w-full sm:w-auto"
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      {uploading ? 'Caricamento...' : 'Carica Attestato'}
+                    </Button>
+                  </div>
+                </div>
+                {!selectedUserId && (
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Seleziona un utente per poter caricare un attestato
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Documents List */}
           <Card>
