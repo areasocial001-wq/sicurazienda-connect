@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import BottomNav from "@/components/BottomNav";
 import AuthModal from "@/components/AuthModal";
+import QRCodeModal from "@/components/QRCodeModal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -19,7 +20,8 @@ import {
   AlertTriangle,
   LogOut,
   User,
-  Settings
+  Settings,
+  QrCode
 } from "lucide-react";
 
 const Documents = () => {
@@ -29,6 +31,8 @@ const Documents = () => {
   const [documents, setDocuments] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
   const [selectedArea, setSelectedArea] = useState<string>('generale');
+  const [qrModalOpen, setQrModalOpen] = useState(false);
+  const [selectedDocForQR, setSelectedDocForQR] = useState<{ url: string; name: string } | null>(null);
   const { toast } = useToast();
 
   const areaCompetenza = [
@@ -132,6 +136,15 @@ const Documents = () => {
         variant: "destructive",
       });
     }
+  };
+
+  const handleShowQR = (filePath: string, fileName: string) => {
+    const { data } = supabase.storage
+      .from('documents')
+      .getPublicUrl(filePath);
+    
+    setSelectedDocForQR({ url: data.publicUrl, name: fileName });
+    setQrModalOpen(true);
   };
 
   const handleSignOut = async () => {
@@ -248,14 +261,24 @@ const Documents = () => {
                         <span className="text-sm text-muted-foreground">{doc.category}</span>
                       </div>
                     </div>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => handleDownload(doc.file_path, doc.name)}
-                    >
-                      <Download className="h-4 w-4 mr-1" />
-                      Download
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleShowQR(doc.file_path, doc.name)}
+                        title="Genera QR Code"
+                      >
+                        <QrCode className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleDownload(doc.file_path, doc.name)}
+                      >
+                        <Download className="h-4 w-4 mr-1" />
+                        Download
+                      </Button>
+                    </div>
                   </div>
                 ))
               )}
@@ -313,6 +336,15 @@ const Documents = () => {
       </main>
       
       <BottomNav />
+      
+      {selectedDocForQR && (
+        <QRCodeModal
+          open={qrModalOpen}
+          onOpenChange={setQrModalOpen}
+          url={selectedDocForQR.url}
+          fileName={selectedDocForQR.name}
+        />
+      )}
     </div>
   );
 };
