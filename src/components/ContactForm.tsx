@@ -31,6 +31,7 @@ const ContactForm = ({ title, serviceType, clientType = "new" }: ContactFormProp
     contractType: "",
     jobRole: ""
   });
+  const [fiscalCodeError, setFiscalCodeError] = useState("");
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -39,8 +40,28 @@ const ContactForm = ({ title, serviceType, clientType = "new" }: ContactFormProp
   const isFineLavoro = serviceType === "Rapporto di Fine Lavoro";
   const showExtraFields = isNeoInserimento || isFineLavoro;
 
+  // Validazione Codice Fiscale Italiano
+  const validateFiscalCode = (code: string): boolean => {
+    if (!code) return false;
+    // Formato: 6 lettere + 2 numeri + 1 lettera + 2 numeri + 1 lettera + 3 caratteri alfanumerici + 1 lettera
+    const cfRegex = /^[A-Z]{6}[0-9]{2}[A-Z][0-9]{2}[A-Z][0-9]{3}[A-Z]$/i;
+    return cfRegex.test(code);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Valida il codice fiscale se richiesto
+    if (showExtraFields && !validateFiscalCode(formData.fiscalCode)) {
+      setFiscalCodeError("Formato codice fiscale non valido (es. RSSMRA85M01H501Z)");
+      toast({
+        title: "Errore di validazione",
+        description: "Il codice fiscale inserito non è nel formato corretto.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setFiscalCodeError("");
     
      try {
        // Determina il tipo di utente dal clientType o dal titolo
@@ -130,7 +151,17 @@ const ContactForm = ({ title, serviceType, clientType = "new" }: ContactFormProp
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+    
+    // Valida CF in tempo reale
+    if (name === "fiscalCode") {
+      if (value && !validateFiscalCode(value)) {
+        setFiscalCodeError("Formato non valido");
+      } else {
+        setFiscalCodeError("");
+      }
+    }
   };
 
   return (
@@ -240,7 +271,11 @@ const ContactForm = ({ title, serviceType, clientType = "new" }: ContactFormProp
                       onChange={handleChange}
                       placeholder="RSSMRA85M01H501Z"
                       required
+                      className={fiscalCodeError ? "border-destructive" : ""}
                     />
+                    {fiscalCodeError && (
+                      <p className="text-sm text-destructive mt-1">{fiscalCodeError}</p>
+                    )}
                   </div>
                   <div>
                     <Label htmlFor={isNeoInserimento ? "startDate" : "endDate"}>
