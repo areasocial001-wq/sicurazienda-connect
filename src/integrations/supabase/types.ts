@@ -89,6 +89,36 @@ export type Database = {
         }
         Relationships: []
       }
+      form_drafts: {
+        Row: {
+          client_type: string
+          created_at: string
+          form_data: Json
+          id: string
+          service_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_type: string
+          created_at?: string
+          form_data: Json
+          id?: string
+          service_type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client_type?: string
+          created_at?: string
+          form_data?: Json
+          id?: string
+          service_type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           company_name: string | null
