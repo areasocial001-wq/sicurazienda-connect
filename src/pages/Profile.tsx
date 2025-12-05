@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
+import { useUserRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { 
@@ -20,7 +21,8 @@ import {
   ArrowLeft,
   Save,
   X,
-  Building2
+  Building2,
+  Shield
 } from "lucide-react";
 
 interface FormDraft {
@@ -39,6 +41,7 @@ interface ProfileData {
 
 const Profile = () => {
   const { user, signOut, loading: authLoading } = useAuth();
+  const { getRoleDisplayName, loading: roleLoading } = useUserRole();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [drafts, setDrafts] = useState<FormDraft[]>([]);
@@ -314,9 +317,24 @@ const Profile = () => {
                     <p className="font-medium">{profile.company_name || <span className="text-muted-foreground italic">Non specificata</span>}</p>
                   </div>
                 </div>
-                <div className="pt-2 border-t">
-                  <p className="text-sm text-muted-foreground">Email</p>
-                  <p className="font-medium">{user.email}</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Email</p>
+                    <p className="font-medium">{user.email}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground flex items-center gap-1">
+                      <Shield className="h-3 w-3" />
+                      Ruolo
+                    </p>
+                    <p className="font-medium">
+                      {roleLoading ? (
+                        <span className="text-muted-foreground italic">Caricamento...</span>
+                      ) : (
+                        <Badge variant="secondary">{getRoleDisplayName()}</Badge>
+                      )}
+                    </p>
+                  </div>
                 </div>
                 <div className="flex justify-end pt-2">
                   <Button variant="outline" onClick={handleSignOut} className="flex items-center gap-2">
