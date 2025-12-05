@@ -29,7 +29,7 @@ const handler = async (req: Request): Promise<Response> => {
     console.log("Document name:", documentName);
 
     const emailResponse = await resend.emails.send({
-      from: "SicurAzienda <onboarding@resend.dev>",
+      from: "SicurAzienda <noreply@sicurazienda.com>",
       to: [recipientEmail],
       subject: `QR Code per il download: ${documentName}`,
       html: `
