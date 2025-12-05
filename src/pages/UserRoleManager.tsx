@@ -36,34 +36,28 @@ export default function UserRoleManager() {
 
   const fetchUsers = async () => {
     try {
-      // Ottieni tutti gli utenti con i loro ruoli e profili
+      // Ottieni tutti i ruoli utente
       const { data: userRoles, error: rolesError } = await supabase
         .from('user_roles')
-        .select(`
-          user_id,
-          role,
-          profiles:user_id (
-            full_name,
-            company_name
-          )
-        `)
+        .select('user_id, role')
 
       if (rolesError) throw rolesError
 
-      // Ottieni gli utenti auth per ottenere email
-      const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers()
-      
-      if (authError) throw authError
+      // Ottieni tutti i profili
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('user_id, full_name, company_name')
 
-      // Combina i dati
-      const usersWithProfiles = authUsers.users.map(authUser => {
-        const userRole = userRoles.find(ur => ur.user_id === authUser.id)
-        const profile = userRole?.profiles as any
+      if (profilesError) throw profilesError
+
+      // Combina i dati dei ruoli con i profili
+      const usersWithProfiles = userRoles.map(userRole => {
+        const profile = profiles.find(p => p.user_id === userRole.user_id)
         
         return {
-          id: authUser.id,
-          email: authUser.email || '',
-          role: (userRole?.role || 'user') as any,
+          id: userRole.user_id,
+          email: profile?.full_name || userRole.user_id, // Usiamo full_name come fallback
+          role: userRole.role as any,
           full_name: profile?.full_name,
           company_name: profile?.company_name
         }
