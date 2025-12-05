@@ -5,6 +5,8 @@ import BottomNav from "@/components/BottomNav";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -15,7 +17,10 @@ import {
   Trash2, 
   Edit, 
   LogOut,
-  ArrowLeft 
+  ArrowLeft,
+  Save,
+  X,
+  Building2
 } from "lucide-react";
 
 interface FormDraft {
@@ -27,22 +32,101 @@ interface FormDraft {
   updated_at: string;
 }
 
+interface ProfileData {
+  full_name: string | null;
+  company_name: string | null;
+}
+
 const Profile = () => {
   const { user, signOut, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [drafts, setDrafts] = useState<FormDraft[]>([]);
   const [draftsLoading, setDraftsLoading] = useState(true);
+  const [profile, setProfile] = useState<ProfileData>({ full_name: null, company_name: null });
+  const [profileLoading, setProfileLoading] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editFullName, setEditFullName] = useState("");
+  const [editCompanyName, setEditCompanyName] = useState("");
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (authLoading) return; // Aspetta che l'auth sia caricata
+    if (authLoading) return;
     
     if (!user) {
       navigate("/");
       return;
     }
     fetchDrafts();
+    fetchProfile();
   }, [user, authLoading, navigate]);
+
+  const fetchProfile = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('full_name, company_name')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (error) throw error;
+      
+      if (data) {
+        setProfile(data);
+        setEditFullName(data.full_name || "");
+        setEditCompanyName(data.company_name || "");
+      }
+    } catch (error) {
+      console.error('Errore caricamento profilo:', error);
+    } finally {
+      setProfileLoading(false);
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    if (!user) return;
+    setSaving(true);
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          full_name: editFullName.trim() || null,
+          company_name: editCompanyName.trim() || null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      setProfile({
+        full_name: editFullName.trim() || null,
+        company_name: editCompanyName.trim() || null
+      });
+      setIsEditing(false);
+      toast({
+        title: "Profilo aggiornato",
+        description: "Le modifiche sono state salvate con successo.",
+      });
+    } catch (error) {
+      console.error('Errore salvataggio profilo:', error);
+      toast({
+        title: "Errore",
+        description: "Impossibile salvare le modifiche.",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditFullName(profile.full_name || "");
+    setEditCompanyName(profile.company_name || "");
+    setIsEditing(false);
+  };
 
   const fetchDrafts = async () => {
     if (!user) return;
@@ -160,22 +244,88 @@ const Profile = () => {
         {/* Info Utente */}
         <Card className="mb-6">
           <CardHeader className="gradient-sicur text-white">
-            <CardTitle className="flex items-center gap-2">
-              <User className="h-5 w-5" />
-              Il Mio Profilo
+            <CardTitle className="flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <User className="h-5 w-5" />
+                Il Mio Profilo
+              </span>
+              {!isEditing && !profileLoading && (
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => setIsEditing(true)}
+                  className="text-white hover:bg-white/20"
+                >
+                  <Edit className="h-4 w-4 mr-1" />
+                  Modifica
+                </Button>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent className="p-6">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div>
-                <p className="text-sm text-muted-foreground">Email</p>
-                <p className="font-medium">{user.email}</p>
+            {profileLoading ? (
+              <div className="text-center py-4 text-muted-foreground">Caricamento...</div>
+            ) : isEditing ? (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="fullName">Nome Completo</Label>
+                  <Input
+                    id="fullName"
+                    value={editFullName}
+                    onChange={(e) => setEditFullName(e.target.value)}
+                    placeholder="Inserisci il tuo nome completo"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="companyName">Nome Azienda</Label>
+                  <Input
+                    id="companyName"
+                    value={editCompanyName}
+                    onChange={(e) => setEditCompanyName(e.target.value)}
+                    placeholder="Inserisci il nome della tua azienda"
+                  />
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <Button onClick={handleSaveProfile} disabled={saving} className="flex items-center gap-2">
+                    <Save className="h-4 w-4" />
+                    {saving ? "Salvataggio..." : "Salva"}
+                  </Button>
+                  <Button variant="outline" onClick={handleCancelEdit} disabled={saving} className="flex items-center gap-2">
+                    <X className="h-4 w-4" />
+                    Annulla
+                  </Button>
+                </div>
               </div>
-              <Button variant="outline" onClick={handleSignOut} className="flex items-center gap-2">
-                <LogOut className="h-4 w-4" />
-                Esci
-              </Button>
-            </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground flex items-center gap-1">
+                      <User className="h-3 w-3" />
+                      Nome Completo
+                    </p>
+                    <p className="font-medium">{profile.full_name || <span className="text-muted-foreground italic">Non specificato</span>}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground flex items-center gap-1">
+                      <Building2 className="h-3 w-3" />
+                      Azienda
+                    </p>
+                    <p className="font-medium">{profile.company_name || <span className="text-muted-foreground italic">Non specificata</span>}</p>
+                  </div>
+                </div>
+                <div className="pt-2 border-t">
+                  <p className="text-sm text-muted-foreground">Email</p>
+                  <p className="font-medium">{user.email}</p>
+                </div>
+                <div className="flex justify-end pt-2">
+                  <Button variant="outline" onClick={handleSignOut} className="flex items-center gap-2">
+                    <LogOut className="h-4 w-4" />
+                    Esci
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
