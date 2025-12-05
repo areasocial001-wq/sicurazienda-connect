@@ -28,19 +28,21 @@ interface FormDraft {
 }
 
 const Profile = () => {
-  const { user, signOut } = useAuth();
+  const { user, signOut, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [drafts, setDrafts] = useState<FormDraft[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [draftsLoading, setDraftsLoading] = useState(true);
 
   useEffect(() => {
+    if (authLoading) return; // Aspetta che l'auth sia caricata
+    
     if (!user) {
       navigate("/");
       return;
     }
     fetchDrafts();
-  }, [user, navigate]);
+  }, [user, authLoading, navigate]);
 
   const fetchDrafts = async () => {
     if (!user) return;
@@ -62,7 +64,7 @@ const Profile = () => {
         variant: "destructive",
       });
     } finally {
-      setLoading(false);
+      setDraftsLoading(false);
     }
   };
 
@@ -129,6 +131,14 @@ const Profile = () => {
     navigate("/");
   };
 
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-muted-foreground">Caricamento...</div>
+      </div>
+    );
+  }
+
   if (!user) {
     return null;
   }
@@ -181,7 +191,7 @@ const Profile = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {loading ? (
+            {draftsLoading ? (
               <div className="text-center py-8 text-muted-foreground">
                 Caricamento...
               </div>
