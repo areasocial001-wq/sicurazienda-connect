@@ -41,7 +41,24 @@ interface ProfileData {
 
 const Profile = () => {
   const { user, signOut, loading: authLoading } = useAuth();
-  const { getRoleDisplayName, loading: roleLoading } = useUserRole();
+  const { role, getRoleDisplayName, loading: roleLoading } = useUserRole();
+
+  const getRoleBadgeStyles = () => {
+    switch (role) {
+      case 'admin':
+        return 'bg-red-500/20 text-red-700 dark:text-red-400 border-red-500/30';
+      case 'contabilita':
+        return 'bg-blue-500/20 text-blue-700 dark:text-blue-400 border-blue-500/30';
+      case 'area_tecnica':
+        return 'bg-green-500/20 text-green-700 dark:text-green-400 border-green-500/30';
+      case 'gestione_corsi':
+        return 'bg-purple-500/20 text-purple-700 dark:text-purple-400 border-purple-500/30';
+      case 'consulenti_tecnici':
+        return 'bg-orange-500/20 text-orange-700 dark:text-orange-400 border-orange-500/30';
+      default:
+        return 'bg-secondary text-secondary-foreground';
+    }
+  };
   const navigate = useNavigate();
   const { toast } = useToast();
   const [drafts, setDrafts] = useState<FormDraft[]>([]);
@@ -331,8 +348,23 @@ const Profile = () => {
                       {roleLoading ? (
                         <span className="text-muted-foreground italic">Caricamento...</span>
                       ) : (
-                        <Badge variant="secondary">{getRoleDisplayName()}</Badge>
+                        <Badge className={getRoleBadgeStyles()}>{getRoleDisplayName()}</Badge>
                       )}
+                    </p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t">
+                  <div>
+                    <p className="text-sm text-muted-foreground flex items-center gap-1">
+                      <Calendar className="h-3 w-3" />
+                      Iscritto dal
+                    </p>
+                    <p className="font-medium">
+                      {user.created_at ? new Date(user.created_at).toLocaleDateString('it-IT', {
+                        day: '2-digit',
+                        month: 'long',
+                        year: 'numeric'
+                      }) : <span className="text-muted-foreground italic">Non disponibile</span>}
                     </p>
                   </div>
                 </div>
