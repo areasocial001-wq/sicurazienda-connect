@@ -6,8 +6,11 @@ import QRCodeModal from "@/components/QRCodeModal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useDocumentAgent } from "@/hooks/useDocumentAgent";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -21,18 +24,32 @@ import {
   LogOut,
   User,
   Settings,
-  QrCode
+  QrCode,
+  Search,
+  Sparkles,
+  Loader2,
+  Brain
 } from "lucide-react";
 
 const Documents = () => {
   const { user, loading, signOut } = useAuth();
   const { isAdmin, loading: roleLoading } = useUserRole();
+  const { classifyDocument, semanticSearch, isProcessing } = useDocumentAgent();
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [documents, setDocuments] = useState<any[]>([]);
+  const [filteredDocuments, setFilteredDocuments] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
   const [selectedArea, setSelectedArea] = useState<string>('generale');
   const [qrModalOpen, setQrModalOpen] = useState(false);
   const [selectedDocForQR, setSelectedDocForQR] = useState<{ url: string; name: string; id: string } | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [aiSuggestion, setAiSuggestion] = useState<{
+    category: string;
+    area_competenza: string;
+    confidence: number;
+    suggerimento?: string;
+  } | null>(null);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
   const { toast } = useToast();
 
   const areaCompetenza = [
@@ -49,6 +66,10 @@ const Documents = () => {
     }
   }, [user]);
 
+  useEffect(() => {
+    setFilteredDocuments(documents);
+  }, [documents]);
+
   const fetchDocuments = async () => {
     try {
       const { data, error } = await supabase
@@ -63,34 +84,55 @@ const Documents = () => {
     }
   };
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!event.target.files || event.target.files.length === 0) return;
+    
+    const file = event.target.files[0];
+    setPendingFile(file);
+    setAiSuggestion(null);
+
+    // AI Classification
+    toast({
+      title: "Analisi AI in corso...",
+      description: "Sto classificando il documento automaticamente",
+    });
+
+    const result = await classifyDocument(file.name);
+    
+    if (result) {
+      setAiSuggestion(result);
+      setSelectedArea(result.area_competenza);
+      
+      toast({
+        title: "Classificazione completata",
+        description: `Suggerimento: ${result.suggerimento || result.category}`,
+      });
+    }
+  };
+
+  const handleUploadConfirm = async () => {
+    if (!pendingFile || !user) return;
+
     try {
       setUploading(true);
       
-      if (!event.target.files || event.target.files.length === 0) {
-        throw new Error('Devi selezionare un file da caricare.');
-      }
-
-      const file = event.target.files[0];
-      const fileExt = file.name.split('.').pop();
-      const filePath = `${user!.id}/${Math.random()}.${fileExt}`;
+      const fileExt = pendingFile.name.split('.').pop();
+      const filePath = `${user.id}/${Math.random()}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from('documents')
-        .upload(filePath, file);
+        .upload(filePath, pendingFile);
 
-      if (uploadError) {
-        throw uploadError;
-      }
+      if (uploadError) throw uploadError;
 
       const { error: dbError } = await supabase
         .from('documents')
         .insert({
-          user_id: user!.id,
-          name: file.name,
+          user_id: user.id,
+          name: pendingFile.name,
           file_path: filePath,
-          file_type: file.type,
-          category: 'Upload Utente',
+          file_type: pendingFile.type,
+          category: aiSuggestion?.category || 'Upload Utente',
           area_competenza: selectedArea
         });
 
@@ -101,6 +143,8 @@ const Documents = () => {
         description: "Il documento è stato caricato con successo.",
       });
 
+      setPendingFile(null);
+      setAiSuggestion(null);
       fetchDocuments();
     } catch (error: any) {
       toast({
@@ -110,6 +154,52 @@ const Documents = () => {
       });
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleAISearch = async () => {
+    if (!searchQuery.trim()) {
+      setFilteredDocuments(documents);
+      return;
+    }
+
+    const searchCriteria = await semanticSearch(searchQuery);
+    
+    if (searchCriteria) {
+      let filtered = [...documents];
+
+      // Filter by keywords
+      if (searchCriteria.keywords.length > 0) {
+        filtered = filtered.filter(doc => 
+          searchCriteria.keywords.some(kw => 
+            doc.name.toLowerCase().includes(kw.toLowerCase()) ||
+            doc.category?.toLowerCase().includes(kw.toLowerCase())
+          )
+        );
+      }
+
+      // Filter by categories
+      if (searchCriteria.categories.length > 0) {
+        filtered = filtered.filter(doc =>
+          searchCriteria.categories.some(cat => 
+            doc.category?.toLowerCase().includes(cat.toLowerCase())
+          )
+        );
+      }
+
+      // Filter by areas
+      if (searchCriteria.areas.length > 0) {
+        filtered = filtered.filter(doc =>
+          searchCriteria.areas.includes(doc.area_competenza)
+        );
+      }
+
+      setFilteredDocuments(filtered);
+      
+      toast({
+        title: "Ricerca AI completata",
+        description: `Trovati ${filtered.length} documenti - ${searchCriteria.intent}`,
+      });
     }
   };
 
@@ -236,29 +326,71 @@ const Documents = () => {
           </div>
         </div>
 
+        {/* AI Search */}
+        <Card className="mb-4">
+          <CardContent className="pt-4">
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Cerca documenti con AI (es: 'fatture dell'ultimo mese', 'attestati formazione')..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAISearch()}
+                  className="pl-10"
+                />
+              </div>
+              <Button onClick={handleAISearch} disabled={isProcessing}>
+                {isProcessing ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Brain className="h-4 w-4 mr-2" />
+                )}
+                Cerca
+              </Button>
+              {searchQuery && (
+                <Button variant="outline" onClick={() => {
+                  setSearchQuery('');
+                  setFilteredDocuments(documents);
+                }}>
+                  Reset
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
         <Card className="mb-4">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Database className="h-5 w-5" />
               I Tuoi Documenti
+              {filteredDocuments.length !== documents.length && (
+                <Badge variant="secondary">{filteredDocuments.length} di {documents.length}</Badge>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {documents.length === 0 ? (
+              {filteredDocuments.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <FileText className="h-12 w-12 mx-auto mb-3 opacity-50" />
                   <p>Nessun documento disponibile</p>
                   <p className="text-sm">Carica il tuo primo documento qui sotto</p>
                 </div>
               ) : (
-                documents.map((doc) => (
+                filteredDocuments.map((doc) => (
                   <div key={doc.id} className="flex items-center justify-between p-3 border rounded-lg">
                     <div className="flex items-center gap-3">
                       <FileText className="h-5 w-5 text-muted-foreground" />
                       <div>
                         <span className="font-medium block">{doc.name}</span>
-                        <span className="text-sm text-muted-foreground">{doc.category}</span>
+                        <div className="flex gap-2 mt-1">
+                          <Badge variant="outline" className="text-xs">{doc.category}</Badge>
+                          {doc.area_competenza && (
+                            <Badge variant="secondary" className="text-xs">{doc.area_competenza}</Badge>
+                          )}
+                        </div>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -291,10 +423,34 @@ const Documents = () => {
             <CardTitle className="flex items-center gap-2">
               <Upload className="h-5 w-5" />
               Upload Documenti
+              <Badge variant="outline" className="ml-2">
+                <Sparkles className="h-3 w-3 mr-1" />
+                AI Auto-classificazione
+              </Badge>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
+              {/* AI Suggestion Card */}
+              {aiSuggestion && pendingFile && (
+                <Alert className="bg-primary/5 border-primary/20">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  <AlertDescription>
+                    <div className="space-y-2">
+                      <p className="font-medium">Suggerimento AI per "{pendingFile.name}":</p>
+                      <div className="flex flex-wrap gap-2">
+                        <Badge>Categoria: {aiSuggestion.category}</Badge>
+                        <Badge variant="secondary">Area: {aiSuggestion.area_competenza}</Badge>
+                        <Badge variant="outline">Confidenza: {Math.round(aiSuggestion.confidence * 100)}%</Badge>
+                      </div>
+                      {aiSuggestion.suggerimento && (
+                        <p className="text-sm text-muted-foreground">{aiSuggestion.suggerimento}</p>
+                      )}
+                    </div>
+                  </AlertDescription>
+                </Alert>
+              )}
+
               <div>
                 <label className="text-sm font-medium mb-2 block">Area di Competenza</label>
                 <Select value={selectedArea} onValueChange={setSelectedArea}>
@@ -310,26 +466,72 @@ const Documents = () => {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center">
-                <Upload className="h-12 w-12 mx-auto mb-3 text-muted-foreground" />
-                <p className="text-muted-foreground mb-3">
-                  Carica i tuoi documenti aziendali
-                </p>
-                <input
-                  type="file"
-                  onChange={handleFileUpload}
-                  style={{ display: 'none' }}
-                  id="file-upload"
-                  accept=".pdf,.doc,.docx,.xlsx,.xls,.jpg,.jpeg,.png"
-                />
-                <Button 
-                  variant="outline" 
-                  onClick={() => document.getElementById('file-upload')?.click()}
-                  disabled={uploading}
-                >
-                  {uploading ? 'Caricamento...' : 'Seleziona File'}
-                </Button>
-              </div>
+
+              {!pendingFile ? (
+                <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center">
+                  <Upload className="h-12 w-12 mx-auto mb-3 text-muted-foreground" />
+                  <p className="text-muted-foreground mb-3">
+                    Carica i tuoi documenti aziendali
+                  </p>
+                  <input
+                    type="file"
+                    onChange={handleFileSelect}
+                    style={{ display: 'none' }}
+                    id="file-upload"
+                    accept=".pdf,.doc,.docx,.xlsx,.xls,.jpg,.jpeg,.png"
+                  />
+                  <Button 
+                    variant="outline" 
+                    onClick={() => document.getElementById('file-upload')?.click()}
+                    disabled={isProcessing}
+                  >
+                    {isProcessing ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Analisi AI...
+                      </>
+                    ) : (
+                      'Seleziona File'
+                    )}
+                  </Button>
+                </div>
+              ) : (
+                <div className="border rounded-lg p-4 space-y-4">
+                  <div className="flex items-center gap-3">
+                    <FileText className="h-8 w-8 text-primary" />
+                    <div>
+                      <p className="font-medium">{pendingFile.name}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {(pendingFile.size / 1024).toFixed(1)} KB
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button onClick={handleUploadConfirm} disabled={uploading}>
+                      {uploading ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Caricamento...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="h-4 w-4 mr-2" />
+                          Carica Documento
+                        </>
+                      )}
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => {
+                        setPendingFile(null);
+                        setAiSuggestion(null);
+                      }}
+                    >
+                      Annulla
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
