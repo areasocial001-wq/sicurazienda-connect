@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { 
   Calendar as CalendarIcon, ArrowLeft, Loader2, Users, 
   Clock, AlertTriangle, FileText, Phone, GripVertical,
-  LayoutGrid, CalendarDays
+  LayoutGrid, CalendarDays, Link2
 } from 'lucide-react';
 import { format, isSameDay } from 'date-fns';
 import { it } from 'date-fns/locale';
@@ -17,6 +17,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useReminders } from '@/hooks/useReminders';
+import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -26,12 +27,13 @@ interface CalendarEvent {
   id: string;
   title: string;
   date: Date;
-  type: 'followup' | 'document_expiry' | 'course_expiry' | 'reminder';
+  type: 'followup' | 'document_expiry' | 'course_expiry' | 'reminder' | 'google_calendar';
   contactName?: string;
   contactId?: string;
   documentId?: string;
   description?: string;
   draggable: boolean;
+  time?: string;
 }
 
 type CalendarView = 'month' | 'week';
@@ -40,6 +42,7 @@ export default function CRMCalendar() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const { reminders } = useReminders();
+  const { isConnected: googleConnected, events: googleEvents, fetchEvents: fetchGoogleEvents } = useGoogleCalendar(user?.id);
   const [loading, setLoading] = useState(true);
   const [calendarView, setCalendarView] = useState<CalendarView>('month');
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
@@ -77,7 +80,10 @@ export default function CRMCalendar() {
 
   useEffect(() => {
     fetchData();
-  }, [fetchData]);
+    if (googleConnected) {
+      fetchGoogleEvents();
+    }
+  }, [fetchData, googleConnected, fetchGoogleEvents]);
 
   // Build calendar events from all sources
   const events = useMemo<CalendarEvent[]>(() => {
@@ -86,14 +92,16 @@ export default function CRMCalendar() {
     // Add followup events from contacts (draggable)
     contacts.forEach(contact => {
       if (contact.next_followup_at) {
+        const followupDate = new Date(contact.next_followup_at);
         allEvents.push({
           id: `followup-${contact.id}`,
           title: `Follow-up: ${contact.name}`,
-          date: new Date(contact.next_followup_at),
+          date: followupDate,
           type: 'followup',
           contactName: contact.name,
           contactId: contact.id,
           draggable: true,
+          time: format(followupDate, 'HH:mm'),
         });
       }
     });
@@ -126,8 +134,22 @@ export default function CRMCalendar() {
       });
     });
 
+    // Add Google Calendar events (not draggable - external)
+    googleEvents.forEach(gEvent => {
+      const eventDate = new Date(gEvent.start);
+      allEvents.push({
+        id: `google-${gEvent.id}`,
+        title: gEvent.title,
+        date: eventDate,
+        type: 'google_calendar',
+        description: gEvent.description || undefined,
+        draggable: false,
+        time: gEvent.allDay ? undefined : format(eventDate, 'HH:mm'),
+      });
+    });
+
     return allEvents;
-  }, [contacts, documents, reminders]);
+  }, [contacts, documents, reminders, googleEvents]);
 
   // Get events for selected date
   const selectedDateEvents = useMemo(() => {
@@ -150,6 +172,8 @@ export default function CRMCalendar() {
         return 'bg-purple-500/20 text-purple-700 border-purple-500/30';
       case 'reminder':
         return 'bg-yellow-500/20 text-yellow-700 border-yellow-500/30';
+      case 'google_calendar':
+        return 'bg-green-500/20 text-green-700 border-green-500/30';
       default:
         return 'bg-gray-500/20 text-gray-700 border-gray-500/30';
     }
@@ -165,6 +189,8 @@ export default function CRMCalendar() {
         return <AlertTriangle className="h-4 w-4" />;
       case 'reminder':
         return <Clock className="h-4 w-4" />;
+      case 'google_calendar':
+        return <Link2 className="h-4 w-4" />;
       default:
         return <CalendarIcon className="h-4 w-4" />;
     }
@@ -371,6 +397,12 @@ export default function CRMCalendar() {
                                 </p>
                               )}
                               <div className="flex items-center gap-2 mt-2 flex-wrap">
+                                {event.time && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    <Clock className="h-3 w-3 mr-1" />
+                                    {event.time}
+                                  </Badge>
+                                )}
                                 <Badge 
                                   variant="outline" 
                                   className={cn("text-xs", getEventTypeStyles(event.type))}
@@ -379,6 +411,7 @@ export default function CRMCalendar() {
                                   {event.type === 'document_expiry' && 'Scadenza Doc'}
                                   {event.type === 'course_expiry' && 'Scadenza Corso'}
                                   {event.type === 'reminder' && 'Promemoria'}
+                                  {event.type === 'google_calendar' && 'Google Calendar'}
                                 </Badge>
                                 {event.draggable && (
                                   <Badge variant="secondary" className="text-xs">
@@ -421,6 +454,10 @@ export default function CRMCalendar() {
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full bg-yellow-500" />
                     <span className="text-sm text-muted-foreground">Promemoria</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-green-500" />
+                    <span className="text-sm text-muted-foreground">Google Calendar</span>
                   </div>
                 </div>
               </div>
