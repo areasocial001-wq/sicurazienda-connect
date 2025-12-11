@@ -53,11 +53,163 @@ export type Database = {
         }
         Relationships: []
       }
+      crm_contacts: {
+        Row: {
+          company: string | null
+          created_at: string
+          email: string | null
+          id: string
+          last_contact_at: string | null
+          name: string
+          next_followup_at: string | null
+          notes: string | null
+          phone: string | null
+          role: string | null
+          source: string | null
+          status: string
+          tags: string[] | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          company?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          last_contact_at?: string | null
+          name: string
+          next_followup_at?: string | null
+          notes?: string | null
+          phone?: string | null
+          role?: string | null
+          source?: string | null
+          status?: string
+          tags?: string[] | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          company?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          last_contact_at?: string | null
+          name?: string
+          next_followup_at?: string | null
+          notes?: string | null
+          phone?: string | null
+          role?: string | null
+          source?: string | null
+          status?: string
+          tags?: string[] | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      crm_interactions: {
+        Row: {
+          completed_at: string | null
+          contact_id: string
+          created_at: string
+          description: string | null
+          id: string
+          scheduled_at: string | null
+          subject: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          contact_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          scheduled_at?: string | null
+          subject: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          contact_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          scheduled_at?: string | null
+          subject?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_interactions_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_extracted_data: {
+        Row: {
+          addresses: Json | null
+          amounts: Json | null
+          codes: Json | null
+          companies: Json | null
+          contacts: Json | null
+          dates: Json | null
+          document_id: string
+          extracted_at: string
+          id: string
+          people: Json | null
+          raw_data: Json | null
+          summary: string | null
+        }
+        Insert: {
+          addresses?: Json | null
+          amounts?: Json | null
+          codes?: Json | null
+          companies?: Json | null
+          contacts?: Json | null
+          dates?: Json | null
+          document_id: string
+          extracted_at?: string
+          id?: string
+          people?: Json | null
+          raw_data?: Json | null
+          summary?: string | null
+        }
+        Update: {
+          addresses?: Json | null
+          amounts?: Json | null
+          codes?: Json | null
+          companies?: Json | null
+          contacts?: Json | null
+          dates?: Json | null
+          document_id?: string
+          extracted_at?: string
+          id?: string
+          people?: Json | null
+          raw_data?: Json | null
+          summary?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_extracted_data_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       documents: {
         Row: {
           area_competenza: string | null
           category: string | null
           created_at: string | null
+          expiry_date: string | null
           file_path: string
           file_type: string | null
           id: string
@@ -69,6 +221,7 @@ export type Database = {
           area_competenza?: string | null
           category?: string | null
           created_at?: string | null
+          expiry_date?: string | null
           file_path: string
           file_type?: string | null
           id?: string
@@ -80,6 +233,7 @@ export type Database = {
           area_competenza?: string | null
           category?: string | null
           created_at?: string | null
+          expiry_date?: string | null
           file_path?: string
           file_type?: string | null
           id?: string
@@ -221,6 +375,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      reminders: {
+        Row: {
+          created_at: string
+          description: string | null
+          due_date: string
+          id: string
+          is_completed: boolean
+          is_read: boolean
+          reference_id: string | null
+          reference_type: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          due_date: string
+          id?: string
+          is_completed?: boolean
+          is_read?: boolean
+          reference_id?: string | null
+          reference_type?: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          due_date?: string
+          id?: string
+          is_completed?: boolean
+          is_read?: boolean
+          reference_id?: string | null
+          reference_type?: string | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {
