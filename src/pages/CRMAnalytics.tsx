@@ -12,6 +12,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import GoogleCalendarSync from '@/components/GoogleCalendarSync';
+import ReminderStats from '@/components/ReminderStats';
 import {
   BarChart,
   Bar,
@@ -456,7 +458,7 @@ export default function CRMAnalytics() {
 
         {/* Activity by Type */}
         {analytics && analytics.recentActivity.length > 0 && (
-          <Card>
+          <Card className="mb-6">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <Activity className="h-5 w-5" />
@@ -478,6 +480,23 @@ export default function CRMAnalytics() {
             </CardContent>
           </Card>
         )}
+
+        {/* Reminder Statistics Section */}
+        <div className="mb-6">
+          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+            <Calendar className="h-5 w-5" />
+            Statistiche Promemoria
+          </h2>
+          <ReminderStats userId={user?.id} />
+        </div>
+
+        {/* Google Calendar Integration */}
+        <div className="mb-6">
+          <h2 className="text-xl font-semibold mb-4">Integrazioni</h2>
+          <div className="max-w-md">
+            <GoogleCalendarSync userId={user?.id} />
+          </div>
+        </div>
       </main>
 
       <BottomNav />
