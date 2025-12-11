@@ -16,8 +16,10 @@ import UserRoleManager from "./pages/UserRoleManager";
 import ContactRequest from "./pages/ContactRequest";
 import Profile from "./pages/Profile";
 import AppDocumentation from "./pages/AppDocumentation";
+import Assistente from "./pages/Assistente";
 import NotFound from "./pages/NotFound";
 import ScanNotifications from "./components/ScanNotifications";
+import { FloatingChat } from "./components/FloatingChat";
 
 const queryClient = new QueryClient();
 
@@ -42,9 +44,11 @@ const App = () => (
           <Route path="/contact-request" element={<ContactRequest />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/documentazione" element={<AppDocumentation />} />
+          <Route path="/assistente" element={<Assistente />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
+        <FloatingChat />
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

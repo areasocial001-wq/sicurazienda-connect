@@ -5,3 +5,9 @@ verify_jwt = false
 
 [functions.send-qr-email]
 verify_jwt = false
+
+[functions.ai-chat]
+verify_jwt = false
+
+[functions.document-agent]
+verify_jwt = false
