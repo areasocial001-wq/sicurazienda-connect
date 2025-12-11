@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import { format } from 'date-fns';
+import { it } from 'date-fns/locale';
 import { 
   Users, Plus, Search, Phone, Mail, Building, 
   MoreVertical, Sparkles, Loader2, UserPlus, 
-  Calendar, MessageSquare, FileText, ArrowLeft,
-  Brain, TrendingUp, BarChart3, Download
+  Calendar as CalendarIcon, MessageSquare, FileText, ArrowLeft,
+  Brain, TrendingUp, BarChart3, Download, Filter, X, Tag
 } from 'lucide-react';
 import { toast } from 'sonner';
 import Header from '@/components/Header';
@@ -13,6 +15,12 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
+import { Calendar } from '@/components/ui/calendar';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import {
   Dialog,
   DialogContent,
@@ -65,6 +73,10 @@ export default function CRM() {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
+  const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
+  const [tagFilter, setTagFilter] = useState<string>('all');
+  const [showFilters, setShowFilters] = useState(false);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [selectedContact, setSelectedContact] = useState<CRMContact | null>(null);
   const [showInteractionDialog, setShowInteractionDialog] = useState(false);
@@ -80,6 +92,7 @@ export default function CRM() {
     status: 'lead' as const,
     source: '',
     notes: '',
+    tags: [] as string[],
   });
 
   // Interaction form state
@@ -89,19 +102,53 @@ export default function CRM() {
     description: '',
   });
 
+  // Extract all unique tags from contacts
+  const allTags = useMemo(() => {
+    const tags = new Set<string>();
+    contacts.forEach(contact => {
+      contact.tags?.forEach(tag => tags.add(tag));
+    });
+    return Array.from(tags).sort();
+  }, [contacts]);
+
   const filteredContacts = contacts.filter(contact => {
     const matchesSearch = contact.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       contact.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       contact.company?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === 'all' || contact.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    
+    // Date filter
+    let matchesDate = true;
+    if (dateFrom || dateTo) {
+      const contactDate = new Date(contact.created_at);
+      if (dateFrom && contactDate < dateFrom) matchesDate = false;
+      if (dateTo) {
+        const endOfDay = new Date(dateTo);
+        endOfDay.setHours(23, 59, 59, 999);
+        if (contactDate > endOfDay) matchesDate = false;
+      }
+    }
+    
+    // Tag filter
+    const matchesTag = tagFilter === 'all' || contact.tags?.includes(tagFilter);
+    
+    return matchesSearch && matchesStatus && matchesDate && matchesTag;
   });
+
+  const hasActiveFilters = statusFilter !== 'all' || dateFrom || dateTo || tagFilter !== 'all';
+
+  const clearFilters = () => {
+    setStatusFilter('all');
+    setDateFrom(undefined);
+    setDateTo(undefined);
+    setTagFilter('all');
+  };
 
   const handleAddContact = async () => {
     await addContact(newContact);
     setNewContact({
       name: '', email: '', phone: '', company: '', 
-      role: '', status: 'lead', source: '', notes: ''
+      role: '', status: 'lead', source: '', notes: '', tags: []
     });
     setShowAddDialog(false);
   };
@@ -197,6 +244,10 @@ export default function CRM() {
             <Button variant="outline" onClick={() => navigate('/crm/analytics')}>
               <BarChart3 className="h-4 w-4 mr-2" />
               Analytics
+            </Button>
+            <Button variant="outline" onClick={() => navigate('/crm/calendar')}>
+              <CalendarIcon className="h-4 w-4 mr-2" />
+              Calendario
             </Button>
             <Button variant="outline" onClick={exportContactsCSV}>
               <Download className="h-4 w-4 mr-2" />
@@ -307,7 +358,7 @@ export default function CRM() {
         {/* Filters */}
         <Card className="mb-4">
           <CardContent className="pt-4">
-            <div className="flex gap-4 flex-wrap">
+            <div className="flex gap-4 flex-wrap items-center">
               <div className="relative flex-1 min-w-[200px]">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -329,7 +380,105 @@ export default function CRM() {
                   <SelectItem value="inactive">Inattivo</SelectItem>
                 </SelectContent>
               </Select>
+              <Button 
+                variant={showFilters ? "secondary" : "outline"} 
+                onClick={() => setShowFilters(!showFilters)}
+              >
+                <Filter className="h-4 w-4 mr-2" />
+                Filtri Avanzati
+                {hasActiveFilters && (
+                  <Badge variant="secondary" className="ml-2 h-5 w-5 p-0 justify-center">
+                    !
+                  </Badge>
+                )}
+              </Button>
+              {hasActiveFilters && (
+                <Button variant="ghost" size="sm" onClick={clearFilters}>
+                  <X className="h-4 w-4 mr-1" />
+                  Pulisci
+                </Button>
+              )}
             </div>
+
+            {/* Advanced Filters */}
+            {showFilters && (
+              <div className="mt-4 pt-4 border-t flex gap-4 flex-wrap">
+                {/* Date From */}
+                <div className="space-y-2">
+                  <Label className="text-sm">Da data</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-[150px] justify-start text-left font-normal",
+                          !dateFrom && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {dateFrom ? format(dateFrom, "dd/MM/yyyy") : "Seleziona"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={dateFrom}
+                        onSelect={setDateFrom}
+                        locale={it}
+                        className="pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                {/* Date To */}
+                <div className="space-y-2">
+                  <Label className="text-sm">A data</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-[150px] justify-start text-left font-normal",
+                          !dateTo && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {dateTo ? format(dateTo, "dd/MM/yyyy") : "Seleziona"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={dateTo}
+                        onSelect={setDateTo}
+                        locale={it}
+                        className="pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                {/* Tag Filter */}
+                {allTags.length > 0 && (
+                  <div className="space-y-2">
+                    <Label className="text-sm">Tag</Label>
+                    <Select value={tagFilter} onValueChange={setTagFilter}>
+                      <SelectTrigger className="w-[150px]">
+                        <Tag className="h-4 w-4 mr-2" />
+                        <SelectValue placeholder="Tag" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Tutti i tag</SelectItem>
+                        {allTags.map(tag => (
+                          <SelectItem key={tag} value={tag}>{tag}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
 
