@@ -26,3 +26,6 @@ verify_jwt = false
 
 [functions.google-calendar-sync]
 verify_jwt = false
+
+[functions.check-upcoming-events]
+verify_jwt = false

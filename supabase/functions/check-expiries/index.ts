@@ -115,6 +115,37 @@ serve(async (req) => {
       }
     }
 
+    // Check for upcoming Google Calendar events
+    let calendarRemindersCreated = 0;
+    const { data: calendarTokens } = await supabase
+      .from('google_calendar_tokens')
+      .select('user_id');
+
+    if (calendarTokens && calendarTokens.length > 0) {
+      console.log(`Checking calendar events for ${calendarTokens.length} users...`);
+      
+      // Call the check-upcoming-events function
+      try {
+        const response = await fetch(
+          `${supabaseUrl}/functions/v1/check-upcoming-events`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${supabaseServiceKey}`,
+            },
+            body: JSON.stringify({}),
+          }
+        );
+        
+        const calendarResult = await response.json();
+        calendarRemindersCreated = calendarResult.remindersCreated || 0;
+        console.log(`Calendar check completed: ${calendarRemindersCreated} reminders created`);
+      } catch (calendarError) {
+        console.error('Error checking calendar events:', calendarError);
+      }
+    }
+
     // Insert all reminders
     if (remindersToCreate.length > 0) {
       const { error: insertError } = await supabase
@@ -147,6 +178,7 @@ serve(async (req) => {
         documentsChecked: expiringDocuments?.length || 0,
         contactsChecked: contactsNeedingFollowup?.length || 0,
         remindersCreated: remindersToCreate.length,
+        calendarRemindersCreated,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
