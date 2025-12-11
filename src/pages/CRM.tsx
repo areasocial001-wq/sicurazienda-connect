@@ -80,6 +80,7 @@ export default function CRM() {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showFollowupDialog, setShowFollowupDialog] = useState(false);
   const [followupDate, setFollowupDate] = useState<Date | undefined>(undefined);
+  const [followupTime, setFollowupTime] = useState<string>('09:00');
   const [selectedContact, setSelectedContact] = useState<CRMContact | null>(null);
   const [showInteractionDialog, setShowInteractionDialog] = useState(false);
   const [aiInsights, setAiInsights] = useState<any>(null);
@@ -178,12 +179,19 @@ export default function CRM() {
 
   const handleSetFollowup = async () => {
     if (!selectedContact || !followupDate) return;
+    
+    // Combine date with selected time
+    const [hours, minutes] = followupTime.split(':').map(Number);
+    const followupDateTime = new Date(followupDate);
+    followupDateTime.setHours(hours, minutes, 0, 0);
+    
     await updateContact(selectedContact.id, { 
-      next_followup_at: followupDate.toISOString() 
+      next_followup_at: followupDateTime.toISOString() 
     });
-    toast.success(`Follow-up impostato per ${format(followupDate, 'dd/MM/yyyy', { locale: it })}`);
+    toast.success(`Follow-up impostato per ${format(followupDateTime, "dd/MM/yyyy 'alle' HH:mm", { locale: it })}`);
     setShowFollowupDialog(false);
     setFollowupDate(undefined);
+    setFollowupTime('09:00');
     setSelectedContact(null);
   };
 
@@ -573,7 +581,14 @@ export default function CRM() {
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => {
                           setSelectedContact(contact);
-                          setFollowupDate(contact.next_followup_at ? new Date(contact.next_followup_at) : undefined);
+                          if (contact.next_followup_at) {
+                            const existingDate = new Date(contact.next_followup_at);
+                            setFollowupDate(existingDate);
+                            setFollowupTime(format(existingDate, 'HH:mm'));
+                          } else {
+                            setFollowupDate(undefined);
+                            setFollowupTime('09:00');
+                          }
                           setShowFollowupDialog(true);
                         }}>
                           <CalendarIcon className="h-4 w-4 mr-2" />
@@ -726,8 +741,28 @@ export default function CRM() {
                   </PopoverContent>
                 </Popover>
               </div>
+              <div>
+                <Label>Ora Follow-up</Label>
+                <Select value={followupTime} onValueChange={setFollowupTime}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[200px]">
+                    {Array.from({ length: 24 }, (_, hour) => 
+                      ['00', '30'].map(min => {
+                        const time = `${hour.toString().padStart(2, '0')}:${min}`;
+                        return (
+                          <SelectItem key={time} value={time}>
+                            {time}
+                          </SelectItem>
+                        );
+                      })
+                    ).flat()}
+                  </SelectContent>
+                </Select>
+              </div>
               <p className="text-sm text-muted-foreground">
-                Il follow-up sarà visibile nel calendario CRM e riceverai un promemoria.
+                Il follow-up sarà visibile nel calendario CRM, sincronizzato con Google Calendar (se connesso) e riceverai un promemoria.
               </p>
               <Button onClick={handleSetFollowup} className="w-full" disabled={!followupDate}>
                 <CalendarIcon className="h-4 w-4 mr-2" />
