@@ -3,7 +3,7 @@ import {
   Users, Plus, Search, Phone, Mail, Building, 
   MoreVertical, Sparkles, Loader2, UserPlus, 
   Calendar, MessageSquare, FileText, ArrowLeft,
-  Brain, TrendingUp
+  Brain, TrendingUp, BarChart3
 } from 'lucide-react';
 import Header from '@/components/Header';
 import BottomNav from '@/components/BottomNav';
@@ -161,6 +161,10 @@ export default function CRM() {
             </div>
           </div>
           <div className="flex gap-2">
+            <Button variant="outline" onClick={() => navigate('/crm/analytics')}>
+              <BarChart3 className="h-4 w-4 mr-2" />
+              Analytics
+            </Button>
             <Button variant="outline" onClick={handleSuggestFollowups} disabled={aiProcessing}>
               {aiProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Brain className="h-4 w-4 mr-2" />}
               Suggerimenti AI
