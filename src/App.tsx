@@ -17,6 +17,7 @@ import ContactRequest from "./pages/ContactRequest";
 import Profile from "./pages/Profile";
 import AppDocumentation from "./pages/AppDocumentation";
 import Assistente from "./pages/Assistente";
+import CRM from "./pages/CRM";
 import NotFound from "./pages/NotFound";
 import ScanNotifications from "./components/ScanNotifications";
 import { FloatingChat } from "./components/FloatingChat";
@@ -45,6 +46,7 @@ const App = () => (
           <Route path="/profile" element={<Profile />} />
           <Route path="/documentazione" element={<AppDocumentation />} />
           <Route path="/assistente" element={<Assistente />} />
+          <Route path="/crm" element={<CRM />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

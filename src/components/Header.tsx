@@ -12,7 +12,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import AuthModal from "@/components/AuthModal";
-import { User, LogOut, FileText, QrCode, BookOpen } from "lucide-react";
+import { NotificationBell } from "@/components/NotificationBell";
+import { User, LogOut, FileText, QrCode, BookOpen, Users } from "lucide-react";
 
 const Header = () => {
   const { user, signOut } = useAuth();
@@ -39,7 +40,12 @@ const Header = () => {
           onClick={() => navigate("/")}
         />
         
-        <div className="flex-1 flex justify-end">
+        <div className="flex-1 flex justify-end items-center gap-2">
+          {user && (
+            <div className="bg-background/80 rounded-full">
+              <NotificationBell />
+            </div>
+          )}
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -59,6 +65,10 @@ const Header = () => {
                 <DropdownMenuItem onClick={() => navigate("/profile")} className="cursor-pointer">
                   <FileText className="h-4 w-4 mr-2" />
                   Le mie bozze
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/crm")} className="cursor-pointer">
+                  <Users className="h-4 w-4 mr-2" />
+                  CRM Contatti
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => navigate("/qr-history")} className="cursor-pointer">
                   <QrCode className="h-4 w-4 mr-2" />
