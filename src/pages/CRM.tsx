@@ -3,8 +3,9 @@ import {
   Users, Plus, Search, Phone, Mail, Building, 
   MoreVertical, Sparkles, Loader2, UserPlus, 
   Calendar, MessageSquare, FileText, ArrowLeft,
-  Brain, TrendingUp, BarChart3
+  Brain, TrendingUp, BarChart3, Download
 } from 'lucide-react';
+import { toast } from 'sonner';
 import Header from '@/components/Header';
 import BottomNav from '@/components/BottomNav';
 import { Button } from '@/components/ui/button';
@@ -126,6 +127,38 @@ export default function CRM() {
     setAiInsights(suggestions);
   };
 
+  const exportContactsCSV = () => {
+    if (contacts.length === 0) {
+      toast.error('Nessun contatto da esportare');
+      return;
+    }
+
+    const headers = ['Nome', 'Email', 'Telefono', 'Azienda', 'Ruolo', 'Status', 'Fonte', 'Note', 'Creato il'];
+    const rows = contacts.map(c => [
+      c.name,
+      c.email || '',
+      c.phone || '',
+      c.company || '',
+      c.role || '',
+      c.status,
+      c.source || '',
+      (c.notes || '').replace(/"/g, '""'),
+      new Date(c.created_at).toLocaleDateString('it-IT')
+    ]);
+
+    const csvContent = [
+      headers.join(';'),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(';'))
+    ].join('\n');
+
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `contatti_crm_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    toast.success('Export contatti completato');
+  };
+
   if (authLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -160,10 +193,14 @@ export default function CRM() {
               </p>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <Button variant="outline" onClick={() => navigate('/crm/analytics')}>
               <BarChart3 className="h-4 w-4 mr-2" />
               Analytics
+            </Button>
+            <Button variant="outline" onClick={exportContactsCSV}>
+              <Download className="h-4 w-4 mr-2" />
+              Export CSV
             </Button>
             <Button variant="outline" onClick={handleSuggestFollowups} disabled={aiProcessing}>
               {aiProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Brain className="h-4 w-4 mr-2" />}

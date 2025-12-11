@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { 
   BarChart3, TrendingUp, Users, Target, Calendar, 
-  ArrowLeft, Loader2, PieChart, Activity
+  ArrowLeft, Loader2, PieChart, Activity, Download,
+  Play, RefreshCw
 } from 'lucide-react';
 import Header from '@/components/Header';
 import BottomNav from '@/components/BottomNav';
@@ -10,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import {
   BarChart,
   Bar,
@@ -39,11 +41,26 @@ interface AnalyticsData {
   recentActivity: { date: string; type: string; count: number }[];
 }
 
+interface CRMContact {
+  id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  company: string | null;
+  role: string | null;
+  status: string;
+  source: string | null;
+  notes: string | null;
+  created_at: string;
+}
+
 const COLORS = ['hsl(var(--primary))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))'];
 
 export default function CRMAnalytics() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
+  const [contacts, setContacts] = useState<CRMContact[]>([]);
+  const [triggeringCron, setTriggeringCron] = useState(false);
   const [loading, setLoading] = useState(true);
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
 
@@ -54,7 +71,7 @@ export default function CRMAnalytics() {
       setLoading(true);
       try {
         // Fetch contacts
-        const { data: contacts } = await supabase
+        const { data: contactsData } = await supabase
           .from('crm_contacts')
           .select('*')
           .eq('user_id', user.id);
@@ -65,8 +82,10 @@ export default function CRMAnalytics() {
           .select('*')
           .eq('user_id', user.id);
 
-        const contactList = contacts || [];
+        const contactList = contactsData || [];
         const interactionList = interactions || [];
+        
+        setContacts(contactList as CRMContact[]);
 
         // Calculate status counts
         const leadCount = contactList.filter(c => c.status === 'lead').length;
@@ -148,6 +167,89 @@ export default function CRMAnalytics() {
     fetchAnalytics();
   }, [user]);
 
+  const triggerCronJob = async () => {
+    setTriggeringCron(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('check-expiries');
+      if (error) throw error;
+      toast.success(`Controllo completato: ${data.remindersCreated || 0} promemoria creati`);
+    } catch (error) {
+      console.error('Error triggering cron:', error);
+      toast.error('Errore durante il controllo scadenze');
+    } finally {
+      setTriggeringCron(false);
+    }
+  };
+
+  const exportContactsCSV = () => {
+    if (contacts.length === 0) {
+      toast.error('Nessun contatto da esportare');
+      return;
+    }
+
+    const headers = ['Nome', 'Email', 'Telefono', 'Azienda', 'Ruolo', 'Status', 'Fonte', 'Note', 'Creato il'];
+    const rows = contacts.map(c => [
+      c.name,
+      c.email || '',
+      c.phone || '',
+      c.company || '',
+      c.role || '',
+      c.status,
+      c.source || '',
+      (c.notes || '').replace(/"/g, '""'),
+      new Date(c.created_at).toLocaleDateString('it-IT')
+    ]);
+
+    const csvContent = [
+      headers.join(';'),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(';'))
+    ].join('\n');
+
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `contatti_crm_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    toast.success('Export contatti completato');
+  };
+
+  const exportAnalyticsCSV = () => {
+    if (!analytics) {
+      toast.error('Nessun dato analytics da esportare');
+      return;
+    }
+
+    const lines = [
+      'Report Analytics CRM',
+      `Data: ${new Date().toLocaleDateString('it-IT')}`,
+      '',
+      'KPI Principali',
+      `Contatti Totali;${analytics.totalContacts}`,
+      `Lead;${analytics.leadCount}`,
+      `Prospect;${analytics.prospectCount}`,
+      `Clienti;${analytics.clientCount}`,
+      `Inattivi;${analytics.inactiveCount}`,
+      `Tasso Conversione;${analytics.conversionRate}%`,
+      `Interazioni Totali;${analytics.totalInteractions}`,
+      '',
+      'Attività Mensile',
+      'Mese;Nuovi Contatti;Interazioni',
+      ...analytics.monthlyActivity.map(m => `${m.month};${m.contacts};${m.interactions}`),
+      '',
+      'Fonti Acquisizione',
+      'Fonte;Contatti',
+      ...analytics.sourceDistribution.map(s => `${s.name};${s.value}`)
+    ];
+
+    const csvContent = lines.join('\n');
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `analytics_crm_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    toast.success('Export analytics completato');
+  };
+
   if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -174,18 +276,34 @@ export default function CRMAnalytics() {
       
       <main className="container mx-auto p-4 pb-24">
         {/* Header */}
-        <div className="flex items-center gap-3 mb-6">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/crm')}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <BarChart3 className="h-6 w-6 text-primary" />
-              Dashboard Analytics CRM
-            </h1>
-            <p className="text-muted-foreground text-sm">
-              Panoramica delle performance commerciali
-            </p>
+        <div className="flex items-center justify-between gap-3 mb-6 flex-wrap">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={() => navigate('/crm')}>
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div>
+              <h1 className="text-2xl font-bold flex items-center gap-2">
+                <BarChart3 className="h-6 w-6 text-primary" />
+                Dashboard Analytics CRM
+              </h1>
+              <p className="text-muted-foreground text-sm">
+                Panoramica delle performance commerciali
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            <Button variant="outline" size="sm" onClick={triggerCronJob} disabled={triggeringCron}>
+              {triggeringCron ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Play className="h-4 w-4 mr-2" />}
+              Test Scadenze
+            </Button>
+            <Button variant="outline" size="sm" onClick={exportContactsCSV}>
+              <Download className="h-4 w-4 mr-2" />
+              Export Contatti
+            </Button>
+            <Button variant="outline" size="sm" onClick={exportAnalyticsCSV}>
+              <Download className="h-4 w-4 mr-2" />
+              Export Analytics
+            </Button>
           </div>
         </div>
 
