@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { useToast } from './use-toast';
+import { addMinutes, addHours, addDays } from 'date-fns';
 
 export interface Reminder {
   id: string;
@@ -16,6 +17,8 @@ export interface Reminder {
   is_completed: boolean;
   created_at: string;
 }
+
+export type SnoozeOption = '15m' | '1h' | '3h' | '1d' | '1w';
 
 export function useReminders() {
   const { user } = useAuth();
@@ -75,7 +78,9 @@ export function useReminders() {
             if ('Notification' in window && Notification.permission === 'granted') {
               new Notification('Nuovo promemoria', {
                 body: newReminder.title,
-                icon: '/icon-512x512.png'
+                icon: '/icon-512x512.png',
+                tag: newReminder.id,
+                requireInteraction: true,
               });
             }
             toast({
@@ -142,6 +147,59 @@ export function useReminders() {
     }
   }, [fetchReminders, toast]);
 
+  const snoozeReminder = useCallback(async (id: string, option: SnoozeOption) => {
+    try {
+      const now = new Date();
+      let newDueDate: Date;
+
+      switch (option) {
+        case '15m':
+          newDueDate = addMinutes(now, 15);
+          break;
+        case '1h':
+          newDueDate = addHours(now, 1);
+          break;
+        case '3h':
+          newDueDate = addHours(now, 3);
+          break;
+        case '1d':
+          newDueDate = addDays(now, 1);
+          break;
+        case '1w':
+          newDueDate = addDays(now, 7);
+          break;
+        default:
+          newDueDate = addHours(now, 1);
+      }
+
+      const { error } = await supabase
+        .from('reminders')
+        .update({ 
+          due_date: newDueDate.toISOString(),
+          is_read: false 
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+      
+      const snoozeLabels: Record<SnoozeOption, string> = {
+        '15m': '15 minuti',
+        '1h': '1 ora',
+        '3h': '3 ore',
+        '1d': '1 giorno',
+        '1w': '1 settimana',
+      };
+      
+      toast({ 
+        title: "Promemoria posticipato", 
+        description: `Riceverai un nuovo promemoria tra ${snoozeLabels[option]}` 
+      });
+      await fetchReminders();
+    } catch (error: any) {
+      toast({ title: "Errore", description: error.message, variant: "destructive" });
+    }
+  }, [fetchReminders, toast]);
+
   const deleteReminder = useCallback(async (id: string) => {
     try {
       const { error } = await supabase
@@ -175,6 +233,7 @@ export function useReminders() {
     addReminder,
     markAsRead,
     markAsCompleted,
+    snoozeReminder,
     deleteReminder,
     requestNotificationPermission,
   };
