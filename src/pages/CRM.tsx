@@ -78,6 +78,8 @@ export default function CRM() {
   const [tagFilter, setTagFilter] = useState<string>('all');
   const [showFilters, setShowFilters] = useState(false);
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showFollowupDialog, setShowFollowupDialog] = useState(false);
+  const [followupDate, setFollowupDate] = useState<Date | undefined>(undefined);
   const [selectedContact, setSelectedContact] = useState<CRMContact | null>(null);
   const [showInteractionDialog, setShowInteractionDialog] = useState(false);
   const [aiInsights, setAiInsights] = useState<any>(null);
@@ -172,6 +174,22 @@ export default function CRM() {
   const handleSuggestFollowups = async () => {
     const suggestions = await suggestFollowups();
     setAiInsights(suggestions);
+  };
+
+  const handleSetFollowup = async () => {
+    if (!selectedContact || !followupDate) return;
+    await updateContact(selectedContact.id, { 
+      next_followup_at: followupDate.toISOString() 
+    });
+    toast.success(`Follow-up impostato per ${format(followupDate, 'dd/MM/yyyy', { locale: it })}`);
+    setShowFollowupDialog(false);
+    setFollowupDate(undefined);
+    setSelectedContact(null);
+  };
+
+  const handleRemoveFollowup = async (contact: CRMContact) => {
+    await updateContact(contact.id, { next_followup_at: null });
+    toast.success('Follow-up rimosso');
   };
 
   const exportContactsCSV = () => {
@@ -553,6 +571,20 @@ export default function CRM() {
                           <MessageSquare className="h-4 w-4 mr-2" />
                           Aggiungi interazione
                         </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => {
+                          setSelectedContact(contact);
+                          setFollowupDate(contact.next_followup_at ? new Date(contact.next_followup_at) : undefined);
+                          setShowFollowupDialog(true);
+                        }}>
+                          <CalendarIcon className="h-4 w-4 mr-2" />
+                          Imposta follow-up
+                        </DropdownMenuItem>
+                        {contact.next_followup_at && (
+                          <DropdownMenuItem onClick={() => handleRemoveFollowup(contact)}>
+                            <X className="h-4 w-4 mr-2" />
+                            Rimuovi follow-up
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem 
                           onClick={() => updateContact(contact.id, { 
                             status: contact.status === 'client' ? 'inactive' : 'client' 
@@ -571,9 +603,17 @@ export default function CRM() {
                     </DropdownMenu>
                   </div>
 
-                  <Badge className={cn("mb-3", statusColors[contact.status])}>
-                    {statusLabels[contact.status]}
-                  </Badge>
+                  <div className="flex items-center gap-2 mb-3 flex-wrap">
+                    <Badge className={cn(statusColors[contact.status])}>
+                      {statusLabels[contact.status]}
+                    </Badge>
+                    {contact.next_followup_at && (
+                      <Badge variant="outline" className="text-xs bg-blue-500/10 text-blue-700 border-blue-500/30">
+                        <CalendarIcon className="h-3 w-3 mr-1" />
+                        {format(new Date(contact.next_followup_at), 'dd/MM', { locale: it })}
+                      </Badge>
+                    )}
+                  </div>
 
                   <div className="space-y-1 text-sm">
                     {contact.email && (
@@ -647,6 +687,51 @@ export default function CRM() {
               </div>
               <Button onClick={handleAddInteraction} className="w-full" disabled={!newInteraction.subject}>
                 Salva Interazione
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Set Follow-up Dialog */}
+        <Dialog open={showFollowupDialog} onOpenChange={setShowFollowupDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Imposta Follow-up - {selectedContact?.name}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label>Data Follow-up</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !followupDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {followupDate ? format(followupDate, "PPP", { locale: it }) : "Seleziona data"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={followupDate}
+                      onSelect={setFollowupDate}
+                      locale={it}
+                      disabled={(date) => date < new Date()}
+                      className="pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Il follow-up sarà visibile nel calendario CRM e riceverai un promemoria.
+              </p>
+              <Button onClick={handleSetFollowup} className="w-full" disabled={!followupDate}>
+                <CalendarIcon className="h-4 w-4 mr-2" />
+                Salva Follow-up
               </Button>
             </div>
           </DialogContent>

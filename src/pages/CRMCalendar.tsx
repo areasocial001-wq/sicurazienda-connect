@@ -1,9 +1,9 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { 
   Calendar as CalendarIcon, ArrowLeft, Loader2, Users, 
-  Clock, AlertTriangle, FileText, Phone
+  Clock, AlertTriangle, FileText, Phone, GripVertical
 } from 'lucide-react';
-import { format, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval, isToday } from 'date-fns';
+import { format, isSameDay } from 'date-fns';
 import { it } from 'date-fns/locale';
 import Header from '@/components/Header';
 import BottomNav from '@/components/BottomNav';
@@ -17,6 +17,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useReminders } from '@/hooks/useReminders';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface CalendarEvent {
   id: string;
@@ -25,7 +26,9 @@ interface CalendarEvent {
   type: 'followup' | 'document_expiry' | 'course_expiry' | 'reminder';
   contactName?: string;
   contactId?: string;
+  documentId?: string;
   description?: string;
+  draggable: boolean;
 }
 
 export default function CRMCalendar() {
@@ -37,44 +40,44 @@ export default function CRMCalendar() {
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [contacts, setContacts] = useState<any[]>([]);
   const [documents, setDocuments] = useState<any[]>([]);
+  const [draggedEvent, setDraggedEvent] = useState<CalendarEvent | null>(null);
+
+  const fetchData = useCallback(async () => {
+    if (!user) return;
+    setLoading(true);
+    try {
+      // Fetch contacts with followup dates
+      const { data: contactsData } = await supabase
+        .from('crm_contacts')
+        .select('id, name, next_followup_at')
+        .eq('user_id', user.id)
+        .not('next_followup_at', 'is', null);
+
+      // Fetch documents with expiry dates
+      const { data: docsData } = await supabase
+        .from('documents')
+        .select('id, name, expiry_date, category')
+        .eq('user_id', user.id)
+        .not('expiry_date', 'is', null);
+
+      setContacts(contactsData || []);
+      setDocuments(docsData || []);
+    } catch (error) {
+      console.error('Error fetching calendar data:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
 
   useEffect(() => {
-    if (!user) return;
-    
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        // Fetch contacts with followup dates
-        const { data: contactsData } = await supabase
-          .from('crm_contacts')
-          .select('id, name, next_followup_at')
-          .eq('user_id', user.id)
-          .not('next_followup_at', 'is', null);
-
-        // Fetch documents with expiry dates
-        const { data: docsData } = await supabase
-          .from('documents')
-          .select('id, name, expiry_date, category')
-          .eq('user_id', user.id)
-          .not('expiry_date', 'is', null);
-
-        setContacts(contactsData || []);
-        setDocuments(docsData || []);
-      } catch (error) {
-        console.error('Error fetching calendar data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchData();
-  }, [user]);
+  }, [fetchData]);
 
   // Build calendar events from all sources
   const events = useMemo<CalendarEvent[]>(() => {
     const allEvents: CalendarEvent[] = [];
 
-    // Add followup events from contacts
+    // Add followup events from contacts (draggable)
     contacts.forEach(contact => {
       if (contact.next_followup_at) {
         allEvents.push({
@@ -84,11 +87,12 @@ export default function CRMCalendar() {
           type: 'followup',
           contactName: contact.name,
           contactId: contact.id,
+          draggable: true,
         });
       }
     });
 
-    // Add document expiry events
+    // Add document expiry events (not draggable - system dates)
     documents.forEach(doc => {
       if (doc.expiry_date) {
         const isAttestato = doc.category === 'attestato';
@@ -98,11 +102,13 @@ export default function CRMCalendar() {
           date: new Date(doc.expiry_date),
           type: isAttestato ? 'course_expiry' : 'document_expiry',
           description: isAttestato ? 'Attestato in scadenza' : 'Documento in scadenza',
+          documentId: doc.id,
+          draggable: false,
         });
       }
     });
 
-    // Add reminders
+    // Add reminders (not draggable for now)
     reminders.forEach(reminder => {
       allEvents.push({
         id: `reminder-${reminder.id}`,
@@ -110,6 +116,7 @@ export default function CRMCalendar() {
         date: new Date(reminder.due_date),
         type: 'reminder',
         description: reminder.description || undefined,
+        draggable: false,
       });
     });
 
@@ -157,6 +164,39 @@ export default function CRMCalendar() {
     }
   };
 
+  // Drag and drop handlers
+  const handleDragStart = (event: CalendarEvent) => {
+    if (!event.draggable) return;
+    setDraggedEvent(event);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedEvent(null);
+  };
+
+  const handleDateSelect = async (date: Date | undefined) => {
+    if (draggedEvent && date && draggedEvent.draggable) {
+      // Move the event to the new date
+      try {
+        if (draggedEvent.type === 'followup' && draggedEvent.contactId) {
+          await supabase
+            .from('crm_contacts')
+            .update({ next_followup_at: date.toISOString() })
+            .eq('id', draggedEvent.contactId);
+          
+          toast.success(`Follow-up spostato al ${format(date, 'dd/MM/yyyy', { locale: it })}`);
+          await fetchData();
+        }
+      } catch (error) {
+        console.error('Error moving event:', error);
+        toast.error('Errore nello spostamento');
+      }
+      setDraggedEvent(null);
+    } else {
+      setSelectedDate(date);
+    }
+  };
+
   if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -191,6 +231,18 @@ export default function CRMCalendar() {
           </div>
         </div>
 
+        {/* Drag indicator */}
+        {draggedEvent && (
+          <Card className="mb-4 border-primary bg-primary/5">
+            <CardContent className="py-3">
+              <p className="text-sm flex items-center gap-2">
+                <GripVertical className="h-4 w-4" />
+                Trascinando: <strong>{draggedEvent.title}</strong> - Seleziona una data nel calendario
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Calendar */}
           <Card className="lg:col-span-2">
@@ -198,11 +250,11 @@ export default function CRMCalendar() {
               <Calendar
                 mode="single"
                 selected={selectedDate}
-                onSelect={setSelectedDate}
+                onSelect={handleDateSelect}
                 month={currentMonth}
                 onMonthChange={setCurrentMonth}
                 locale={it}
-                className="pointer-events-auto w-full"
+                className={cn("pointer-events-auto w-full", draggedEvent && "ring-2 ring-primary")}
                 modifiers={{
                   hasEvent: daysWithEvents,
                 }}
@@ -251,15 +303,21 @@ export default function CRMCalendar() {
                       <Card 
                         key={event.id} 
                         className={cn(
-                          "cursor-pointer hover:shadow-md transition-shadow",
-                          event.contactId && "cursor-pointer"
+                          "transition-all",
+                          event.draggable && "cursor-grab active:cursor-grabbing hover:shadow-md",
+                          draggedEvent?.id === event.id && "opacity-50"
                         )}
-                        onClick={() => event.contactId && navigate(`/crm`)}
+                        draggable={event.draggable}
+                        onDragStart={() => handleDragStart(event)}
+                        onDragEnd={handleDragEnd}
                       >
                         <CardContent className="p-3">
                           <div className="flex items-start gap-3">
+                            {event.draggable && (
+                              <GripVertical className="h-4 w-4 text-muted-foreground mt-1 flex-shrink-0" />
+                            )}
                             <div className={cn(
-                              "p-2 rounded-md",
+                              "p-2 rounded-md flex-shrink-0",
                               getEventTypeStyles(event.type)
                             )}>
                               {getEventIcon(event.type)}
@@ -271,15 +329,22 @@ export default function CRMCalendar() {
                                   {event.description}
                                 </p>
                               )}
-                              <Badge 
-                                variant="outline" 
-                                className={cn("mt-2 text-xs", getEventTypeStyles(event.type))}
-                              >
-                                {event.type === 'followup' && 'Follow-up'}
-                                {event.type === 'document_expiry' && 'Scadenza Doc'}
-                                {event.type === 'course_expiry' && 'Scadenza Corso'}
-                                {event.type === 'reminder' && 'Promemoria'}
-                              </Badge>
+                              <div className="flex items-center gap-2 mt-2 flex-wrap">
+                                <Badge 
+                                  variant="outline" 
+                                  className={cn("text-xs", getEventTypeStyles(event.type))}
+                                >
+                                  {event.type === 'followup' && 'Follow-up'}
+                                  {event.type === 'document_expiry' && 'Scadenza Doc'}
+                                  {event.type === 'course_expiry' && 'Scadenza Corso'}
+                                  {event.type === 'reminder' && 'Promemoria'}
+                                </Badge>
+                                {event.draggable && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    Trascinabile
+                                  </Badge>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </CardContent>
@@ -295,23 +360,31 @@ export default function CRMCalendar() {
         {/* Legend */}
         <Card className="mt-6">
           <CardContent className="pt-4">
-            <p className="text-sm font-medium mb-3">Legenda</p>
-            <div className="flex flex-wrap gap-4">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-blue-500" />
-                <span className="text-sm text-muted-foreground">Follow-up</span>
+            <div className="flex items-center justify-between flex-wrap gap-4">
+              <div>
+                <p className="text-sm font-medium mb-3">Legenda</p>
+                <div className="flex flex-wrap gap-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-blue-500" />
+                    <span className="text-sm text-muted-foreground">Follow-up</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-orange-500" />
+                    <span className="text-sm text-muted-foreground">Scadenza Documento</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-purple-500" />
+                    <span className="text-sm text-muted-foreground">Scadenza Corso</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-yellow-500" />
+                    <span className="text-sm text-muted-foreground">Promemoria</span>
+                  </div>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-orange-500" />
-                <span className="text-sm text-muted-foreground">Scadenza Documento</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-purple-500" />
-                <span className="text-sm text-muted-foreground">Scadenza Corso</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-yellow-500" />
-                <span className="text-sm text-muted-foreground">Promemoria</span>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <GripVertical className="h-4 w-4" />
+                <span>Trascina i follow-up su una nuova data per spostarli</span>
               </div>
             </div>
           </CardContent>
