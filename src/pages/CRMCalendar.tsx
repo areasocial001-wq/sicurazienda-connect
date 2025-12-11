@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { 
   Calendar as CalendarIcon, ArrowLeft, Loader2, Users, 
-  Clock, AlertTriangle, FileText, Phone, GripVertical
+  Clock, AlertTriangle, FileText, Phone, GripVertical,
+  LayoutGrid, CalendarDays
 } from 'lucide-react';
 import { format, isSameDay } from 'date-fns';
 import { it } from 'date-fns/locale';
@@ -12,12 +13,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Calendar } from '@/components/ui/calendar';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useReminders } from '@/hooks/useReminders';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { CRMWeeklyCalendar } from '@/components/CRMWeeklyCalendar';
 
 interface CalendarEvent {
   id: string;
@@ -31,11 +34,14 @@ interface CalendarEvent {
   draggable: boolean;
 }
 
+type CalendarView = 'month' | 'week';
+
 export default function CRMCalendar() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const { reminders } = useReminders();
   const [loading, setLoading] = useState(true);
+  const [calendarView, setCalendarView] = useState<CalendarView>('month');
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [contacts, setContacts] = useState<any[]>([]);
@@ -216,23 +222,39 @@ export default function CRMCalendar() {
       
       <main className="container mx-auto p-4 pb-24">
         {/* Header */}
-        <div className="flex items-center gap-3 mb-6">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/crm')}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <CalendarIcon className="h-6 w-6 text-primary" />
-              Calendario CRM
-            </h1>
-            <p className="text-muted-foreground text-sm">
-              Follow-up e scadenze programmate
-            </p>
+        <div className="flex items-center justify-between gap-3 mb-6 flex-wrap">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={() => navigate('/crm')}>
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div>
+              <h1 className="text-2xl font-bold flex items-center gap-2">
+                <CalendarIcon className="h-6 w-6 text-primary" />
+                Calendario CRM
+              </h1>
+              <p className="text-muted-foreground text-sm">
+                Follow-up e scadenze programmate
+              </p>
+            </div>
           </div>
+          
+          {/* View Toggle */}
+          <Tabs value={calendarView} onValueChange={(v) => setCalendarView(v as CalendarView)}>
+            <TabsList>
+              <TabsTrigger value="month" className="gap-2">
+                <LayoutGrid className="h-4 w-4" />
+                Mese
+              </TabsTrigger>
+              <TabsTrigger value="week" className="gap-2">
+                <CalendarDays className="h-4 w-4" />
+                Settimana
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
 
         {/* Drag indicator */}
-        {draggedEvent && (
+        {draggedEvent && calendarView === 'month' && (
           <Card className="mb-4 border-primary bg-primary/5">
             <CardContent className="py-3">
               <p className="text-sm flex items-center gap-2">
@@ -242,6 +264,25 @@ export default function CRMCalendar() {
             </CardContent>
           </Card>
         )}
+
+        {/* Weekly View */}
+        {calendarView === 'week' && (
+          <CRMWeeklyCalendar
+            events={events.map(e => ({ ...e, draggable: undefined })) as any}
+            onEventClick={(event) => {
+              if (event.contactId) {
+                navigate('/crm');
+              }
+            }}
+            onDateClick={(date) => {
+              setSelectedDate(date);
+              setCalendarView('month');
+            }}
+          />
+        )}
+
+        {/* Monthly View */}
+        {calendarView === 'month' && (
 
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Calendar */}
@@ -356,6 +397,7 @@ export default function CRMCalendar() {
             </CardContent>
           </Card>
         </div>
+        )}
 
         {/* Legend */}
         <Card className="mt-6">
@@ -382,10 +424,12 @@ export default function CRMCalendar() {
                   </div>
                 </div>
               </div>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <GripVertical className="h-4 w-4" />
-                <span>Trascina i follow-up su una nuova data per spostarli</span>
-              </div>
+              {calendarView === 'month' && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <GripVertical className="h-4 w-4" />
+                  <span>Trascina i follow-up su una nuova data per spostarli</span>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
