@@ -228,12 +228,22 @@ const Documents = () => {
     }
   };
 
-  const handleShowQR = (docId: string, filePath: string, fileName: string) => {
-    const { data } = supabase.storage
+  const handleShowQR = async (docId: string, filePath: string, fileName: string) => {
+    // Generate signed URL with 7 days expiration (604800 seconds)
+    const { data, error } = await supabase.storage
       .from('documents')
-      .getPublicUrl(filePath);
+      .createSignedUrl(filePath, 604800);
     
-    setSelectedDocForQR({ url: data.publicUrl, name: fileName, id: docId });
+    if (error || !data?.signedUrl) {
+      toast({
+        title: "Errore generazione link",
+        description: error?.message || "Impossibile generare il link",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setSelectedDocForQR({ url: data.signedUrl, name: fileName, id: docId });
     setQrModalOpen(true);
   };
 

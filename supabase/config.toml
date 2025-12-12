@@ -29,3 +29,6 @@ verify_jwt = false
 
 [functions.check-upcoming-events]
 verify_jwt = false
+
+[functions.generate-signed-url]
+verify_jwt = false

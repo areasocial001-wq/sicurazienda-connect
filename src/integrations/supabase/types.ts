@@ -336,6 +336,7 @@ export type Database = {
           created_by: string
           document_id: string
           document_name: string
+          expires_at: string | null
           id: string
           is_active: boolean
           public_url: string
@@ -347,6 +348,7 @@ export type Database = {
           created_by: string
           document_id: string
           document_name: string
+          expires_at?: string | null
           id?: string
           is_active?: boolean
           public_url: string
@@ -358,6 +360,7 @@ export type Database = {
           created_by?: string
           document_id?: string
           document_name?: string
+          expires_at?: string | null
           id?: string
           is_active?: boolean
           public_url?: string
