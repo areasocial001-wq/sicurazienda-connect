@@ -75,6 +75,49 @@ serve(async (req) => {
       }
     }
 
+    // Check for QR codes expiring in the next 1 day
+    const oneDayFromNow = new Date(now.getTime() + 1 * 24 * 60 * 60 * 1000);
+    
+    const { data: expiringQRCodes, error: qrError } = await supabase
+      .from('qr_codes')
+      .select('id, document_name, created_by, expires_at')
+      .eq('is_active', true)
+      .not('expires_at', 'is', null)
+      .lte('expires_at', oneDayFromNow.toISOString())
+      .gte('expires_at', now.toISOString());
+
+    if (qrError) {
+      console.error('Error fetching expiring QR codes:', qrError);
+    } else {
+      console.log(`Found ${expiringQRCodes?.length || 0} QR codes expiring soon`);
+
+      for (const qr of expiringQRCodes || []) {
+        // Check if reminder already exists
+        const { data: existingReminder } = await supabase
+          .from('reminders')
+          .select('id')
+          .eq('reference_id', qr.id)
+          .eq('reference_type', 'qr_code')
+          .eq('is_completed', false)
+          .maybeSingle();
+
+        if (!existingReminder) {
+          const expiryDate = new Date(qr.expires_at);
+          const hoursUntilExpiry = Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60));
+
+          remindersToCreate.push({
+            user_id: qr.created_by,
+            title: `⏰ QR Code "${qr.document_name}" scade tra ${hoursUntilExpiry}h`,
+            description: `Il link di download per "${qr.document_name}" scadrà il ${expiryDate.toLocaleDateString('it-IT')} alle ${expiryDate.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}. Rinnova il QR code per mantenerlo attivo.`,
+            type: 'qr_expiry',
+            reference_id: qr.id,
+            reference_type: 'qr_code',
+            due_date: qr.expires_at,
+          });
+        }
+      }
+    }
+
     // Check for CRM contacts needing follow-up
     const { data: contactsNeedingFollowup, error: contactError } = await supabase
       .from('crm_contacts')

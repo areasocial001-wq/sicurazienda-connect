@@ -9,7 +9,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Download, Copy, Check, Mail, Loader2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Download, Copy, Check, Mail, Loader2, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -30,6 +31,9 @@ const QRCodeModal = ({ open, onOpenChange, url, fileName, documentId, onQRGenera
   const [qrCodeId, setQrCodeId] = useState<string | null>(null);
   const [trackingUrl, setTrackingUrl] = useState<string>(url);
   const [initializing, setInitializing] = useState(false);
+  const [expiryDays, setExpiryDays] = useState<string>("7");
+  const [expiresAt, setExpiresAt] = useState<Date | null>(null);
+  const [step, setStep] = useState<'config' | 'generated'>('config');
   const qrRef = useRef<SVGSVGElement>(null);
   const { user } = useAuth();
 
@@ -38,47 +42,44 @@ const QRCodeModal = ({ open, onOpenChange, url, fileName, documentId, onQRGenera
     return window.location.origin;
   };
 
-  // Create QR code record when modal opens
-  useEffect(() => {
-    const initializeQRCode = async () => {
-      if (!open || !user || !documentId || qrCodeId) return;
+  const generateQRCode = async () => {
+    if (!user || !documentId) return;
 
-      setInitializing(true);
-      try {
-        const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + 7); // 7 days expiration
+    setInitializing(true);
+    try {
+      const days = parseInt(expiryDays);
+      const expiry = new Date();
+      expiry.setDate(expiry.getDate() + days);
 
-        const { data, error } = await supabase
-          .from('qr_codes')
-          .insert({
-            document_id: documentId,
-            document_name: fileName,
-            public_url: url,
-            created_by: user.id,
-            expires_at: expiresAt.toISOString()
-          })
-          .select()
-          .single();
+      const { data, error } = await supabase
+        .from('qr_codes')
+        .insert({
+          document_id: documentId,
+          document_name: fileName,
+          public_url: url,
+          created_by: user.id,
+          expires_at: expiry.toISOString()
+        })
+        .select()
+        .single();
 
-        if (error) throw error;
+      if (error) throw error;
 
-        setQrCodeId(data.id);
-        setTrackingUrl(`${getBaseUrl()}/qr/${data.id}`);
-        
-        if (onQRGenerated) {
-          onQRGenerated();
-        }
-      } catch (error) {
-        console.error('Error creating QR code record:', error);
-        // Fallback to direct URL
-        setTrackingUrl(url);
-      } finally {
-        setInitializing(false);
+      setQrCodeId(data.id);
+      setTrackingUrl(`${getBaseUrl()}/qr/${data.id}`);
+      setExpiresAt(expiry);
+      setStep('generated');
+      
+      if (onQRGenerated) {
+        onQRGenerated();
       }
-    };
-
-    initializeQRCode();
-  }, [open, user, documentId, fileName, url]);
+    } catch (error) {
+      console.error('Error creating QR code record:', error);
+      toast.error('Errore nella generazione del QR Code');
+    } finally {
+      setInitializing(false);
+    }
+  };
 
   // Reset state when modal closes
   useEffect(() => {
@@ -86,6 +87,9 @@ const QRCodeModal = ({ open, onOpenChange, url, fileName, documentId, onQRGenera
       setQrCodeId(null);
       setTrackingUrl(url);
       setEmail('');
+      setExpiryDays("7");
+      setExpiresAt(null);
+      setStep('config');
     }
   }, [open, url]);
 
@@ -195,6 +199,34 @@ const QRCodeModal = ({ open, onOpenChange, url, fileName, documentId, onQRGenera
               <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
               <p className="text-sm text-muted-foreground">Generazione QR Code...</p>
             </div>
+          ) : step === 'config' ? (
+            <div className="w-full space-y-4">
+              <p className="text-sm text-muted-foreground text-center">
+                Configura il QR Code per: <strong>{fileName}</strong>
+              </p>
+              
+              <div className="space-y-2">
+                <Label>Durata validità link</Label>
+                <Select value={expiryDays} onValueChange={setExpiryDays}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleziona durata" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">1 giorno</SelectItem>
+                    <SelectItem value="7">7 giorni</SelectItem>
+                    <SelectItem value="14">14 giorni</SelectItem>
+                    <SelectItem value="30">30 giorni</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Il link scadrà automaticamente dopo il periodo selezionato
+                </p>
+              </div>
+              
+              <Button onClick={generateQRCode} className="w-full" disabled={initializing}>
+                Genera QR Code
+              </Button>
+            </div>
           ) : (
             <>
               <div className="bg-white p-4 rounded-lg shadow-inner">
@@ -213,9 +245,17 @@ const QRCodeModal = ({ open, onOpenChange, url, fileName, documentId, onQRGenera
               </p>
 
               {qrCodeId && (
-                <p className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
-                  ✓ Tracciamento scansioni attivo
-                </p>
+                <div className="flex flex-col items-center gap-1">
+                  <p className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
+                    ✓ Tracciamento scansioni attivo
+                  </p>
+                  {expiresAt && (
+                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      Scade il {expiresAt.toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    </p>
+                  )}
+                </div>
               )}
               
               <div className="flex gap-2 w-full">

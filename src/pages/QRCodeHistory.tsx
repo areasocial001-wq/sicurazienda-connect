@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import BottomNav from "@/components/BottomNav";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -62,6 +63,11 @@ const QRCodeHistory = () => {
   // QR Modal for regeneration
   const [qrModalOpen, setQrModalOpen] = useState(false);
   const [selectedQR, setSelectedQR] = useState<{ url: string; name: string; id: string } | null>(null);
+  
+  // Renew modal
+  const [renewModalOpen, setRenewModalOpen] = useState(false);
+  const [qrToRenew, setQrToRenew] = useState<QRCodeRecord | null>(null);
+  const [renewDays, setRenewDays] = useState<string>("7");
 
   useEffect(() => {
     if (user) {
@@ -201,24 +207,35 @@ const QRCodeHistory = () => {
     window.open(url, '_blank');
   };
 
-  const handleRenew = async (qr: QRCodeRecord) => {
+  const openRenewModal = (qr: QRCodeRecord) => {
+    setQrToRenew(qr);
+    setRenewDays("7");
+    setRenewModalOpen(true);
+  };
+
+  const handleRenew = async () => {
+    if (!qrToRenew) return;
+    
     try {
+      const days = parseInt(renewDays);
       const newExpiresAt = new Date();
-      newExpiresAt.setDate(newExpiresAt.getDate() + 7); // 7 days from now
+      newExpiresAt.setDate(newExpiresAt.getDate() + days);
 
       const { error } = await supabase
         .from('qr_codes')
         .update({ expires_at: newExpiresAt.toISOString() })
-        .eq('id', qr.id);
+        .eq('id', qrToRenew.id);
 
       if (error) throw error;
 
       // Update local state
       setQrCodes(qrCodes.map(q => 
-        q.id === qr.id ? { ...q, expires_at: newExpiresAt.toISOString() } : q
+        q.id === qrToRenew.id ? { ...q, expires_at: newExpiresAt.toISOString() } : q
       ));
       
-      toast.success('QR Code rinnovato per altri 7 giorni');
+      setRenewModalOpen(false);
+      setQrToRenew(null);
+      toast.success(`QR Code rinnovato per ${days} giorni`);
     } catch (error) {
       console.error('Error renewing QR code:', error);
       toast.error('Errore nel rinnovo del QR Code');
@@ -480,8 +497,8 @@ const QRCodeHistory = () => {
                         <Button 
                           variant="default" 
                           size="sm"
-                          onClick={() => handleRenew(qr)}
-                          title="Rinnova per 7 giorni"
+                          onClick={() => openRenewModal(qr)}
+                          title="Rinnova QR Code"
                           className="bg-green-600 hover:bg-green-700"
                         >
                           <RotateCcw className="h-4 w-4" />
@@ -531,6 +548,43 @@ const QRCodeHistory = () => {
           documentId={selectedQR.id}
         />
       )}
+
+      {/* Renew Modal */}
+      <Dialog open={renewModalOpen} onOpenChange={setRenewModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Rinnova QR Code</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground mb-4">
+              Scegli per quanto tempo rinnovare il link di download per "{qrToRenew?.document_name}"
+            </p>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Durata rinnovo</label>
+              <Select value={renewDays} onValueChange={setRenewDays}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleziona durata" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">1 giorno</SelectItem>
+                  <SelectItem value="7">7 giorni</SelectItem>
+                  <SelectItem value="14">14 giorni</SelectItem>
+                  <SelectItem value="30">30 giorni</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRenewModalOpen(false)}>
+              Annulla
+            </Button>
+            <Button onClick={handleRenew} className="bg-green-600 hover:bg-green-700">
+              <RotateCcw className="h-4 w-4 mr-2" />
+              Rinnova
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
