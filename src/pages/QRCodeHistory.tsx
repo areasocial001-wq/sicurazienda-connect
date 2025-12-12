@@ -24,7 +24,8 @@ import {
   RefreshCw,
   Download,
   BarChart3,
-  Power
+  Power,
+  Clock
 } from "lucide-react";
 import AuthModal from "@/components/AuthModal";
 import QRCodeModal from "@/components/QRCodeModal";
@@ -35,6 +36,7 @@ interface QRCodeRecord {
   document_name: string;
   public_url: string;
   created_at: string;
+  expires_at: string | null;
   sent_to_email: string | null;
   sent_at: string | null;
   is_active: boolean;
@@ -134,10 +136,11 @@ const QRCodeHistory = () => {
       return;
     }
 
-    const headers = ['Nome Documento', 'Data Creazione', 'Email Invio', 'Data Invio', 'Stato', 'URL'];
+    const headers = ['Nome Documento', 'Data Creazione', 'Scadenza', 'Email Invio', 'Data Invio', 'Stato', 'URL'];
     const rows = filteredQRCodes.map(qr => [
       qr.document_name,
       new Date(qr.created_at).toLocaleString('it-IT'),
+      qr.expires_at ? new Date(qr.expires_at).toLocaleString('it-IT') : '',
       qr.sent_to_email || '',
       qr.sent_at ? new Date(qr.sent_at).toLocaleString('it-IT') : '',
       qr.is_active ? 'Attivo' : 'Disabilitato',
@@ -384,6 +387,18 @@ const QRCodeHistory = () => {
                               minute: '2-digit'
                             })}
                           </span>
+                          {qr.expires_at && (
+                            <Badge 
+                              variant={new Date(qr.expires_at) < new Date() ? "destructive" : "outline"} 
+                              className="flex items-center gap-1"
+                            >
+                              <Clock className="h-3 w-3" />
+                              {new Date(qr.expires_at) < new Date() 
+                                ? 'Scaduto' 
+                                : `Scade: ${new Date(qr.expires_at).toLocaleDateString('it-IT', { day: '2-digit', month: 'short' })}`
+                              }
+                            </Badge>
+                          )}
                           {qr.sent_to_email ? (
                             <Badge variant="secondary" className="flex items-center gap-1">
                               <Mail className="h-3 w-3" />

@@ -18,7 +18,8 @@ import {
   TrendingUp,
   Ban,
   CheckCircle,
-  ExternalLink
+  ExternalLink,
+  Timer
 } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -27,6 +28,7 @@ interface QRCodeDetails {
   document_name: string;
   public_url: string;
   created_at: string;
+  expires_at: string | null;
   is_active: boolean;
   sent_to_email: string | null;
 }
@@ -191,7 +193,7 @@ const QRCodeStats = () => {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Scansioni Totali</CardTitle>
@@ -224,6 +226,24 @@ const QRCodeStats = () => {
               <div className="text-lg font-bold">
                 {new Date(qrCode.created_at).toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' })}
               </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Scadenza</CardTitle>
+              <Timer className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              {qrCode.expires_at ? (
+                <div className={`text-lg font-bold ${new Date(qrCode.expires_at) < new Date() ? 'text-destructive' : ''}`}>
+                  {new Date(qrCode.expires_at) < new Date() 
+                    ? 'Scaduto' 
+                    : new Date(qrCode.expires_at).toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' })
+                  }
+                </div>
+              ) : (
+                <div className="text-lg font-bold text-muted-foreground">-</div>
+              )}
             </CardContent>
           </Card>
           <Card>
