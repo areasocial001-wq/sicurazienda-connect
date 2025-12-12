@@ -92,18 +92,31 @@ const QRRedirect = () => {
           console.log('[QRRedirect] Generating fresh signed URL for:', document.file_path);
           
           // Generate fresh signed URL via edge function (valid for 1 hour for this redirect)
-          const { data: signedData, error: signedError } = await supabase.functions.invoke('generate-signed-url', {
-            body: { filePath: document.file_path, expiresIn: 3600 } // 1 hour
-          });
+          // Use direct fetch to avoid Supabase client auth issues for public access
+          const edgeFunctionUrl = `https://obzflzotzvwlmgyjxfpv.supabase.co/functions/v1/generate-signed-url`;
+          
+          try {
+            const response = await fetch(edgeFunctionUrl, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9iemZsem90enZ3bG1neWp4ZnB2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgwMjY3OTQsImV4cCI6MjA3MzYwMjc5NH0.ajn-6isd6JoZQDVLz4ZIz8u1kWMVcBfy990iDE6Pr5g'
+              },
+              body: JSON.stringify({ filePath: document.file_path, expiresIn: 3600 })
+            });
+            
+            const signedData = await response.json();
+            console.log('[QRRedirect] Signed URL generation result:', signedData);
 
-          console.log('[QRRedirect] Signed URL generation result:', { signedData, signedError });
-
-          if (!signedError && signedData?.signedUrl) {
-            console.log('[QRRedirect] Redirecting to fresh signed URL');
-            window.location.href = signedData.signedUrl;
-            return;
-          } else {
-            console.warn('[QRRedirect] Failed to generate signed URL, falling back to stored URL');
+            if (response.ok && signedData?.signedUrl) {
+              console.log('[QRRedirect] Redirecting to fresh signed URL');
+              window.location.href = signedData.signedUrl;
+              return;
+            } else {
+              console.warn('[QRRedirect] Failed to generate signed URL, falling back to stored URL');
+            }
+          } catch (fetchError) {
+            console.error('[QRRedirect] Error calling edge function:', fetchError);
           }
         } else {
           console.warn('[QRRedirect] No file_path found, falling back to stored URL');
