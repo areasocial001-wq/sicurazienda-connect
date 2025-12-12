@@ -34,6 +34,7 @@ import {
 } from "lucide-react";
 import AuthModal from "@/components/AuthModal";
 import QRCodeModal from "@/components/QRCodeModal";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 interface QRCodeRecord {
   id: string;
@@ -74,6 +75,7 @@ const QRCodeHistory = () => {
   
   // Stats
   const [totalScans, setTotalScans] = useState<number>(0);
+  const [scanTrendData, setScanTrendData] = useState<{ date: string; scans: number }[]>([]);
   const [loadingStats, setLoadingStats] = useState(true);
 
   useEffect(() => {
@@ -114,6 +116,44 @@ const QRCodeHistory = () => {
 
       if (error) throw error;
       setTotalScans(count || 0);
+
+      // Fetch scan trend for last 30 days
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      
+      const { data: scanData, error: scanError } = await supabase
+        .from('qr_scans')
+        .select('scanned_at')
+        .gte('scanned_at', thirtyDaysAgo.toISOString());
+
+      if (scanError) throw scanError;
+
+      // Group by date
+      const scansByDate: { [key: string]: number } = {};
+      
+      // Initialize all dates with 0
+      for (let i = 29; i >= 0; i--) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        const dateStr = date.toISOString().split('T')[0];
+        scansByDate[dateStr] = 0;
+      }
+      
+      // Count scans per date
+      (scanData || []).forEach(scan => {
+        const dateStr = new Date(scan.scanned_at).toISOString().split('T')[0];
+        if (scansByDate[dateStr] !== undefined) {
+          scansByDate[dateStr]++;
+        }
+      });
+
+      // Convert to array for chart
+      const trendData = Object.entries(scansByDate).map(([date, scans]) => ({
+        date: new Date(date).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' }),
+        scans
+      }));
+      
+      setScanTrendData(trendData);
     } catch (error) {
       console.error('Error fetching stats:', error);
     } finally {
@@ -410,6 +450,59 @@ const QRCodeHistory = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Scan Trend Chart */}
+        <Card className="mb-4">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <TrendingUp className="h-4 w-4" />
+              Andamento Scansioni (Ultimi 30 giorni)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loadingStats ? (
+              <div className="h-48 flex items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              </div>
+            ) : (
+              <div className="h-48">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={scanTrendData}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis 
+                      dataKey="date" 
+                      tick={{ fontSize: 10 }} 
+                      interval="preserveStartEnd"
+                      className="text-muted-foreground"
+                    />
+                    <YAxis 
+                      allowDecimals={false} 
+                      tick={{ fontSize: 10 }}
+                      className="text-muted-foreground"
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: 'hsl(var(--card))', 
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px'
+                      }}
+                      labelStyle={{ color: 'hsl(var(--foreground))' }}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="scans" 
+                      stroke="hsl(var(--primary))" 
+                      strokeWidth={2}
+                      dot={{ fill: 'hsl(var(--primary))', strokeWidth: 0, r: 3 }}
+                      activeDot={{ r: 5, fill: 'hsl(var(--primary))' }}
+                      name="Scansioni"
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Filters */}
         <Card className="mb-4">
