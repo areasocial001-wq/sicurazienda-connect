@@ -25,7 +25,8 @@ import {
   Download,
   BarChart3,
   Power,
-  Clock
+  Clock,
+  RotateCcw
 } from "lucide-react";
 import AuthModal from "@/components/AuthModal";
 import QRCodeModal from "@/components/QRCodeModal";
@@ -54,6 +55,7 @@ const QRCodeHistory = () => {
   // Filters
   const [emailFilter, setEmailFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [expiryFilter, setExpiryFilter] = useState<string>("all");
   const [dateFrom, setDateFrom] = useState<string>("");
   const [dateTo, setDateTo] = useState<string>("");
   
@@ -69,7 +71,7 @@ const QRCodeHistory = () => {
 
   useEffect(() => {
     applyFilters();
-  }, [qrCodes, emailFilter, statusFilter, dateFrom, dateTo]);
+  }, [qrCodes, emailFilter, statusFilter, expiryFilter, dateFrom, dateTo]);
 
   const fetchQRCodes = async () => {
     try {
@@ -91,6 +93,7 @@ const QRCodeHistory = () => {
 
   const applyFilters = () => {
     let filtered = [...qrCodes];
+    const now = new Date();
 
     // Email filter
     if (emailFilter === "sent") {
@@ -104,6 +107,13 @@ const QRCodeHistory = () => {
       filtered = filtered.filter(qr => qr.is_active === true);
     } else if (statusFilter === "disabled") {
       filtered = filtered.filter(qr => qr.is_active === false);
+    }
+
+    // Expiry filter
+    if (expiryFilter === "expired") {
+      filtered = filtered.filter(qr => qr.expires_at && new Date(qr.expires_at) < now);
+    } else if (expiryFilter === "valid") {
+      filtered = filtered.filter(qr => !qr.expires_at || new Date(qr.expires_at) >= now);
     }
 
     // Date from filter
@@ -126,6 +136,7 @@ const QRCodeHistory = () => {
   const clearFilters = () => {
     setEmailFilter("all");
     setStatusFilter("all");
+    setExpiryFilter("all");
     setDateFrom("");
     setDateTo("");
   };
@@ -188,6 +199,34 @@ const QRCodeHistory = () => {
 
   const handleOpenLink = (url: string) => {
     window.open(url, '_blank');
+  };
+
+  const handleRenew = async (qr: QRCodeRecord) => {
+    try {
+      const newExpiresAt = new Date();
+      newExpiresAt.setDate(newExpiresAt.getDate() + 7); // 7 days from now
+
+      const { error } = await supabase
+        .from('qr_codes')
+        .update({ expires_at: newExpiresAt.toISOString() })
+        .eq('id', qr.id);
+
+      if (error) throw error;
+
+      // Update local state
+      setQrCodes(qrCodes.map(q => 
+        q.id === qr.id ? { ...q, expires_at: newExpiresAt.toISOString() } : q
+      ));
+      
+      toast.success('QR Code rinnovato per altri 7 giorni');
+    } catch (error) {
+      console.error('Error renewing QR code:', error);
+      toast.error('Errore nel rinnovo del QR Code');
+    }
+  };
+
+  const isExpired = (qr: QRCodeRecord) => {
+    return qr.expires_at && new Date(qr.expires_at) < new Date();
   };
 
   const handleRegenerate = (qr: QRCodeRecord) => {
@@ -271,7 +310,7 @@ const QRCodeHistory = () => {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
               <div>
                 <label className="text-sm text-muted-foreground mb-1 block">Stato Email</label>
                 <Select value={emailFilter} onValueChange={setEmailFilter}>
@@ -299,6 +338,19 @@ const QRCodeHistory = () => {
                 </Select>
               </div>
               <div>
+                <label className="text-sm text-muted-foreground mb-1 block">Scadenza</label>
+                <Select value={expiryFilter} onValueChange={setExpiryFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Tutti" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tutti</SelectItem>
+                    <SelectItem value="valid">Non scaduti</SelectItem>
+                    <SelectItem value="expired">Scaduti</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
                 <label className="text-sm text-muted-foreground mb-1 block">Da data</label>
                 <Input 
                   type="date" 
@@ -320,7 +372,7 @@ const QRCodeHistory = () => {
                 </Button>
               </div>
             </div>
-            {(emailFilter !== "all" || statusFilter !== "all" || dateFrom || dateTo) && (
+            {(emailFilter !== "all" || statusFilter !== "all" || expiryFilter !== "all" || dateFrom || dateTo) && (
               <p className="text-sm text-muted-foreground mt-2">
                 Mostrati {filteredQRCodes.length} di {qrCodes.length} risultati
               </p>
@@ -424,6 +476,17 @@ const QRCodeHistory = () => {
                       >
                         <BarChart3 className="h-4 w-4" />
                       </Button>
+                      {isExpired(qr) && (
+                        <Button 
+                          variant="default" 
+                          size="sm"
+                          onClick={() => handleRenew(qr)}
+                          title="Rinnova per 7 giorni"
+                          className="bg-green-600 hover:bg-green-700"
+                        >
+                          <RotateCcw className="h-4 w-4" />
+                        </Button>
+                      )}
                       <Button 
                         variant="outline" 
                         size="sm"
