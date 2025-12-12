@@ -27,7 +27,10 @@ import {
   BarChart3,
   Power,
   Clock,
-  RotateCcw
+  RotateCcw,
+  Eye,
+  TrendingUp,
+  Percent
 } from "lucide-react";
 import AuthModal from "@/components/AuthModal";
 import QRCodeModal from "@/components/QRCodeModal";
@@ -68,10 +71,15 @@ const QRCodeHistory = () => {
   const [renewModalOpen, setRenewModalOpen] = useState(false);
   const [qrToRenew, setQrToRenew] = useState<QRCodeRecord | null>(null);
   const [renewDays, setRenewDays] = useState<string>("7");
+  
+  // Stats
+  const [totalScans, setTotalScans] = useState<number>(0);
+  const [loadingStats, setLoadingStats] = useState(true);
 
   useEffect(() => {
     if (user) {
       fetchQRCodes();
+      fetchStats();
     }
   }, [user]);
 
@@ -95,6 +103,32 @@ const QRCodeHistory = () => {
     } finally {
       setLoadingQRs(false);
     }
+  };
+
+  const fetchStats = async () => {
+    try {
+      setLoadingStats(true);
+      const { count, error } = await supabase
+        .from('qr_scans')
+        .select('*', { count: 'exact', head: true });
+
+      if (error) throw error;
+      setTotalScans(count || 0);
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    } finally {
+      setLoadingStats(false);
+    }
+  };
+
+  // Calculate stats
+  const stats = {
+    totalGenerated: qrCodes.length,
+    totalActive: qrCodes.filter(qr => qr.is_active).length,
+    totalExpired: qrCodes.filter(qr => qr.expires_at && new Date(qr.expires_at) < new Date()).length,
+    totalScans: totalScans,
+    usageRate: qrCodes.length > 0 ? Math.round((totalScans / qrCodes.length) * 100) / 100 : 0,
+    emailSentRate: qrCodes.length > 0 ? Math.round((qrCodes.filter(qr => qr.sent_to_email).length / qrCodes.length) * 100) : 0
   };
 
   const applyFilters = () => {
@@ -305,6 +339,76 @@ const QRCodeHistory = () => {
           <p className="text-muted-foreground">
             Tutti i QR Code che hai generato
           </p>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 mb-4">
+          <Card>
+            <CardContent className="pt-4 pb-3 px-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-muted-foreground">Totale Generati</p>
+                  <p className="text-2xl font-bold">{loadingStats ? '-' : stats.totalGenerated}</p>
+                </div>
+                <QrCode className="h-8 w-8 text-primary opacity-50" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4 pb-3 px-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-muted-foreground">Attivi</p>
+                  <p className="text-2xl font-bold text-green-600">{loadingStats ? '-' : stats.totalActive}</p>
+                </div>
+                <Power className="h-8 w-8 text-green-600 opacity-50" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4 pb-3 px-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-muted-foreground">Scaduti</p>
+                  <p className="text-2xl font-bold text-amber-600">{loadingStats ? '-' : stats.totalExpired}</p>
+                </div>
+                <Clock className="h-8 w-8 text-amber-600 opacity-50" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4 pb-3 px-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-muted-foreground">Scansioni Totali</p>
+                  <p className="text-2xl font-bold text-blue-600">{loadingStats ? '-' : stats.totalScans}</p>
+                </div>
+                <Eye className="h-8 w-8 text-blue-600 opacity-50" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4 pb-3 px-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-muted-foreground">Media Scan/QR</p>
+                  <p className="text-2xl font-bold text-purple-600">{loadingStats ? '-' : stats.usageRate}</p>
+                </div>
+                <TrendingUp className="h-8 w-8 text-purple-600 opacity-50" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4 pb-3 px-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-muted-foreground">Inviati Email</p>
+                  <p className="text-2xl font-bold text-orange-600">{loadingStats ? '-' : `${stats.emailSentRate}%`}</p>
+                </div>
+                <Mail className="h-8 w-8 text-orange-600 opacity-50" />
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Filters */}
