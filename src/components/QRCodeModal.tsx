@@ -45,13 +45,17 @@ const QRCodeModal = ({ open, onOpenChange, url, fileName, documentId, onQRGenera
 
       setInitializing(true);
       try {
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 7); // 7 days expiration
+
         const { data, error } = await supabase
           .from('qr_codes')
           .insert({
             document_id: documentId,
             document_name: fileName,
             public_url: url,
-            created_by: user.id
+            created_by: user.id,
+            expires_at: expiresAt.toISOString()
           })
           .select()
           .single();

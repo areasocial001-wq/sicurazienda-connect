@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { QrCode, Loader2, AlertCircle, Ban } from "lucide-react";
+import { QrCode, Loader2, AlertCircle, Ban, Clock } from "lucide-react";
 
 const QRRedirect = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [error, setError] = useState<'not_found' | 'disabled' | null>(null);
+  const [error, setError] = useState<'not_found' | 'disabled' | 'expired' | null>(null);
 
   useEffect(() => {
     const trackAndRedirect = async () => {
@@ -16,10 +16,10 @@ const QRRedirect = () => {
       }
 
       try {
-        // Get QR code info
+        // Get QR code info including file path for signed URL generation
         const { data: qrCode, error: qrError } = await supabase
           .from('qr_codes')
-          .select('public_url, is_active')
+          .select('public_url, is_active, expires_at, document_id')
           .eq('id', id)
           .maybeSingle();
 
@@ -35,6 +35,12 @@ const QRRedirect = () => {
           return;
         }
 
+        // Check if QR code is expired
+        if (qrCode.expires_at && new Date(qrCode.expires_at) < new Date()) {
+          setError('expired');
+          return;
+        }
+
         // Track the scan (fire and forget)
         supabase
           .from('qr_scans')
@@ -44,7 +50,26 @@ const QRRedirect = () => {
           })
           .then(() => console.log('Scan tracked'));
 
-        // Redirect to the actual document
+        // Get document file path to generate a fresh signed URL
+        const { data: document } = await supabase
+          .from('documents')
+          .select('file_path')
+          .eq('id', qrCode.document_id)
+          .maybeSingle();
+
+        if (document?.file_path) {
+          // Generate fresh signed URL via edge function (valid for 1 hour for this redirect)
+          const { data: signedData, error: signedError } = await supabase.functions.invoke('generate-signed-url', {
+            body: { filePath: document.file_path, expiresIn: 3600 } // 1 hour
+          });
+
+          if (!signedError && signedData?.signedUrl) {
+            window.location.href = signedData.signedUrl;
+            return;
+          }
+        }
+
+        // Fallback to stored URL if signed URL generation fails
         window.location.href = qrCode.public_url;
       } catch (err) {
         console.error('Error tracking QR scan:', err);
@@ -54,6 +79,26 @@ const QRRedirect = () => {
 
     trackAndRedirect();
   }, [id]);
+
+  if (error === 'expired') {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="text-center">
+          <Clock className="h-16 w-16 text-amber-500 mx-auto mb-4" />
+          <h1 className="text-2xl font-bold mb-2">Link Scaduto</h1>
+          <p className="text-muted-foreground mb-4">
+            Questo link di download è scaduto. Contatta chi ti ha inviato il documento per ottenere un nuovo link.
+          </p>
+          <button 
+            onClick={() => navigate('/')}
+            className="text-primary hover:underline"
+          >
+            Torna alla home
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (error === 'disabled') {
     return (
