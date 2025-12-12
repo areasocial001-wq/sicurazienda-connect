@@ -109,25 +109,55 @@ export function useGoogleCalendar(userId: string | undefined) {
     }
   };
 
-  const fetchEvents = async () => {
-    if (!userId || !isConnected) return;
+  const fetchEvents = async (): Promise<GoogleCalendarEvent[]> => {
+    if (!userId || !isConnected) return [];
 
     try {
+      // Add timeout to prevent hanging
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+
       const { data, error } = await supabase.functions.invoke('google-calendar-sync', {
         body: { action: 'list_events', userId },
       });
 
-      if (error) throw error;
+      clearTimeout(timeoutId);
+
+      if (error) {
+        console.error('Supabase function error:', error);
+        throw error;
+      }
 
       if (data?.needsAuth) {
         setIsConnected(false);
-        return;
+        toast.error('Sessione Google scaduta, riconnetti');
+        return [];
       }
 
-      setEvents(data?.events || []);
-    } catch (error) {
+      if (data?.error) {
+        console.error('Google API error:', data.error);
+        throw new Error(data.error);
+      }
+
+      const fetchedEvents = data?.events || [];
+      setEvents(fetchedEvents);
+      
+      if (fetchedEvents.length > 0) {
+        toast.success(`${fetchedEvents.length} eventi importati`);
+      } else {
+        toast.info('Nessun evento nei prossimi 30 giorni');
+      }
+      
+      return fetchedEvents;
+    } catch (error: any) {
       console.error('Error fetching events:', error);
-      toast.error('Errore nel recupero eventi');
+      
+      if (error.name === 'AbortError') {
+        toast.error('Timeout: riprova più tardi');
+      } else {
+        toast.error('Errore nel recupero eventi. Verifica la connessione.');
+      }
+      return [];
     }
   };
 

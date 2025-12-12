@@ -30,9 +30,13 @@ export default function GoogleCalendarSync({ userId }: GoogleCalendarSyncProps) 
   };
 
   const handleFetchEvents = async () => {
+    if (fetching) return; // Prevent double-clicks
     setFetching(true);
-    await fetchEvents();
-    setFetching(false);
+    try {
+      await fetchEvents();
+    } finally {
+      setFetching(false);
+    }
   };
 
   if (isLoading) {

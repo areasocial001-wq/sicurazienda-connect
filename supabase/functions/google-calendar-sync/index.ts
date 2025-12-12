@@ -101,20 +101,28 @@ serve(async (req) => {
     }
 
     if (action === 'list_events') {
+      console.log('Fetching Google Calendar events...');
+      
       const now = new Date();
       const timeMin = now.toISOString();
       const timeMax = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString(); // Next 30 days
 
-      const response = await fetch(
-        `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${timeMin}&timeMax=${timeMax}&singleEvents=true&orderBy=startTime`,
-        { headers: { Authorization: `Bearer ${accessToken}` } }
-      );
+      const apiUrl = `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}&singleEvents=true&orderBy=startTime&maxResults=50`;
+      
+      console.log('Calling Google Calendar API...');
+      
+      const response = await fetch(apiUrl, { 
+        headers: { Authorization: `Bearer ${accessToken}` } 
+      });
 
       const data = await response.json();
       
       if (data.error) {
-        console.error('Google Calendar API error:', data.error);
-        throw new Error(data.error.message);
+        console.error('Google Calendar API error:', JSON.stringify(data.error));
+        return new Response(
+          JSON.stringify({ success: false, error: data.error.message || 'API error', needsAuth: data.error.code === 401 }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: response.status }
+        );
       }
 
       const events = (data.items || []).map((item: any) => ({
@@ -126,6 +134,8 @@ serve(async (req) => {
         allDay: !item.start?.dateTime,
         location: item.location || '',
       }));
+
+      console.log(`Successfully fetched ${events.length} events`);
 
       return new Response(
         JSON.stringify({ success: true, events }),
