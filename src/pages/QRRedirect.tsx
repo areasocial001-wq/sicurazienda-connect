@@ -10,12 +10,17 @@ const QRRedirect = () => {
 
   useEffect(() => {
     const trackAndRedirect = async () => {
+      console.log('[QRRedirect] Starting redirect flow for QR ID:', id);
+      
       if (!id) {
+        console.error('[QRRedirect] No QR ID provided in URL');
         setError('not_found');
         return;
       }
 
       try {
+        console.log('[QRRedirect] Fetching QR code from database...');
+        
         // Get QR code info including file path for signed URL generation
         const { data: qrCode, error: qrError } = await supabase
           .from('qr_codes')
@@ -23,56 +28,92 @@ const QRRedirect = () => {
           .eq('id', id)
           .maybeSingle();
 
-        if (qrError || !qrCode) {
-          console.error('QR code not found:', qrError);
+        console.log('[QRRedirect] QR code query result:', { qrCode, qrError });
+
+        if (qrError) {
+          console.error('[QRRedirect] Database error fetching QR code:', qrError);
+          setError('not_found');
+          return;
+        }
+        
+        if (!qrCode) {
+          console.error('[QRRedirect] QR code not found in database for ID:', id);
           setError('not_found');
           return;
         }
 
+        console.log('[QRRedirect] QR code found:', {
+          document_id: qrCode.document_id,
+          is_active: qrCode.is_active,
+          expires_at: qrCode.expires_at
+        });
+
         // Check if QR code is active
         if (!qrCode.is_active) {
+          console.log('[QRRedirect] QR code is disabled');
           setError('disabled');
           return;
         }
 
         // Check if QR code is expired
         if (qrCode.expires_at && new Date(qrCode.expires_at) < new Date()) {
+          console.log('[QRRedirect] QR code is expired. Expires at:', qrCode.expires_at);
           setError('expired');
           return;
         }
 
         // Track the scan (fire and forget)
+        console.log('[QRRedirect] Tracking scan...');
         supabase
           .from('qr_scans')
           .insert({
             qr_code_id: id,
             user_agent: navigator.userAgent
           })
-          .then(() => console.log('Scan tracked'));
+          .then(({ error }) => {
+            if (error) {
+              console.error('[QRRedirect] Error tracking scan:', error);
+            } else {
+              console.log('[QRRedirect] Scan tracked successfully');
+            }
+          });
 
         // Get document file path to generate a fresh signed URL
-        const { data: document } = await supabase
+        console.log('[QRRedirect] Fetching document for file_path...');
+        const { data: document, error: docError } = await supabase
           .from('documents')
           .select('file_path')
           .eq('id', qrCode.document_id)
           .maybeSingle();
 
+        console.log('[QRRedirect] Document query result:', { document, docError });
+
         if (document?.file_path) {
+          console.log('[QRRedirect] Generating fresh signed URL for:', document.file_path);
+          
           // Generate fresh signed URL via edge function (valid for 1 hour for this redirect)
           const { data: signedData, error: signedError } = await supabase.functions.invoke('generate-signed-url', {
             body: { filePath: document.file_path, expiresIn: 3600 } // 1 hour
           });
 
+          console.log('[QRRedirect] Signed URL generation result:', { signedData, signedError });
+
           if (!signedError && signedData?.signedUrl) {
+            console.log('[QRRedirect] Redirecting to fresh signed URL');
             window.location.href = signedData.signedUrl;
             return;
+          } else {
+            console.warn('[QRRedirect] Failed to generate signed URL, falling back to stored URL');
           }
+        } else {
+          console.warn('[QRRedirect] No file_path found, falling back to stored URL');
         }
 
         // Fallback to stored URL if signed URL generation fails
+        console.log('[QRRedirect] Redirecting to stored public URL:', qrCode.public_url);
         window.location.href = qrCode.public_url;
       } catch (err) {
-        console.error('Error tracking QR scan:', err);
+        console.error('[QRRedirect] Unexpected error during redirect:', err);
         setError('not_found');
       }
     };
