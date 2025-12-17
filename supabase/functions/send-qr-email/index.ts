@@ -28,8 +28,9 @@ const handler = async (req: Request): Promise<Response> => {
     console.log("Sending QR code email to:", recipientEmail);
     console.log("Document name:", documentName);
 
+    // Use Resend test domain until sicurazienda.com is verified
     const emailResponse = await resend.emails.send({
-      from: "SicurAzienda <noreply@sicurazienda.com>",
+      from: "SicurAzienda <onboarding@resend.dev>",
       to: [recipientEmail],
       subject: `QR Code per il download: ${documentName}`,
       html: `
