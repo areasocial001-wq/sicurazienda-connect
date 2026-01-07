@@ -19,9 +19,27 @@ import {
   Ban,
   CheckCircle,
   ExternalLink,
-  Timer
+  Timer,
+  Smartphone,
+  Monitor,
+  Tablet,
+  Globe
 } from "lucide-react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { 
+  LineChart, 
+  Line, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  BarChart,
+  Bar,
+  Legend
+} from 'recharts';
 
 interface QRCodeDetails {
   id: string;
@@ -37,12 +55,62 @@ interface ScanRecord {
   id: string;
   scanned_at: string;
   user_agent: string | null;
+  ip_address: string | null;
 }
 
 interface ChartDataPoint {
   date: string;
   count: number;
 }
+
+interface DeviceData {
+  name: string;
+  value: number;
+  icon: React.ComponentType<{ className?: string }>;
+}
+
+interface HourlyData {
+  hour: string;
+  count: number;
+}
+
+interface BrowserData {
+  name: string;
+  value: number;
+}
+
+// Parse user agent to get device type
+const parseDeviceType = (userAgent: string | null): 'mobile' | 'tablet' | 'desktop' => {
+  if (!userAgent) return 'desktop';
+  const ua = userAgent.toLowerCase();
+  if (/ipad|tablet|playbook|silk/i.test(ua)) return 'tablet';
+  if (/mobile|iphone|ipod|android.*mobile|blackberry|opera mini|iemobile/i.test(ua)) return 'mobile';
+  return 'desktop';
+};
+
+// Parse user agent to get OS
+const parseOS = (userAgent: string | null): string => {
+  if (!userAgent) return 'Sconosciuto';
+  if (/windows/i.test(userAgent)) return 'Windows';
+  if (/macintosh|mac os x/i.test(userAgent)) return 'macOS';
+  if (/linux/i.test(userAgent)) return 'Linux';
+  if (/android/i.test(userAgent)) return 'Android';
+  if (/iphone|ipad|ipod/i.test(userAgent)) return 'iOS';
+  return 'Altro';
+};
+
+// Parse user agent to get browser
+const parseBrowser = (userAgent: string | null): string => {
+  if (!userAgent) return 'Sconosciuto';
+  if (/edg/i.test(userAgent)) return 'Edge';
+  if (/chrome/i.test(userAgent) && !/edg/i.test(userAgent)) return 'Chrome';
+  if (/firefox/i.test(userAgent)) return 'Firefox';
+  if (/safari/i.test(userAgent) && !/chrome/i.test(userAgent)) return 'Safari';
+  if (/opera|opr/i.test(userAgent)) return 'Opera';
+  return 'Altro';
+};
+
+const COLORS = ['hsl(var(--primary))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
 
 const QRCodeStats = () => {
   const { id } = useParams<{ id: string }>();
@@ -51,6 +119,10 @@ const QRCodeStats = () => {
   const [qrCode, setQrCode] = useState<QRCodeDetails | null>(null);
   const [scans, setScans] = useState<ScanRecord[]>([]);
   const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
+  const [deviceData, setDeviceData] = useState<DeviceData[]>([]);
+  const [hourlyData, setHourlyData] = useState<HourlyData[]>([]);
+  const [osData, setOsData] = useState<{ name: string; value: number }[]>([]);
+  const [browserData, setBrowserData] = useState<BrowserData[]>([]);
   const [loading, setLoading] = useState(true);
   const [toggling, setToggling] = useState(false);
 
@@ -90,7 +162,7 @@ const QRCodeStats = () => {
       if (error) throw error;
       setScans(data || []);
 
-      // Process chart data
+      // Process daily chart data
       const grouped: Record<string, number> = {};
       data?.forEach(scan => {
         const date = new Date(scan.scanned_at).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' });
@@ -101,6 +173,57 @@ const QRCodeStats = () => {
         .map(([date, count]) => ({ date, count }))
         .slice(-30);
       setChartData(chartDataArray);
+
+      // Process device data
+      const devices: Record<string, number> = { mobile: 0, tablet: 0, desktop: 0 };
+      data?.forEach(scan => {
+        const device = parseDeviceType(scan.user_agent);
+        devices[device]++;
+      });
+      setDeviceData([
+        { name: 'Mobile', value: devices.mobile, icon: Smartphone },
+        { name: 'Tablet', value: devices.tablet, icon: Tablet },
+        { name: 'Desktop', value: devices.desktop, icon: Monitor },
+      ].filter(d => d.value > 0));
+
+      // Process hourly data
+      const hourly: Record<number, number> = {};
+      for (let i = 0; i < 24; i++) hourly[i] = 0;
+      data?.forEach(scan => {
+        const hour = new Date(scan.scanned_at).getHours();
+        hourly[hour]++;
+      });
+      setHourlyData(
+        Object.entries(hourly).map(([hour, count]) => ({
+          hour: `${hour.padStart(2, '0')}:00`,
+          count
+        }))
+      );
+
+      // Process OS data
+      const osStats: Record<string, number> = {};
+      data?.forEach(scan => {
+        const os = parseOS(scan.user_agent);
+        osStats[os] = (osStats[os] || 0) + 1;
+      });
+      setOsData(
+        Object.entries(osStats)
+          .map(([name, value]) => ({ name, value }))
+          .sort((a, b) => b.value - a.value)
+      );
+
+      // Process browser data
+      const browserStats: Record<string, number> = {};
+      data?.forEach(scan => {
+        const browser = parseBrowser(scan.user_agent);
+        browserStats[browser] = (browserStats[browser] || 0) + 1;
+      });
+      setBrowserData(
+        Object.entries(browserStats)
+          .map(([name, value]) => ({ name, value }))
+          .sort((a, b) => b.value - a.value)
+      );
+
     } catch (error) {
       console.error('Error fetching scans:', error);
     }
@@ -310,6 +433,209 @@ const QRCodeStats = () => {
           </CardContent>
         </Card>
 
+        {/* Device & OS Charts */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          {/* Device Type Pie Chart */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Smartphone className="h-5 w-5" />
+                Dispositivi
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {deviceData.length === 0 ? (
+                <div className="flex items-center justify-center h-[200px] text-muted-foreground">
+                  Nessun dato disponibile
+                </div>
+              ) : (
+                <div className="flex items-center gap-4">
+                  <ResponsiveContainer width="60%" height={200}>
+                    <PieChart>
+                      <Pie
+                        data={deviceData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={40}
+                        outerRadius={80}
+                        paddingAngle={5}
+                        dataKey="value"
+                      >
+                        {deviceData.map((_, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip 
+                        contentStyle={{ 
+                          backgroundColor: 'hsl(var(--background))', 
+                          border: '1px solid hsl(var(--border))',
+                          borderRadius: '8px'
+                        }} 
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="flex-1 space-y-2">
+                    {deviceData.map((device, index) => {
+                      const Icon = device.icon;
+                      return (
+                        <div key={device.name} className="flex items-center gap-2">
+                          <div 
+                            className="w-3 h-3 rounded-full" 
+                            style={{ backgroundColor: COLORS[index % COLORS.length] }} 
+                          />
+                          <Icon className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm">{device.name}</span>
+                          <span className="text-sm font-bold ml-auto">{device.value}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* OS Pie Chart */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Globe className="h-5 w-5" />
+                Sistema Operativo
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {osData.length === 0 ? (
+                <div className="flex items-center justify-center h-[200px] text-muted-foreground">
+                  Nessun dato disponibile
+                </div>
+              ) : (
+                <div className="flex items-center gap-4">
+                  <ResponsiveContainer width="60%" height={200}>
+                    <PieChart>
+                      <Pie
+                        data={osData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={40}
+                        outerRadius={80}
+                        paddingAngle={5}
+                        dataKey="value"
+                      >
+                        {osData.map((_, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip 
+                        contentStyle={{ 
+                          backgroundColor: 'hsl(var(--background))', 
+                          border: '1px solid hsl(var(--border))',
+                          borderRadius: '8px'
+                        }} 
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="flex-1 space-y-2">
+                    {osData.map((os, index) => (
+                      <div key={os.name} className="flex items-center gap-2">
+                        <div 
+                          className="w-3 h-3 rounded-full" 
+                          style={{ backgroundColor: COLORS[index % COLORS.length] }} 
+                        />
+                        <span className="text-sm">{os.name}</span>
+                        <span className="text-sm font-bold ml-auto">{os.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Hourly Distribution Chart */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5" />
+              Distribuzione Oraria
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {hourlyData.every(h => h.count === 0) ? (
+              <div className="flex items-center justify-center h-[200px] text-muted-foreground">
+                Nessun dato disponibile
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={hourlyData}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <XAxis 
+                    dataKey="hour" 
+                    className="text-xs" 
+                    tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
+                    interval={2}
+                  />
+                  <YAxis className="text-xs" tick={{ fill: 'hsl(var(--muted-foreground))' }} />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--background))', 
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px'
+                    }} 
+                  />
+                  <Bar 
+                    dataKey="count" 
+                    fill="hsl(var(--primary))" 
+                    radius={[4, 4, 0, 0]}
+                    name="Scansioni"
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Browser Chart */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Monitor className="h-5 w-5" />
+              Browser Utilizzati
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {browserData.length === 0 ? (
+              <div className="flex items-center justify-center h-[150px] text-muted-foreground">
+                Nessun dato disponibile
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {browserData.map((browser, index) => {
+                  const maxValue = Math.max(...browserData.map(b => b.value));
+                  const percentage = maxValue > 0 ? (browser.value / maxValue) * 100 : 0;
+                  return (
+                    <div key={browser.name} className="space-y-1">
+                      <div className="flex justify-between text-sm">
+                        <span>{browser.name}</span>
+                        <span className="font-bold">{browser.value}</span>
+                      </div>
+                      <div className="h-2 bg-muted rounded-full overflow-hidden">
+                        <div 
+                          className="h-full rounded-full transition-all"
+                          style={{ 
+                            width: `${percentage}%`,
+                            backgroundColor: COLORS[index % COLORS.length]
+                          }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Recent Scans */}
         <Card>
           <CardHeader>
@@ -326,31 +652,40 @@ const QRCodeStats = () => {
               </div>
             ) : (
               <div className="space-y-2 max-h-[300px] overflow-y-auto">
-                {scans.slice(0, 50).map((scan) => (
-                  <div 
-                    key={scan.id}
-                    className="flex items-center justify-between p-3 border rounded-lg text-sm"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                      <span>
-                        {new Date(scan.scanned_at).toLocaleDateString('it-IT', {
-                          day: '2-digit',
-                          month: 'short',
-                          year: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                          second: '2-digit'
-                        })}
-                      </span>
+                {scans.slice(0, 50).map((scan) => {
+                  const deviceType = parseDeviceType(scan.user_agent);
+                  const os = parseOS(scan.user_agent);
+                  const browser = parseBrowser(scan.user_agent);
+                  const DeviceIcon = deviceType === 'mobile' ? Smartphone : deviceType === 'tablet' ? Tablet : Monitor;
+                  
+                  return (
+                    <div 
+                      key={scan.id}
+                      className="flex items-center justify-between p-3 border rounded-lg text-sm"
+                    >
+                      <div className="flex items-center gap-3">
+                        <DeviceIcon className="h-4 w-4 text-muted-foreground" />
+                        <div>
+                          <span className="font-medium">
+                            {new Date(scan.scanned_at).toLocaleDateString('it-IT', {
+                              day: '2-digit',
+                              month: 'short',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </span>
+                          <div className="text-xs text-muted-foreground">
+                            {os} • {browser}
+                          </div>
+                        </div>
+                      </div>
+                      <Badge variant="outline" className="text-xs">
+                        {deviceType === 'mobile' ? '📱 Mobile' : deviceType === 'tablet' ? '📱 Tablet' : '💻 Desktop'}
+                      </Badge>
                     </div>
-                    {scan.user_agent && (
-                      <span className="text-xs text-muted-foreground truncate max-w-[200px]">
-                        {scan.user_agent.includes('Mobile') ? '📱 Mobile' : '💻 Desktop'}
-                      </span>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </CardContent>
