@@ -293,7 +293,19 @@ const QRCodeModal = ({ open, onOpenChange, url, fileName, documentId, onQRGenera
     const subject = encodeURIComponent(`Documento: ${fileName}`);
     const body = encodeURIComponent(customMessage);
     const mailtoUrl = `mailto:?subject=${subject}&body=${body}`;
-    window.open(mailtoUrl, '_blank');
+
+    // In preview/iframes some navigation methods can be blocked: try an <a> click first.
+    try {
+      const a = document.createElement('a');
+      a.href = mailtoUrl;
+      a.target = '_top';
+      a.rel = 'noreferrer';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } catch {
+      window.location.href = mailtoUrl;
+    }
   };
 
   const getQRCodeBase64 = (): string => {
