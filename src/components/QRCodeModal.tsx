@@ -34,8 +34,17 @@ const QRCodeModal = ({ open, onOpenChange, url, fileName, documentId, onQRGenera
   const [expiresAt, setExpiresAt] = useState<Date | null>(null);
   const [step, setStep] = useState<'config' | 'generated'>('config');
   const [customMessage, setCustomMessage] = useState<string>('');
+  const [selectedTemplate, setSelectedTemplate] = useState<string>('standard');
   const qrRef = useRef<SVGSVGElement>(null);
   const { user } = useAuth();
+
+  // Message templates
+  const getMessageTemplates = (docName: string, docUrl: string, expiry: string) => ({
+    standard: `Scarica il documento "${docName}" usando questo link:\n\n${docUrl}\n\nIl link scadrà il ${expiry}`,
+    formale: `Gentile Cliente,\n\nLe inviamo il documento "${docName}" richiesto.\n\nPuò scaricarlo al seguente link:\n${docUrl}\n\nAttenzione: il link sarà valido fino al ${expiry}.\n\nCordiali saluti`,
+    breve: `📄 ${docName}\n${docUrl}\n\nScade: ${expiry}`,
+    promemoria: `PROMEMORIA DOCUMENTO\n\nDocumento: ${docName}\nLink download: ${docUrl}\n\n⚠️ Scadenza link: ${expiry}\n\nScarica il documento prima della scadenza.`
+  });
 
   // Get the base URL for tracking
   const getBaseUrl = () => {
@@ -72,7 +81,9 @@ const QRCodeModal = ({ open, onOpenChange, url, fileName, documentId, onQRGenera
       
       // Set default message with the new URL
       const expiryDate = expiry.toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' });
-      setCustomMessage(`Scarica il documento "${fileName}" usando questo link:\n\n${newTrackingUrl}\n\nIl link scadrà il ${expiryDate}`);
+      const templates = getMessageTemplates(fileName, newTrackingUrl, expiryDate);
+      setCustomMessage(templates.standard);
+      setSelectedTemplate('standard');
       
       setStep('generated');
       
@@ -96,8 +107,18 @@ const QRCodeModal = ({ open, onOpenChange, url, fileName, documentId, onQRGenera
       setExpiresAt(null);
       setStep('config');
       setCustomMessage('');
+      setSelectedTemplate('standard');
     }
   }, [open, url]);
+
+  const handleTemplateChange = (templateKey: string) => {
+    setSelectedTemplate(templateKey);
+    if (templateKey !== 'personalizzato' && expiresAt) {
+      const expiryDate = expiresAt.toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' });
+      const templates = getMessageTemplates(fileName, trackingUrl, expiryDate);
+      setCustomMessage(templates[templateKey as keyof typeof templates] || '');
+    }
+  };
 
   const handleCopyLink = async () => {
     try {
@@ -294,11 +315,28 @@ const QRCodeModal = ({ open, onOpenChange, url, fileName, documentId, onQRGenera
                 </div>
               )}
               {/* Customizable message */}
-              <div className="w-full space-y-2 border-t pt-4">
-                <Label className="text-sm font-medium">Messaggio da condividere</Label>
+              <div className="w-full space-y-3 border-t pt-4">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Modello messaggio</Label>
+                  <Select value={selectedTemplate} onValueChange={handleTemplateChange}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Seleziona modello" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="standard">Standard</SelectItem>
+                      <SelectItem value="formale">Formale</SelectItem>
+                      <SelectItem value="breve">Breve</SelectItem>
+                      <SelectItem value="promemoria">Promemoria</SelectItem>
+                      <SelectItem value="personalizzato">Personalizzato</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 <Textarea
                   value={customMessage}
-                  onChange={(e) => setCustomMessage(e.target.value)}
+                  onChange={(e) => {
+                    setCustomMessage(e.target.value);
+                    setSelectedTemplate('personalizzato');
+                  }}
                   rows={4}
                   className="text-sm resize-none"
                   placeholder="Personalizza il messaggio..."
