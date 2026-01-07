@@ -292,7 +292,8 @@ const QRCodeModal = ({ open, onOpenChange, url, fileName, documentId, onQRGenera
   const handleOpenEmailClient = () => {
     const subject = encodeURIComponent(`Documento: ${fileName}`);
     const body = encodeURIComponent(customMessage);
-    window.location.href = `mailto:?subject=${subject}&body=${body}`;
+    const mailtoUrl = `mailto:?subject=${subject}&body=${body}`;
+    window.open(mailtoUrl, '_blank');
   };
 
   const getQRCodeBase64 = (): string => {
