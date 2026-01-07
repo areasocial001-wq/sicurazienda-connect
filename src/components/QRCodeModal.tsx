@@ -10,10 +10,17 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Download, Copy, Check, Loader2, Clock, Share2, FileText, Mail } from "lucide-react";
+import { Download, Copy, Check, Loader2, Clock, Share2, FileText, Mail, Save, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { Input } from "@/components/ui/input";
+
+interface SavedTemplate {
+  id: string;
+  name: string;
+  content: string;
+}
 
 interface QRCodeModalProps {
   open: boolean;
@@ -35,8 +42,85 @@ const QRCodeModal = ({ open, onOpenChange, url, fileName, documentId, onQRGenera
   const [step, setStep] = useState<'config' | 'generated'>('config');
   const [customMessage, setCustomMessage] = useState<string>('');
   const [selectedTemplate, setSelectedTemplate] = useState<string>('standard');
+  const [savedTemplates, setSavedTemplates] = useState<SavedTemplate[]>([]);
+  const [showSaveInput, setShowSaveInput] = useState(false);
+  const [newTemplateName, setNewTemplateName] = useState('');
+  const [savingTemplate, setSavingTemplate] = useState(false);
   const qrRef = useRef<SVGSVGElement>(null);
   const { user } = useAuth();
+
+  // Load saved templates
+  useEffect(() => {
+    if (user) {
+      loadSavedTemplates();
+    }
+  }, [user]);
+
+  const loadSavedTemplates = async () => {
+    if (!user) return;
+    
+    const { data, error } = await supabase
+      .from('message_templates')
+      .select('id, name, content')
+      .eq('user_id', user.id)
+      .order('name');
+    
+    if (!error && data) {
+      setSavedTemplates(data);
+    }
+  };
+
+  const handleSaveTemplate = async () => {
+    if (!user || !newTemplateName.trim() || !customMessage.trim()) {
+      toast.error('Inserisci un nome per il template');
+      return;
+    }
+
+    setSavingTemplate(true);
+    try {
+      const { error } = await supabase
+        .from('message_templates')
+        .insert({
+          user_id: user.id,
+          name: newTemplateName.trim(),
+          content: customMessage
+        });
+
+      if (error) throw error;
+
+      toast.success('Template salvato');
+      setNewTemplateName('');
+      setShowSaveInput(false);
+      loadSavedTemplates();
+    } catch (error) {
+      console.error('Error saving template:', error);
+      toast.error('Errore nel salvataggio del template');
+    } finally {
+      setSavingTemplate(false);
+    }
+  };
+
+  const handleDeleteTemplate = async (templateId: string) => {
+    try {
+      const { error } = await supabase
+        .from('message_templates')
+        .delete()
+        .eq('id', templateId);
+
+      if (error) throw error;
+
+      toast.success('Template eliminato');
+      loadSavedTemplates();
+      
+      // Reset selection if deleted template was selected
+      if (selectedTemplate === `saved_${templateId}`) {
+        setSelectedTemplate('standard');
+      }
+    } catch (error) {
+      console.error('Error deleting template:', error);
+      toast.error('Errore nell\'eliminazione del template');
+    }
+  };
 
   // Message templates
   const getMessageTemplates = (docName: string, docUrl: string, expiry: string) => ({
@@ -113,7 +197,20 @@ const QRCodeModal = ({ open, onOpenChange, url, fileName, documentId, onQRGenera
 
   const handleTemplateChange = (templateKey: string) => {
     setSelectedTemplate(templateKey);
-    if (templateKey !== 'personalizzato' && expiresAt) {
+    
+    if (templateKey.startsWith('saved_')) {
+      const templateId = templateKey.replace('saved_', '');
+      const savedTemplate = savedTemplates.find(t => t.id === templateId);
+      if (savedTemplate && expiresAt) {
+        // Replace placeholders in saved template
+        const expiryDate = expiresAt.toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' });
+        const content = savedTemplate.content
+          .replace(/\{fileName\}/g, fileName)
+          .replace(/\{link\}/g, trackingUrl)
+          .replace(/\{expiry\}/g, expiryDate);
+        setCustomMessage(content);
+      }
+    } else if (templateKey !== 'personalizzato' && expiresAt) {
       const expiryDate = expiresAt.toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' });
       const templates = getMessageTemplates(fileName, trackingUrl, expiryDate);
       setCustomMessage(templates[templateKey as keyof typeof templates] || '');
@@ -327,6 +424,31 @@ const QRCodeModal = ({ open, onOpenChange, url, fileName, documentId, onQRGenera
                       <SelectItem value="formale">Formale</SelectItem>
                       <SelectItem value="breve">Breve</SelectItem>
                       <SelectItem value="promemoria">Promemoria</SelectItem>
+                      {savedTemplates.length > 0 && (
+                        <>
+                          <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground border-t mt-1">
+                            I tuoi template
+                          </div>
+                          {savedTemplates.map((template) => (
+                            <div key={template.id} className="flex items-center justify-between pr-2">
+                              <SelectItem value={`saved_${template.id}`} className="flex-1">
+                                {template.name}
+                              </SelectItem>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 text-destructive hover:text-destructive"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteTemplate(template.id);
+                                }}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          ))}
+                        </>
+                      )}
                       <SelectItem value="personalizzato">Personalizzato</SelectItem>
                     </SelectContent>
                   </Select>
@@ -341,6 +463,46 @@ const QRCodeModal = ({ open, onOpenChange, url, fileName, documentId, onQRGenera
                   className="text-sm resize-none"
                   placeholder="Personalizza il messaggio..."
                 />
+                
+                {/* Save template section */}
+                {showSaveInput ? (
+                  <div className="flex gap-2">
+                    <Input
+                      value={newTemplateName}
+                      onChange={(e) => setNewTemplateName(e.target.value)}
+                      placeholder="Nome template..."
+                      className="flex-1 text-sm"
+                    />
+                    <Button
+                      onClick={handleSaveTemplate}
+                      size="sm"
+                      disabled={savingTemplate || !newTemplateName.trim()}
+                    >
+                      {savingTemplate ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        setShowSaveInput(false);
+                        setNewTemplateName('');
+                      }}
+                      size="sm"
+                      variant="ghost"
+                    >
+                      ✕
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    onClick={() => setShowSaveInput(true)}
+                    variant="ghost"
+                    size="sm"
+                    className="w-full text-xs"
+                  >
+                    <Save className="h-3 w-3 mr-1" />
+                    Salva come template
+                  </Button>
+                )}
+                
                 <div className="flex gap-2 w-full">
                   <Button
                     onClick={handleCopyMessage}
@@ -363,6 +525,9 @@ const QRCodeModal = ({ open, onOpenChange, url, fileName, documentId, onQRGenera
                     Email
                   </Button>
                 </div>
+                <p className="text-xs text-muted-foreground text-center">
+                  Usa {'{fileName}'}, {'{link}'}, {'{expiry}'} nei template salvati
+                </p>
               </div>
             </>
           )}
