@@ -352,12 +352,12 @@ const QRCodeModal = ({ open, onOpenChange, url, fileName, documentId, onQRGenera
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-center">QR Code per Download</DialogTitle>
         </DialogHeader>
         
-        <div className="flex flex-col items-center space-y-4 py-4">
+        <div className="flex flex-col items-center space-y-3 py-2">
           {initializing ? (
             <div className="flex flex-col items-center py-8">
               <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
