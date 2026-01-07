@@ -78,6 +78,25 @@ const QRRedirect = () => {
             }
           });
 
+        // Notify document owner (fire and forget)
+        console.log('[QRRedirect] Sending download notification...');
+        fetch('https://obzflzotzvwlmgyjxfpv.supabase.co/functions/v1/notify-qr-download', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9iemZsem90enZ3bG1neWp4ZnB2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgwMjY3OTQsImV4cCI6MjA3MzYwMjc5NH0.ajn-6isd6JoZQDVLz4ZIz8u1kWMVcBfy990iDE6Pr5g'
+          },
+          body: JSON.stringify({ qrCodeId: id, userAgent: navigator.userAgent })
+        }).then(response => {
+          if (response.ok) {
+            console.log('[QRRedirect] Download notification sent');
+          } else {
+            console.warn('[QRRedirect] Failed to send download notification');
+          }
+        }).catch(err => {
+          console.error('[QRRedirect] Error sending notification:', err);
+        });
+
         // Get document file path to generate a fresh signed URL
         console.log('[QRRedirect] Fetching document for file_path...');
         const { data: document, error: docError } = await supabase
