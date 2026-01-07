@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Download, Copy, Check, Loader2, Clock, Share2, FileText } from "lucide-react";
+import { Download, Copy, Check, Loader2, Clock, Share2, FileText, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -116,6 +116,13 @@ const QRCodeModal = ({ open, onOpenChange, url, fileName, documentId, onQRGenera
     } catch (error) {
       toast.error('Errore durante la copia');
     }
+  };
+
+  const handleOpenEmailClient = () => {
+    const expiryDate = expiresAt?.toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' });
+    const subject = encodeURIComponent(`Documento: ${fileName}`);
+    const body = encodeURIComponent(`Scarica il documento "${fileName}" usando questo link:\n\n${trackingUrl}\n\nIl link scadrà il ${expiryDate}`);
+    window.location.href = `mailto:?subject=${subject}&body=${body}`;
   };
 
   const getQRCodeBase64 = (): string => {
@@ -285,18 +292,28 @@ const QRCodeModal = ({ open, onOpenChange, url, fileName, documentId, onQRGenera
                 </div>
               )}
               {/* Copy full message button */}
-              <Button
-                onClick={handleCopyMessage}
-                variant="secondary"
-                className="w-full"
-              >
-                {copiedMessage ? (
-                  <Check className="h-4 w-4 mr-2" />
-                ) : (
-                  <FileText className="h-4 w-4 mr-2" />
-                )}
-                {copiedMessage ? 'Messaggio copiato!' : 'Copia messaggio completo'}
-              </Button>
+              <div className="flex gap-2 w-full">
+                <Button
+                  onClick={handleCopyMessage}
+                  variant="secondary"
+                  className="flex-1"
+                >
+                  {copiedMessage ? (
+                    <Check className="h-4 w-4 mr-2" />
+                  ) : (
+                    <FileText className="h-4 w-4 mr-2" />
+                  )}
+                  {copiedMessage ? 'Copiato!' : 'Copia msg'}
+                </Button>
+                <Button
+                  onClick={handleOpenEmailClient}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  <Mail className="h-4 w-4 mr-2" />
+                  Invia Email
+                </Button>
+              </div>
             </>
           )}
         </div>
