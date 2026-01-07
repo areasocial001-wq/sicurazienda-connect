@@ -406,23 +406,35 @@ export type Database = {
       }
       qr_scans: {
         Row: {
+          city: string | null
+          country: string | null
+          country_code: string | null
           id: string
           ip_address: string | null
           qr_code_id: string
+          region: string | null
           scanned_at: string
           user_agent: string | null
         }
         Insert: {
+          city?: string | null
+          country?: string | null
+          country_code?: string | null
           id?: string
           ip_address?: string | null
           qr_code_id: string
+          region?: string | null
           scanned_at?: string
           user_agent?: string | null
         }
         Update: {
+          city?: string | null
+          country?: string | null
+          country_code?: string | null
           id?: string
           ip_address?: string | null
           qr_code_id?: string
+          region?: string | null
           scanned_at?: string
           user_agent?: string | null
         }
