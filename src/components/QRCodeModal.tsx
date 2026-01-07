@@ -7,8 +7,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Download, Copy, Check, Loader2, Clock, Share2, FileText, Mail } from "lucide-react";
 import { toast } from "sonner";
@@ -33,6 +33,7 @@ const QRCodeModal = ({ open, onOpenChange, url, fileName, documentId, onQRGenera
   const [expiryDays, setExpiryDays] = useState<string>("7");
   const [expiresAt, setExpiresAt] = useState<Date | null>(null);
   const [step, setStep] = useState<'config' | 'generated'>('config');
+  const [customMessage, setCustomMessage] = useState<string>('');
   const qrRef = useRef<SVGSVGElement>(null);
   const { user } = useAuth();
 
@@ -65,8 +66,14 @@ const QRCodeModal = ({ open, onOpenChange, url, fileName, documentId, onQRGenera
       if (error) throw error;
 
       setQrCodeId(data.id);
-      setTrackingUrl(`${getBaseUrl()}/qr/${data.id}`);
+      const newTrackingUrl = `${getBaseUrl()}/qr/${data.id}`;
+      setTrackingUrl(newTrackingUrl);
       setExpiresAt(expiry);
+      
+      // Set default message with the new URL
+      const expiryDate = expiry.toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' });
+      setCustomMessage(`Scarica il documento "${fileName}" usando questo link:\n\n${newTrackingUrl}\n\nIl link scadrà il ${expiryDate}`);
+      
       setStep('generated');
       
       if (onQRGenerated) {
@@ -88,6 +95,7 @@ const QRCodeModal = ({ open, onOpenChange, url, fileName, documentId, onQRGenera
       setExpiryDays("7");
       setExpiresAt(null);
       setStep('config');
+      setCustomMessage('');
     }
   }, [open, url]);
 
@@ -102,14 +110,9 @@ const QRCodeModal = ({ open, onOpenChange, url, fileName, documentId, onQRGenera
     }
   };
 
-  const getFullMessage = () => {
-    const expiryDate = expiresAt?.toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' });
-    return `📄 ${fileName}\n\nScarica il documento:\n${trackingUrl}\n\nScade il ${expiryDate}`;
-  };
-
   const handleCopyMessage = async () => {
     try {
-      await navigator.clipboard.writeText(getFullMessage());
+      await navigator.clipboard.writeText(customMessage);
       setCopiedMessage(true);
       toast.success('Messaggio copiato negli appunti');
       setTimeout(() => setCopiedMessage(false), 2000);
@@ -119,9 +122,8 @@ const QRCodeModal = ({ open, onOpenChange, url, fileName, documentId, onQRGenera
   };
 
   const handleOpenEmailClient = () => {
-    const expiryDate = expiresAt?.toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' });
     const subject = encodeURIComponent(`Documento: ${fileName}`);
-    const body = encodeURIComponent(`Scarica il documento "${fileName}" usando questo link:\n\n${trackingUrl}\n\nIl link scadrà il ${expiryDate}`);
+    const body = encodeURIComponent(customMessage);
     window.location.href = `mailto:?subject=${subject}&body=${body}`;
   };
 
@@ -291,28 +293,38 @@ const QRCodeModal = ({ open, onOpenChange, url, fileName, documentId, onQRGenera
                   <p className="text-xs font-mono break-all mt-1 select-all">{trackingUrl}</p>
                 </div>
               )}
-              {/* Copy full message button */}
-              <div className="flex gap-2 w-full">
-                <Button
-                  onClick={handleCopyMessage}
-                  variant="secondary"
-                  className="flex-1"
-                >
-                  {copiedMessage ? (
-                    <Check className="h-4 w-4 mr-2" />
-                  ) : (
-                    <FileText className="h-4 w-4 mr-2" />
-                  )}
-                  {copiedMessage ? 'Copiato!' : 'Copia msg'}
-                </Button>
-                <Button
-                  onClick={handleOpenEmailClient}
-                  variant="outline"
-                  className="flex-1"
-                >
-                  <Mail className="h-4 w-4 mr-2" />
-                  Invia Email
-                </Button>
+              {/* Customizable message */}
+              <div className="w-full space-y-2 border-t pt-4">
+                <Label className="text-sm font-medium">Messaggio da condividere</Label>
+                <Textarea
+                  value={customMessage}
+                  onChange={(e) => setCustomMessage(e.target.value)}
+                  rows={4}
+                  className="text-sm resize-none"
+                  placeholder="Personalizza il messaggio..."
+                />
+                <div className="flex gap-2 w-full">
+                  <Button
+                    onClick={handleCopyMessage}
+                    variant="secondary"
+                    className="flex-1"
+                  >
+                    {copiedMessage ? (
+                      <Check className="h-4 w-4 mr-2" />
+                    ) : (
+                      <FileText className="h-4 w-4 mr-2" />
+                    )}
+                    {copiedMessage ? 'Copiato!' : 'Copia'}
+                  </Button>
+                  <Button
+                    onClick={handleOpenEmailClient}
+                    variant="outline"
+                    className="flex-1"
+                  >
+                    <Mail className="h-4 w-4 mr-2" />
+                    Email
+                  </Button>
+                </div>
               </div>
             </>
           )}
