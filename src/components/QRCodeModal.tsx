@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Download, Copy, Check, Mail, Loader2, Clock, Share2 } from "lucide-react";
+import { Download, Copy, Check, Loader2, Clock, Share2, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -26,8 +26,7 @@ interface QRCodeModalProps {
 
 const QRCodeModal = ({ open, onOpenChange, url, fileName, documentId, onQRGenerated }: QRCodeModalProps) => {
   const [copied, setCopied] = useState(false);
-  const [email, setEmail] = useState('');
-  const [sendingEmail, setSendingEmail] = useState(false);
+  const [copiedMessage, setCopiedMessage] = useState(false);
   const [qrCodeId, setQrCodeId] = useState<string | null>(null);
   const [trackingUrl, setTrackingUrl] = useState<string>(url);
   const [initializing, setInitializing] = useState(false);
@@ -86,7 +85,6 @@ const QRCodeModal = ({ open, onOpenChange, url, fileName, documentId, onQRGenera
     if (!open) {
       setQrCodeId(null);
       setTrackingUrl(url);
-      setEmail('');
       setExpiryDays("7");
       setExpiresAt(null);
       setStep('config');
@@ -101,6 +99,22 @@ const QRCodeModal = ({ open, onOpenChange, url, fileName, documentId, onQRGenera
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
       toast.error('Errore durante la copia del link');
+    }
+  };
+
+  const getFullMessage = () => {
+    const expiryDate = expiresAt?.toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' });
+    return `📄 ${fileName}\n\nScarica il documento:\n${trackingUrl}\n\nScade il ${expiryDate}`;
+  };
+
+  const handleCopyMessage = async () => {
+    try {
+      await navigator.clipboard.writeText(getFullMessage());
+      setCopiedMessage(true);
+      toast.success('Messaggio copiato negli appunti');
+      setTimeout(() => setCopiedMessage(false), 2000);
+    } catch (error) {
+      toast.error('Errore durante la copia');
     }
   };
 
@@ -156,54 +170,6 @@ const QRCodeModal = ({ open, onOpenChange, url, fileName, documentId, onQRGenera
       if (error.name !== 'AbortError') {
         toast.error('Impossibile condividere');
       }
-    }
-  };
-
-  const handleSendEmail = async () => {
-    if (!email) {
-      toast.error('Inserisci un indirizzo email');
-      return;
-    }
-
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      toast.error('Inserisci un indirizzo email valido');
-      return;
-    }
-
-    setSendingEmail(true);
-
-    try {
-      const qrCodeBase64 = getQRCodeBase64();
-
-      const { data, error } = await supabase.functions.invoke('send-qr-email', {
-        body: {
-          recipientEmail: email,
-          documentName: fileName,
-          downloadUrl: trackingUrl,
-          qrCodeBase64
-        }
-      });
-
-      if (error) throw error;
-
-      // Update QR code record with email info
-      if (qrCodeId) {
-        await supabase
-          .from('qr_codes')
-          .update({
-            sent_to_email: email,
-            sent_at: new Date().toISOString()
-          })
-          .eq('id', qrCodeId);
-      }
-
-      toast.success(`Email inviata a ${email}`);
-      setEmail('');
-    } catch (error: any) {
-      console.error('Error sending email:', error);
-      toast.error(error.message || 'Errore nell\'invio dell\'email');
-    } finally {
-      setSendingEmail(false);
     }
   };
 
@@ -318,32 +284,19 @@ const QRCodeModal = ({ open, onOpenChange, url, fileName, documentId, onQRGenera
                   <p className="text-xs font-mono break-all mt-1 select-all">{trackingUrl}</p>
                 </div>
               )}
-
-              <div className="w-full border-t pt-4">
-                <Label htmlFor="email" className="text-sm font-medium">
-                  Oppure invia via Email
-                </Label>
-                <div className="flex gap-2 mt-2">
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="cliente@esempio.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="flex-1"
-                  />
-                  <Button
-                    onClick={handleSendEmail}
-                    disabled={sendingEmail || !email}
-                  >
-                    {sendingEmail ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Mail className="h-4 w-4" />
-                    )}
-                  </Button>
-                </div>
-              </div>
+              {/* Copy full message button */}
+              <Button
+                onClick={handleCopyMessage}
+                variant="secondary"
+                className="w-full"
+              >
+                {copiedMessage ? (
+                  <Check className="h-4 w-4 mr-2" />
+                ) : (
+                  <FileText className="h-4 w-4 mr-2" />
+                )}
+                {copiedMessage ? 'Messaggio copiato!' : 'Copia messaggio completo'}
+              </Button>
             </>
           )}
         </div>
