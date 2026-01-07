@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Download, Copy, Check, Mail, Loader2, Clock, MessageCircle, Send, Smartphone } from "lucide-react";
+import { Download, Copy, Check, Mail, Loader2, Clock, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -138,29 +138,25 @@ const QRCodeModal = ({ open, onOpenChange, url, fileName, documentId, onQRGenera
     img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
   };
 
-  const getShareMessage = () => {
+  const canNativeShare = typeof navigator !== 'undefined' && !!navigator.share;
+
+  const handleNativeShare = async () => {
     const expiryDate = expiresAt?.toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' });
-    return `📄 ${fileName}\n\nScarica il documento:\n${trackingUrl}\n\nScade il ${expiryDate}`;
-  };
+    const shareData = {
+      title: fileName,
+      text: `📄 ${fileName} - Scarica il documento (scade il ${expiryDate})`,
+      url: trackingUrl
+    };
 
-  const handleShareWhatsApp = () => {
-    const message = encodeURIComponent(getShareMessage());
-    window.open(`https://wa.me/?text=${message}`, '_blank');
-    toast.success('Aperto WhatsApp per la condivisione');
-  };
-
-  const handleShareTelegram = () => {
-    const text = encodeURIComponent(`📄 ${fileName} - Scarica il documento (scade il ${expiresAt?.toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' })})`);
-    const url = encodeURIComponent(trackingUrl);
-    window.open(`https://t.me/share/url?url=${url}&text=${text}`, '_blank');
-    toast.success('Aperto Telegram per la condivisione');
-  };
-
-  const handleShareSMS = () => {
-    const message = encodeURIComponent(getShareMessage());
-    // sms: protocol works on mobile devices
-    window.location.href = `sms:?body=${message}`;
-    toast.success('Aperta app SMS');
+    try {
+      await navigator.share(shareData);
+      toast.success('Link condiviso');
+    } catch (error: any) {
+      // User cancelled or share failed
+      if (error.name !== 'AbortError') {
+        toast.error('Impossibile condividere');
+      }
+    }
   };
 
   const handleSendEmail = async () => {
@@ -306,36 +302,22 @@ const QRCodeModal = ({ open, onOpenChange, url, fileName, documentId, onQRGenera
                 </Button>
               </div>
 
-              {/* Sharing options */}
-              <div className="w-full space-y-2">
-                <Label className="text-sm font-medium">Condividi link</Label>
-                <div className="grid grid-cols-3 gap-2">
-                  <Button
-                    onClick={handleShareWhatsApp}
-                    className="bg-[#25D366] hover:bg-[#128C7E] text-white"
-                    size="sm"
-                  >
-                    <MessageCircle className="h-4 w-4 mr-1" />
-                    WhatsApp
-                  </Button>
-                  <Button
-                    onClick={handleShareTelegram}
-                    className="bg-[#0088cc] hover:bg-[#006699] text-white"
-                    size="sm"
-                  >
-                    <Send className="h-4 w-4 mr-1" />
-                    Telegram
-                  </Button>
-                  <Button
-                    onClick={handleShareSMS}
-                    variant="outline"
-                    size="sm"
-                  >
-                    <Smartphone className="h-4 w-4 mr-1" />
-                    SMS
-                  </Button>
+              {/* Native share or link display */}
+              {canNativeShare ? (
+                <Button
+                  onClick={handleNativeShare}
+                  variant="outline"
+                  className="w-full"
+                >
+                  <Share2 className="h-4 w-4 mr-2" />
+                  Condividi link
+                </Button>
+              ) : (
+                <div className="w-full p-3 bg-muted rounded-lg">
+                  <Label className="text-xs text-muted-foreground">Link diretto (copialo e incollalo ovunque)</Label>
+                  <p className="text-xs font-mono break-all mt-1 select-all">{trackingUrl}</p>
                 </div>
-              </div>
+              )}
 
               <div className="w-full border-t pt-4">
                 <Label htmlFor="email" className="text-sm font-medium">
