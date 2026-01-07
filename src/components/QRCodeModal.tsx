@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Download, Copy, Check, Loader2, Clock, Share2, FileText, Mail, Save, Trash2 } from "lucide-react";
+import { Download, Copy, Check, Loader2, Clock, Share2, FileText, Mail, Save, Trash2, Pencil, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -46,6 +46,8 @@ const QRCodeModal = ({ open, onOpenChange, url, fileName, documentId, onQRGenera
   const [showSaveInput, setShowSaveInput] = useState(false);
   const [newTemplateName, setNewTemplateName] = useState('');
   const [savingTemplate, setSavingTemplate] = useState(false);
+  const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
+  const [editingTemplateName, setEditingTemplateName] = useState('');
   const qrRef = useRef<SVGSVGElement>(null);
   const { user } = useAuth();
 
@@ -119,6 +121,54 @@ const QRCodeModal = ({ open, onOpenChange, url, fileName, documentId, onQRGenera
     } catch (error) {
       console.error('Error deleting template:', error);
       toast.error('Errore nell\'eliminazione del template');
+    }
+  };
+
+  const handleStartEditTemplate = (template: SavedTemplate) => {
+    setEditingTemplateId(template.id);
+    setEditingTemplateName(template.name);
+    setCustomMessage(template.content);
+    setSelectedTemplate(`saved_${template.id}`);
+  };
+
+  const handleUpdateTemplate = async () => {
+    if (!editingTemplateId || !editingTemplateName.trim() || !customMessage.trim()) {
+      toast.error('Inserisci un nome per il template');
+      return;
+    }
+
+    setSavingTemplate(true);
+    try {
+      const { error } = await supabase
+        .from('message_templates')
+        .update({
+          name: editingTemplateName.trim(),
+          content: customMessage
+        })
+        .eq('id', editingTemplateId);
+
+      if (error) throw error;
+
+      toast.success('Template aggiornato');
+      setEditingTemplateId(null);
+      setEditingTemplateName('');
+      loadSavedTemplates();
+    } catch (error) {
+      console.error('Error updating template:', error);
+      toast.error('Errore nell\'aggiornamento del template');
+    } finally {
+      setSavingTemplate(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingTemplateId(null);
+    setEditingTemplateName('');
+    setSelectedTemplate('standard');
+    if (expiresAt) {
+      const expiryDate = expiresAt.toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' });
+      const templates = getMessageTemplates(fileName, trackingUrl, expiryDate);
+      setCustomMessage(templates.standard);
     }
   };
 
@@ -434,17 +484,30 @@ const QRCodeModal = ({ open, onOpenChange, url, fileName, documentId, onQRGenera
                               <SelectItem value={`saved_${template.id}`} className="flex-1">
                                 {template.name}
                               </SelectItem>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6 text-destructive hover:text-destructive"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDeleteTemplate(template.id);
-                                }}
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
+                              <div className="flex gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6 text-muted-foreground hover:text-primary"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleStartEditTemplate(template);
+                                  }}
+                                >
+                                  <Pencil className="h-3 w-3" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6 text-destructive hover:text-destructive"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteTemplate(template.id);
+                                  }}
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              </div>
                             </div>
                           ))}
                         </>
@@ -464,8 +527,35 @@ const QRCodeModal = ({ open, onOpenChange, url, fileName, documentId, onQRGenera
                   placeholder="Personalizza il messaggio..."
                 />
                 
-                {/* Save template section */}
-                {showSaveInput ? (
+                {/* Edit template section */}
+                {editingTemplateId ? (
+                  <div className="space-y-2 p-3 bg-muted/50 rounded-lg border">
+                    <Label className="text-xs font-medium">Modifica template</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        value={editingTemplateName}
+                        onChange={(e) => setEditingTemplateName(e.target.value)}
+                        placeholder="Nome template..."
+                        className="flex-1 text-sm"
+                      />
+                      <Button
+                        onClick={handleUpdateTemplate}
+                        size="sm"
+                        disabled={savingTemplate || !editingTemplateName.trim()}
+                      >
+                        {savingTemplate ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                      </Button>
+                      <Button
+                        onClick={handleCancelEdit}
+                        size="sm"
+                        variant="ghost"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Modifica il contenuto sopra e salva</p>
+                  </div>
+                ) : showSaveInput ? (
                   <div className="flex gap-2">
                     <Input
                       value={newTemplateName}
