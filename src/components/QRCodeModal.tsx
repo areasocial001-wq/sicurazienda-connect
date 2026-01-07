@@ -10,11 +10,12 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Download, Copy, Check, Loader2, Clock, Share2, FileText, Mail, Save, Trash2, Pencil, X } from "lucide-react";
+import { Download, Copy, Check, Loader2, Clock, Share2, FileText, Mail, Save, Trash2, Pencil, X, Send, AlertCircle, History } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Input } from "@/components/ui/input";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface SavedTemplate {
   id: string;
@@ -48,6 +49,11 @@ const QRCodeModal = ({ open, onOpenChange, url, fileName, documentId, onQRGenera
   const [savingTemplate, setSavingTemplate] = useState(false);
   const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
   const [editingTemplateName, setEditingTemplateName] = useState('');
+  const [recipientEmail, setRecipientEmail] = useState('');
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const [emailSentHistory, setEmailSentHistory] = useState<Array<{email: string; sent_at: string}>>([]);
+  const [showMailtoFallback, setShowMailtoFallback] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const qrRef = useRef<SVGSVGElement>(null);
   const { user } = useAuth();
 
@@ -303,10 +309,86 @@ const QRCodeModal = ({ open, onOpenChange, url, fileName, documentId, onQRGenera
       document.body.appendChild(a);
       a.click();
       a.remove();
+      
+      // Show fallback after a short delay (user might not have email client)
+      setTimeout(() => {
+        setShowMailtoFallback(true);
+      }, 1500);
     } catch {
-      window.location.href = mailtoUrl;
+      setShowMailtoFallback(true);
     }
   };
+
+  const loadEmailHistory = async () => {
+    if (!qrCodeId) return;
+    
+    const { data, error } = await supabase
+      .from('qr_codes')
+      .select('sent_to_email, sent_at')
+      .eq('id', qrCodeId)
+      .single();
+    
+    if (!error && data && data.sent_to_email) {
+      // For now we only have one email per QR, but structure allows for future expansion
+      setEmailSentHistory([{ email: data.sent_to_email, sent_at: data.sent_at || '' }]);
+    }
+  };
+
+  const handleSendDirectEmail = async () => {
+    if (!recipientEmail.trim() || !qrCodeId) {
+      toast.error('Inserisci un indirizzo email valido');
+      return;
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(recipientEmail.trim())) {
+      toast.error('Formato email non valido');
+      return;
+    }
+
+    setSendingEmail(true);
+    try {
+      const qrCodeBase64 = getQRCodeBase64();
+      
+      const { data, error } = await supabase.functions.invoke('send-qr-email', {
+        body: {
+          recipientEmail: recipientEmail.trim(),
+          documentName: fileName,
+          downloadUrl: trackingUrl,
+          qrCodeBase64
+        }
+      });
+
+      if (error) throw error;
+      if (!data.success) throw new Error(data.error || 'Errore invio email');
+
+      // Update qr_codes record with sent info
+      await supabase
+        .from('qr_codes')
+        .update({
+          sent_to_email: recipientEmail.trim(),
+          sent_at: new Date().toISOString()
+        })
+        .eq('id', qrCodeId);
+
+      toast.success(`Email inviata a ${recipientEmail}`);
+      setEmailSentHistory(prev => [...prev, { email: recipientEmail.trim(), sent_at: new Date().toISOString() }]);
+      setRecipientEmail('');
+    } catch (error: any) {
+      console.error('Error sending email:', error);
+      toast.error(error.message || 'Errore nell\'invio dell\'email');
+    } finally {
+      setSendingEmail(false);
+    }
+  };
+
+  // Load email history when QR is generated
+  useEffect(() => {
+    if (qrCodeId) {
+      loadEmailHistory();
+    }
+  }, [qrCodeId]);
 
   const getQRCodeBase64 = (): string => {
     const svg = document.getElementById('qr-code-svg');
@@ -625,9 +707,87 @@ const QRCodeModal = ({ open, onOpenChange, url, fileName, documentId, onQRGenera
                     className="flex-1"
                   >
                     <Mail className="h-4 w-4 mr-2" />
-                    Email
+                    Apri Email
                   </Button>
                 </div>
+                
+                {/* Mailto fallback */}
+                {showMailtoFallback && (
+                  <Alert className="bg-amber-50 border-amber-200">
+                    <AlertCircle className="h-4 w-4 text-amber-600" />
+                    <AlertDescription className="text-xs text-amber-800">
+                      <strong>Non si è aperto il client email?</strong>
+                      <br />
+                      Copia il messaggio con il pulsante sopra e incollalo manualmente nella tua email.
+                      <br />
+                      <span className="text-amber-600">Oppure usa l'invio diretto qui sotto.</span>
+                    </AlertDescription>
+                  </Alert>
+                )}
+                
+                {/* Direct email send */}
+                <div className="w-full space-y-2 border-t pt-3">
+                  <Label className="text-sm font-medium flex items-center gap-2">
+                    <Send className="h-4 w-4" />
+                    Invia email direttamente
+                  </Label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="email"
+                      value={recipientEmail}
+                      onChange={(e) => setRecipientEmail(e.target.value)}
+                      placeholder="email@destinatario.com"
+                      className="flex-1 text-sm"
+                    />
+                    <Button
+                      onClick={handleSendDirectEmail}
+                      disabled={sendingEmail || !recipientEmail.trim()}
+                      size="sm"
+                    >
+                      {sendingEmail ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Send className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    L'email verrà inviata con QR code e link di download
+                  </p>
+                  
+                  {/* Email history */}
+                  {emailSentHistory.length > 0 && (
+                    <div className="mt-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full text-xs"
+                        onClick={() => setShowHistory(!showHistory)}
+                      >
+                        <History className="h-3 w-3 mr-1" />
+                        Storico invii ({emailSentHistory.length})
+                      </Button>
+                      {showHistory && (
+                        <div className="mt-2 p-2 bg-muted/50 rounded text-xs space-y-1">
+                          {emailSentHistory.map((item, idx) => (
+                            <div key={idx} className="flex justify-between items-center">
+                              <span className="font-medium">{item.email}</span>
+                              <span className="text-muted-foreground">
+                                {item.sent_at ? new Date(item.sent_at).toLocaleDateString('it-IT', { 
+                                  day: '2-digit', 
+                                  month: 'short', 
+                                  hour: '2-digit', 
+                                  minute: '2-digit' 
+                                }) : '-'}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+                
                 <p className="text-xs text-muted-foreground text-center">
                   Usa {'{fileName}'}, {'{link}'}, {'{expiry}'} nei template salvati
                 </p>
