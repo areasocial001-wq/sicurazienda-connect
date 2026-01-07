@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Download, Copy, Check, Mail, Loader2, Clock } from "lucide-react";
+import { Download, Copy, Check, Mail, Loader2, Clock, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -136,6 +136,14 @@ const QRCodeModal = ({ open, onOpenChange, url, fileName, documentId, onQRGenera
     };
     
     img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
+  };
+
+  const handleShareWhatsApp = () => {
+    const message = encodeURIComponent(
+      `📄 *${fileName}*\n\nScarica il documento usando questo link:\n${trackingUrl}\n\nIl link scadrà il ${expiresAt?.toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' })}`
+    );
+    window.open(`https://wa.me/?text=${message}`, '_blank');
+    toast.success('Aperto WhatsApp per la condivisione');
   };
 
   const handleSendEmail = async () => {
@@ -281,9 +289,18 @@ const QRCodeModal = ({ open, onOpenChange, url, fileName, documentId, onQRGenera
                 </Button>
               </div>
 
+              {/* WhatsApp sharing */}
+              <Button
+                onClick={handleShareWhatsApp}
+                className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white"
+              >
+                <MessageCircle className="h-4 w-4 mr-2" />
+                Condividi su WhatsApp
+              </Button>
+
               <div className="w-full border-t pt-4">
                 <Label htmlFor="email" className="text-sm font-medium">
-                  Invia QR Code via Email
+                  Oppure invia via Email
                 </Label>
                 <div className="flex gap-2 mt-2">
                   <Input
