@@ -62,25 +62,9 @@ const QRRedirect = () => {
           return;
         }
 
-        // Track the scan (fire and forget)
-        console.log('[QRRedirect] Tracking scan...');
-        supabase
-          .from('qr_scans')
-          .insert({
-            qr_code_id: id,
-            user_agent: navigator.userAgent
-          })
-          .then(({ error }) => {
-            if (error) {
-              console.error('[QRRedirect] Error tracking scan:', error);
-            } else {
-              console.log('[QRRedirect] Scan tracked successfully');
-            }
-          });
-
-        // Notify document owner (fire and forget)
-        console.log('[QRRedirect] Sending download notification...');
-        fetch('https://obzflzotzvwlmgyjxfpv.supabase.co/functions/v1/notify-qr-download', {
+        // Record scan with geolocation via edge function (fire and forget)
+        console.log('[QRRedirect] Recording scan with geolocation...');
+        fetch('https://obzflzotzvwlmgyjxfpv.supabase.co/functions/v1/record-qr-scan', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -89,12 +73,12 @@ const QRRedirect = () => {
           body: JSON.stringify({ qrCodeId: id, userAgent: navigator.userAgent })
         }).then(response => {
           if (response.ok) {
-            console.log('[QRRedirect] Download notification sent');
+            console.log('[QRRedirect] Scan recorded with geolocation');
           } else {
-            console.warn('[QRRedirect] Failed to send download notification');
+            console.warn('[QRRedirect] Failed to record scan');
           }
         }).catch(err => {
-          console.error('[QRRedirect] Error sending notification:', err);
+          console.error('[QRRedirect] Error recording scan:', err);
         });
 
         // Get document file path to generate a fresh signed URL

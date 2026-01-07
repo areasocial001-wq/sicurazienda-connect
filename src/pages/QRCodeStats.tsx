@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import jsPDF from "jspdf";
 import { 
   QrCode, 
   ArrowLeft, 
@@ -23,7 +24,11 @@ import {
   Smartphone,
   Monitor,
   Tablet,
-  Globe
+  Globe,
+  MapPin,
+  Download,
+  FileText,
+  FileSpreadsheet
 } from "lucide-react";
 import { 
   LineChart, 
@@ -56,6 +61,10 @@ interface ScanRecord {
   scanned_at: string;
   user_agent: string | null;
   ip_address: string | null;
+  country: string | null;
+  country_code: string | null;
+  city: string | null;
+  region: string | null;
 }
 
 interface ChartDataPoint {
@@ -110,6 +119,16 @@ const parseBrowser = (userAgent: string | null): string => {
   return 'Altro';
 };
 
+// Convert country code to flag emoji
+const getFlagEmoji = (countryCode: string): string => {
+  if (!countryCode || countryCode.length !== 2) return '🌍';
+  const codePoints = countryCode
+    .toUpperCase()
+    .split('')
+    .map(char => 127397 + char.charCodeAt(0));
+  return String.fromCodePoint(...codePoints);
+};
+
 const COLORS = ['hsl(var(--primary))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
 
 const QRCodeStats = () => {
@@ -123,6 +142,8 @@ const QRCodeStats = () => {
   const [hourlyData, setHourlyData] = useState<HourlyData[]>([]);
   const [osData, setOsData] = useState<{ name: string; value: number }[]>([]);
   const [browserData, setBrowserData] = useState<BrowserData[]>([]);
+  const [countryData, setCountryData] = useState<{ name: string; value: number; code: string }[]>([]);
+  const [cityData, setCityData] = useState<{ name: string; value: number }[]>([]);
   const [loading, setLoading] = useState(true);
   const [toggling, setToggling] = useState(false);
 
@@ -224,9 +245,160 @@ const QRCodeStats = () => {
           .sort((a, b) => b.value - a.value)
       );
 
+      // Process country data
+      const countryStats: Record<string, { count: number; code: string }> = {};
+      data?.forEach(scan => {
+        const country = scan.country || 'Sconosciuto';
+        const code = scan.country_code || '';
+        if (!countryStats[country]) {
+          countryStats[country] = { count: 0, code };
+        }
+        countryStats[country].count++;
+      });
+      setCountryData(
+        Object.entries(countryStats)
+          .map(([name, { count, code }]) => ({ name, value: count, code }))
+          .sort((a, b) => b.value - a.value)
+      );
+
+      // Process city data
+      const cityStats: Record<string, number> = {};
+      data?.forEach(scan => {
+        if (scan.city) {
+          const cityLabel = scan.region ? `${scan.city}, ${scan.region}` : scan.city;
+          cityStats[cityLabel] = (cityStats[cityLabel] || 0) + 1;
+        }
+      });
+      setCityData(
+        Object.entries(cityStats)
+          .map(([name, value]) => ({ name, value }))
+          .sort((a, b) => b.value - a.value)
+          .slice(0, 10) // Top 10 cities
+      );
+
     } catch (error) {
       console.error('Error fetching scans:', error);
     }
+  };
+
+  // Export to CSV
+  const exportToCSV = () => {
+    if (!qrCode || scans.length === 0) {
+      toast.error('Nessun dato da esportare');
+      return;
+    }
+
+    const headers = ['Data', 'Ora', 'Dispositivo', 'OS', 'Browser', 'Paese', 'Città', 'Regione'];
+    const rows = scans.map(scan => {
+      const date = new Date(scan.scanned_at);
+      return [
+        date.toLocaleDateString('it-IT'),
+        date.toLocaleTimeString('it-IT'),
+        parseDeviceType(scan.user_agent),
+        parseOS(scan.user_agent),
+        parseBrowser(scan.user_agent),
+        scan.country || '-',
+        scan.city || '-',
+        scan.region || '-'
+      ].join(',');
+    });
+
+    const csvContent = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `statistiche-qr-${qrCode.document_name.replace(/[^a-z0-9]/gi, '_')}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+    toast.success('File CSV scaricato');
+  };
+
+  // Export to PDF
+  const exportToPDF = () => {
+    if (!qrCode) {
+      toast.error('Nessun dato da esportare');
+      return;
+    }
+
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    
+    // Title
+    doc.setFontSize(18);
+    doc.text(`Statistiche QR: ${qrCode.document_name}`, 14, 20);
+    
+    // Summary
+    doc.setFontSize(12);
+    doc.text(`Generato il: ${new Date().toLocaleDateString('it-IT')}`, 14, 30);
+    doc.text(`Scansioni totali: ${scans.length}`, 14, 38);
+    doc.text(`Creato il: ${new Date(qrCode.created_at).toLocaleDateString('it-IT')}`, 14, 46);
+    if (qrCode.expires_at) {
+      doc.text(`Scadenza: ${new Date(qrCode.expires_at).toLocaleDateString('it-IT')}`, 14, 54);
+    }
+    
+    let yPos = 70;
+    
+    // Device breakdown
+    if (deviceData.length > 0) {
+      doc.setFontSize(14);
+      doc.text('Dispositivi', 14, yPos);
+      yPos += 8;
+      doc.setFontSize(10);
+      deviceData.forEach(d => {
+        doc.text(`${d.name}: ${d.value}`, 20, yPos);
+        yPos += 6;
+      });
+      yPos += 8;
+    }
+    
+    // Country breakdown
+    if (countryData.length > 0) {
+      doc.setFontSize(14);
+      doc.text('Paesi', 14, yPos);
+      yPos += 8;
+      doc.setFontSize(10);
+      countryData.slice(0, 5).forEach(c => {
+        doc.text(`${c.name}: ${c.value}`, 20, yPos);
+        yPos += 6;
+      });
+      yPos += 8;
+    }
+    
+    // Browser breakdown
+    if (browserData.length > 0 && yPos < 250) {
+      doc.setFontSize(14);
+      doc.text('Browser', 14, yPos);
+      yPos += 8;
+      doc.setFontSize(10);
+      browserData.slice(0, 5).forEach(b => {
+        doc.text(`${b.name}: ${b.value}`, 20, yPos);
+        yPos += 6;
+      });
+    }
+    
+    // Recent scans (new page if needed)
+    if (scans.length > 0) {
+      doc.addPage();
+      doc.setFontSize(14);
+      doc.text('Scansioni Recenti', 14, 20);
+      yPos = 30;
+      doc.setFontSize(9);
+      
+      scans.slice(0, 30).forEach(scan => {
+        if (yPos > 280) {
+          doc.addPage();
+          yPos = 20;
+        }
+        const date = new Date(scan.scanned_at);
+        const line = `${date.toLocaleDateString('it-IT')} ${date.toLocaleTimeString('it-IT')} - ${parseDeviceType(scan.user_agent)} - ${scan.country || 'N/A'} - ${scan.city || 'N/A'}`;
+        doc.text(line, 14, yPos);
+        yPos += 5;
+      });
+    }
+    
+    doc.save(`statistiche-qr-${qrCode.document_name.replace(/[^a-z0-9]/gi, '_')}.pdf`);
+    toast.success('File PDF scaricato');
   };
 
   const toggleQRCode = async () => {
@@ -303,12 +475,24 @@ const QRCodeStats = () => {
         </Button>
 
         <div className="mb-6">
-          <div className="flex items-center gap-3 mb-2">
-            <QrCode className="h-8 w-8 text-primary" />
-            <h1 className="text-2xl font-bold">{qrCode.document_name}</h1>
-            <Badge variant={qrCode.is_active ? "default" : "destructive"}>
-              {qrCode.is_active ? "Attivo" : "Disabilitato"}
-            </Badge>
+          <div className="flex items-center justify-between flex-wrap gap-3 mb-2">
+            <div className="flex items-center gap-3">
+              <QrCode className="h-8 w-8 text-primary" />
+              <h1 className="text-2xl font-bold">{qrCode.document_name}</h1>
+              <Badge variant={qrCode.is_active ? "default" : "destructive"}>
+                {qrCode.is_active ? "Attivo" : "Disabilitato"}
+              </Badge>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={exportToCSV}>
+                <FileSpreadsheet className="h-4 w-4 mr-2" />
+                CSV
+              </Button>
+              <Button variant="outline" size="sm" onClick={exportToPDF}>
+                <FileText className="h-4 w-4 mr-2" />
+                PDF
+              </Button>
+            </div>
           </div>
           <p className="text-muted-foreground">
             Statistiche dettagliate delle scansioni
@@ -595,6 +779,101 @@ const QRCodeStats = () => {
           </CardContent>
         </Card>
 
+        {/* Geographic Distribution */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          {/* Country Chart */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Globe className="h-5 w-5" />
+                Paesi
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {countryData.length === 0 || countryData.every(c => c.name === 'Sconosciuto') ? (
+                <div className="flex items-center justify-center h-[150px] text-muted-foreground">
+                  <div className="text-center">
+                    <MapPin className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">Dati geografici non disponibili</p>
+                    <p className="text-xs">Le prossime scansioni includeranno la posizione</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {countryData.filter(c => c.name !== 'Sconosciuto').map((country, index) => {
+                    const maxValue = Math.max(...countryData.map(c => c.value));
+                    const percentage = maxValue > 0 ? (country.value / maxValue) * 100 : 0;
+                    return (
+                      <div key={country.name} className="space-y-1">
+                        <div className="flex justify-between text-sm">
+                          <span className="flex items-center gap-2">
+                            <span className="text-lg">{getFlagEmoji(country.code)}</span>
+                            {country.name}
+                          </span>
+                          <span className="font-bold">{country.value}</span>
+                        </div>
+                        <div className="h-2 bg-muted rounded-full overflow-hidden">
+                          <div 
+                            className="h-full rounded-full transition-all"
+                            style={{ 
+                              width: `${percentage}%`,
+                              backgroundColor: COLORS[index % COLORS.length]
+                            }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* City Chart */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MapPin className="h-5 w-5" />
+                Città
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {cityData.length === 0 ? (
+                <div className="flex items-center justify-center h-[150px] text-muted-foreground">
+                  <div className="text-center">
+                    <MapPin className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">Dati città non disponibili</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {cityData.map((city, index) => {
+                    const maxValue = Math.max(...cityData.map(c => c.value));
+                    const percentage = maxValue > 0 ? (city.value / maxValue) * 100 : 0;
+                    return (
+                      <div key={city.name} className="space-y-1">
+                        <div className="flex justify-between text-sm">
+                          <span>{city.name}</span>
+                          <span className="font-bold">{city.value}</span>
+                        </div>
+                        <div className="h-2 bg-muted rounded-full overflow-hidden">
+                          <div 
+                            className="h-full rounded-full transition-all"
+                            style={{ 
+                              width: `${percentage}%`,
+                              backgroundColor: COLORS[index % COLORS.length]
+                            }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Browser Chart */}
         <Card className="mb-6">
           <CardHeader>
@@ -657,15 +936,18 @@ const QRCodeStats = () => {
                   const os = parseOS(scan.user_agent);
                   const browser = parseBrowser(scan.user_agent);
                   const DeviceIcon = deviceType === 'mobile' ? Smartphone : deviceType === 'tablet' ? Tablet : Monitor;
+                  const location = scan.city && scan.country 
+                    ? `${scan.city}, ${scan.country}` 
+                    : scan.country || null;
                   
                   return (
                     <div 
                       key={scan.id}
-                      className="flex items-center justify-between p-3 border rounded-lg text-sm"
+                      className="flex items-center justify-between p-3 border rounded-lg text-sm gap-2"
                     >
-                      <div className="flex items-center gap-3">
-                        <DeviceIcon className="h-4 w-4 text-muted-foreground" />
-                        <div>
+                      <div className="flex items-center gap-3 min-w-0">
+                        <DeviceIcon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                        <div className="min-w-0">
                           <span className="font-medium">
                             {new Date(scan.scanned_at).toLocaleDateString('it-IT', {
                               day: '2-digit',
@@ -675,13 +957,19 @@ const QRCodeStats = () => {
                               minute: '2-digit'
                             })}
                           </span>
-                          <div className="text-xs text-muted-foreground">
+                          <div className="text-xs text-muted-foreground truncate">
                             {os} • {browser}
+                            {location && (
+                              <span className="ml-1">
+                                • {scan.country_code && <span className="mr-1">{getFlagEmoji(scan.country_code)}</span>}
+                                {location}
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>
-                      <Badge variant="outline" className="text-xs">
-                        {deviceType === 'mobile' ? '📱 Mobile' : deviceType === 'tablet' ? '📱 Tablet' : '💻 Desktop'}
+                      <Badge variant="outline" className="text-xs flex-shrink-0">
+                        {deviceType === 'mobile' ? '📱' : deviceType === 'tablet' ? '📱' : '💻'}
                       </Badge>
                     </div>
                   );
