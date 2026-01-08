@@ -71,7 +71,7 @@ const AppDocumentation = () => {
 
       // OVERVIEW
       addTitle("1. Panoramica");
-      addText("SicurAzienda e una piattaforma digitale per la gestione della sicurezza sul lavoro. L'applicazione offre servizi di consulenza, gestione documentale e formazione per aziende.");
+      addText("SicurAzienda e una piattaforma digitale per la gestione della sicurezza sul lavoro. L'applicazione offre servizi di consulenza, gestione documentale, formazione, CRM e assistente AI per aziende.");
       addText("Slogan: \"L'azione di tanti per la sicurezza di tutti\"");
       addSpace(10);
 
@@ -79,8 +79,9 @@ const AppDocumentation = () => {
       addTitle("2. Home Page");
       addText("La pagina principale presenta:");
       addBullet("Hero Section con gradiente brand giallo-rosso");
-      addBullet("4 servizi principali: Nuovo Cliente, Gia Cliente, Area Documenti, Dashboard Admin");
+      addBullet("6 servizi principali: Nuovo Cliente, Gia Cliente, Area Documenti, Dashboard Admin, CRM, Assistente AI");
       addBullet("Contatti rapidi: email, telefono, orari, indirizzo");
+      addBullet("Chat flottante per assistenza rapida");
       addSpace(10);
 
       // CLIENTI
@@ -104,6 +105,8 @@ const AppDocumentation = () => {
       addBullet("Download documenti caricati");
       addBullet("Generazione QR Code per ogni documento");
       addBullet("Filtro per categoria");
+      addBullet("Data di scadenza documenti con promemoria");
+      addBullet("Estrazione dati automatica con AI");
       addSpace(5);
       addSubtitle("Attestati (/attestati)");
       addBullet("Sezione dedicata agli attestati di formazione");
@@ -123,7 +126,7 @@ const AppDocumentation = () => {
       y = 20;
 
       // PROFILO
-      addTitle("6. Profilo Utente (/profile)");
+      addTitle("6. Profilo Utente (/profile)")
       addBullet("Visualizzazione dati profilo");
       addBullet("Bozze salvate dei form incompleti");
       addBullet("Continua modifica o elimina bozze");
@@ -171,10 +174,17 @@ const AppDocumentation = () => {
       addBullet("Export CSV");
       addBullet("Badge stato: Attivo/Disabilitato");
       addSpace(5);
-      addSubtitle("Statistiche QR (/qr-stats/:id)");
+      addSubtitle("Statistiche QR Avanzate (/qr-stats/:id)");
       addBullet("Scansioni totali e ultima scansione");
-      addBullet("Grafico temporale scansioni");
-      addBullet("Lista scansioni con tipo dispositivo (Mobile/Desktop)");
+      addBullet("Grafico temporale scansioni (ultimi 30 giorni)");
+      addBullet("Distribuzione per dispositivo (Mobile/Tablet/Desktop)");
+      addBullet("Distribuzione per sistema operativo (Windows/macOS/iOS/Android/Linux)");
+      addBullet("Distribuzione oraria delle scansioni");
+      addBullet("Browser utilizzati");
+      addBullet("Geolocalizzazione: mappa paesi con bandiere emoji");
+      addBullet("Top citta di provenienza");
+      addBullet("Export statistiche in CSV");
+      addBullet("Export report completo in PDF");
       addBullet("Toggle attiva/disabilita QR Code");
       addSpace(5);
       addSubtitle("Notifiche Real-time");
@@ -182,37 +192,113 @@ const AppDocumentation = () => {
       addBullet("Powered by Supabase Realtime");
       addSpace(10);
 
+      // CRM
+      addTitle("9. Sistema CRM");
+      addSubtitle("Gestione Contatti (/crm)");
+      addBullet("Lista contatti con ricerca e filtri");
+      addBullet("Stati: lead, prospect, cliente, inattivo");
+      addBullet("Tags personalizzabili");
+      addBullet("Note e cronologia interazioni");
+      addBullet("Data prossimo follow-up");
+      addSpace(5);
+      addSubtitle("Calendario CRM (/crm/calendar)");
+      addBullet("Vista settimanale interazioni");
+      addBullet("Sincronizzazione Google Calendar");
+      addBullet("Schedulazione appuntamenti");
+      addSpace(5);
+      addSubtitle("Analytics CRM (/crm/analytics)");
+      addBullet("Statistiche contatti per stato");
+      addBullet("Grafici andamento lead");
+      addBullet("Report attivita");
+      addSpace(5);
+      addSubtitle("Agente AI CRM");
+      addBullet("Assistente intelligente per gestione contatti");
+      addBullet("Suggerimenti follow-up automatici");
+      addSpace(10);
+
+      // ASSISTENTE AI
+      addTitle("10. Assistente AI (/assistente)");
+      addBullet("Chat intelligente per supporto");
+      addBullet("Analisi documenti con AI");
+      addBullet("Estrazione dati automatica");
+      addBullet("Risposte contestuali");
+      addSpace(10);
+
+      // PROMEMORIA
+      addTitle("11. Sistema Promemoria");
+      addBullet("Campanella notifiche nell'header");
+      addBullet("Promemoria scadenze documenti");
+      addBullet("Notifiche scansioni QR");
+      addBullet("Statistiche promemoria");
+      addBullet("Mark as read/completed");
+      addSpace(10);
+
+      // NEW PAGE
+      doc.addPage();
+      y = 20;
+
       // NEW PAGE
       doc.addPage();
       y = 20;
 
       // DATABASE
-      addTitle("9. Database (Supabase)");
+      addTitle("12. Database (Supabase)");
       addText("Tabelle:");
       addBullet("profiles - Dati utente (nome, azienda)");
-      addBullet("documents - Documenti caricati");
+      addBullet("documents - Documenti caricati con scadenze");
+      addBullet("document_extracted_data - Dati estratti con AI");
       addBullet("user_roles - Ruoli utente");
       addBullet("contact_requests - Richieste contatto");
       addBullet("form_drafts - Bozze form salvate");
       addBullet("qr_codes - QR code generati");
-      addBullet("qr_scans - Scansioni QR tracciate");
+      addBullet("qr_scans - Scansioni QR con geolocalizzazione");
+      addBullet("crm_contacts - Contatti CRM");
+      addBullet("crm_interactions - Interazioni CRM");
+      addBullet("reminders - Promemoria e notifiche");
+      addBullet("message_templates - Template messaggi");
+      addBullet("google_calendar_tokens - Token Google Calendar");
+      addSpace(10);
+
+      // EDGE FUNCTIONS
+      addTitle("13. Edge Functions");
+      addBullet("ai-chat - Chat intelligente con AI");
+      addBullet("check-expiries - Controllo scadenze documenti");
+      addBullet("check-upcoming-events - Eventi in arrivo");
+      addBullet("crm-agent - Agente AI per CRM");
+      addBullet("document-agent - Estrazione dati documenti");
+      addBullet("generate-signed-url - URL firmati per download");
+      addBullet("google-calendar-auth - Autenticazione Google");
+      addBullet("google-calendar-callback - Callback OAuth");
+      addBullet("google-calendar-sync - Sincronizzazione calendario");
+      addBullet("record-qr-scan - Registrazione scansioni con geolocalizzazione IP");
+      addBullet("send-contact-email - Invio email contatti");
+      addBullet("send-qr-email - Invio email QR code");
+      addBullet("notify-qr-download - Notifiche download QR");
       addSpace(10);
 
       // TECNOLOGIE
-      addTitle("10. Stack Tecnologico");
-      addBullet("Frontend: React + TypeScript + Vite");
+      addTitle("14. Stack Tecnologico");
+      addBullet("Frontend: React 18 + TypeScript + Vite");
       addBullet("Styling: Tailwind CSS + shadcn/ui");
-      addBullet("Backend: Supabase (Auth, DB, Storage, Edge Functions)");
+      addBullet("Backend: Supabase (Auth, DB, Storage, Edge Functions, Realtime)");
+      addBullet("AI: Lovable AI integration");
       addBullet("Email: Resend API");
       addBullet("QR Code: qrcode.react");
       addBullet("Grafici: Recharts");
-      addBullet("Routing: React Router");
+      addBullet("PDF: jsPDF");
+      addBullet("Routing: React Router 6");
       addBullet("State: TanStack Query");
-      addBullet("Mobile: Capacitor ready");
+      addBullet("Date: date-fns");
+      addBullet("Mobile: Capacitor (iOS/Android ready)");
+      addBullet("Geolocalizzazione: ip-api.com");
       addSpace(10);
 
+      // NEW PAGE
+      doc.addPage();
+      y = 20;
+
       // DESIGN SYSTEM
-      addTitle("11. Design System");
+      addTitle("15. Design System");
       addSubtitle("Colori Brand");
       addBullet("Primary (Giallo): HSL 45 100% 50%");
       addBullet("Secondary (Rosso): HSL 0 84% 55%");
@@ -225,9 +311,18 @@ const AppDocumentation = () => {
       addSpace(10);
 
       // NAVIGAZIONE
-      addTitle("12. Navigazione");
-      addBullet("Header: Logo, menu dropdown (Profilo, Cronologia QR, Dashboard), login");
+      addTitle("16. Navigazione");
+      addBullet("Header: Logo, campanella notifiche, menu dropdown, login");
       addBullet("Bottom Nav: Home, Nuovo Cliente, Documenti, Profilo");
+      addBullet("FloatingChat: Chat assistente sempre disponibile");
+      addSpace(10);
+
+      // EXPORT
+      addTitle("17. Funzionalita Export");
+      addBullet("Export statistiche QR in CSV");
+      addBullet("Export report QR completo in PDF");
+      addBullet("Export cronologia QR in CSV");
+      addBullet("Download documentazione app in PDF");
 
       // FOOTER
       doc.setFontSize(8);
