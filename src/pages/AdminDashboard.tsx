@@ -12,6 +12,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { FileText, Download, User, Calendar, Building, Shield, Settings, Upload, Award, Trash2, QrCode, Mail, ExternalLink, CheckCircle, XCircle, Loader2, Users } from 'lucide-react'
 import { toast } from 'sonner'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 interface DocumentWithUser {
   id: string
@@ -73,6 +84,7 @@ export default function AdminDashboard() {
   const [authUsers, setAuthUsers] = useState<AuthUser[]>([])
   const [loadingAuthUsers, setLoadingAuthUsers] = useState(false)
   const [confirmingUserId, setConfirmingUserId] = useState<string | null>(null)
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null)
   const [stats, setStats] = useState({
     totalDocuments: 0,
     totalUsers: 0,
@@ -275,6 +287,27 @@ export default function AdminDashboard() {
       toast.error(error.message || 'Errore nella conferma email')
     } finally {
       setConfirmingUserId(null)
+    }
+  }
+
+  const handleDeleteUser = async (userId: string, email: string) => {
+    try {
+      setDeletingUserId(userId)
+      const { data, error } = await supabase.functions.invoke('admin-delete-user', {
+        body: { userId }
+      })
+      
+      if (error) throw error
+      
+      toast.success(`Utente ${email} eliminato con successo`)
+      fetchAuthUsers()
+      fetchUsers()
+      fetchStats()
+    } catch (error: any) {
+      console.error('Error deleting user:', error)
+      toast.error(error.message || 'Errore nell\'eliminazione utente')
+    } finally {
+      setDeletingUserId(null)
     }
   }
 
@@ -755,20 +788,57 @@ export default function AdminDashboard() {
                               )}
                             </div>
                           </div>
-                          {!isConfirmed && (
-                            <Button
-                              size="sm"
-                              onClick={() => handleConfirmUser(authUser.id)}
-                              disabled={confirmingUserId === authUser.id}
-                            >
-                              {confirmingUserId === authUser.id ? (
-                                <Loader2 className="h-4 w-4 animate-spin mr-1" />
-                              ) : (
-                                <CheckCircle className="h-4 w-4 mr-1" />
-                              )}
-                              Conferma Email
-                            </Button>
-                          )}
+                          <div className="flex items-center gap-2">
+                            {!isConfirmed && (
+                              <Button
+                                size="sm"
+                                onClick={() => handleConfirmUser(authUser.id)}
+                                disabled={confirmingUserId === authUser.id}
+                              >
+                                {confirmingUserId === authUser.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                                ) : (
+                                  <CheckCircle className="h-4 w-4 mr-1" />
+                                )}
+                                Conferma Email
+                              </Button>
+                            )}
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  disabled={deletingUserId === authUser.id || authUser.id === user?.id}
+                                  title={authUser.id === user?.id ? "Non puoi eliminare il tuo account" : "Elimina utente"}
+                                >
+                                  {deletingUserId === authUser.id ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <Trash2 className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Conferma eliminazione utente</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Sei sicuro di voler eliminare l'utente <strong>{authUser.email}</strong>?
+                                    <br /><br />
+                                    Questa azione è irreversibile e cancellerà anche tutti i documenti, profili e dati associati all'utente.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Annulla</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => handleDeleteUser(authUser.id, authUser.email)}
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  >
+                                    Elimina Utente
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
                         </div>
                       )
                     })}
