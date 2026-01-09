@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
-import { Shield, User, Building2, CheckCircle, AlertCircle, Loader2 } from 'lucide-react'
+import { Shield, User, Building2, CheckCircle, AlertCircle, Loader2, KeyRound } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface UserWithProfile {
@@ -33,6 +33,7 @@ export default function UserRoleManager() {
   const [users, setUsers] = useState<UserWithProfile[]>([])
   const [loading, setLoading] = useState(true)
   const [confirmingUsers, setConfirmingUsers] = useState<Set<string>>(new Set())
+  const [resettingPasswords, setResettingPasswords] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     if (!roleLoading && user && isAdmin) {
@@ -133,6 +134,44 @@ export default function UserRoleManager() {
       setConfirmingUsers(prev => {
         const next = new Set(prev)
         next.delete(userId)
+        return next
+      })
+    }
+  }
+
+  const handleResetPassword = async (email: string) => {
+    setResettingPasswords(prev => new Set(prev).add(email))
+    
+    try {
+      const { data: sessionData } = await supabase.auth.getSession()
+      
+      const response = await supabase.functions.invoke('admin-reset-password', {
+        body: { email },
+        headers: {
+          Authorization: `Bearer ${sessionData.session?.access_token}`
+        }
+      })
+
+      if (response.error) {
+        throw new Error(response.error.message || 'Errore nel reset password')
+      }
+
+      if (response.data?.link) {
+        // Copia il link negli appunti
+        await navigator.clipboard.writeText(response.data.link)
+        toast.success('Link di reset password copiato negli appunti!', {
+          description: `Invialo manualmente a ${email}`
+        })
+      } else {
+        toast.success('Reset password richiesto con successo!')
+      }
+    } catch (error: any) {
+      console.error('Error resetting password:', error)
+      toast.error(error.message || 'Errore nel reset della password')
+    } finally {
+      setResettingPasswords(prev => {
+        const next = new Set(prev)
+        next.delete(email)
         return next
       })
     }
@@ -348,7 +387,7 @@ export default function UserRoleManager() {
                           )}
                         </div>
                       </div>
-                      <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-2 flex-wrap">
                         {!userItem.email_confirmed && (
                           <Button
                             variant="outline"
@@ -370,6 +409,25 @@ export default function UserRoleManager() {
                             )}
                           </Button>
                         )}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleResetPassword(userItem.email)}
+                          disabled={resettingPasswords.has(userItem.email)}
+                          className="text-blue-600 border-blue-300 hover:bg-blue-50"
+                        >
+                          {resettingPasswords.has(userItem.email) ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                              Reset...
+                            </>
+                          ) : (
+                            <>
+                              <KeyRound className="h-4 w-4 mr-1" />
+                              Reset Password
+                            </>
+                          )}
+                        </Button>
                         <Badge className={getRoleColor(userItem.role)}>
                           {getRoleDisplayName(userItem.role)}
                         </Badge>
