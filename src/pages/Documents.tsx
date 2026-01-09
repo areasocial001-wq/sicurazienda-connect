@@ -29,7 +29,8 @@ import {
   Sparkles,
   Loader2,
   Brain,
-  Trash2
+  Trash2,
+  Filter
 } from "lucide-react";
 import {
   AlertDialog,
@@ -55,6 +56,7 @@ const Documents = () => {
   const [qrModalOpen, setQrModalOpen] = useState(false);
   const [selectedDocForQR, setSelectedDocForQR] = useState<{ url: string; name: string; id: string } | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [ownerFilter, setOwnerFilter] = useState<'all' | 'mine'>('all');
   const [aiSuggestion, setAiSuggestion] = useState<{
     category: string;
     area_competenza: string;
@@ -79,17 +81,36 @@ const Documents = () => {
   }, [user]);
 
   useEffect(() => {
-    setFilteredDocuments(documents);
-  }, [documents]);
+    // Apply owner filter
+    if (ownerFilter === 'mine' && user) {
+      setFilteredDocuments(documents.filter(doc => doc.user_id === user.id));
+    } else {
+      setFilteredDocuments(documents);
+    }
+  }, [documents, ownerFilter, user]);
 
   const fetchDocuments = async () => {
     try {
+      // Join with profiles to get owner email
       const { data, error } = await supabase
         .from('documents')
-        .select('*')
+        .select(`
+          *,
+          profiles:user_id (
+            user_id,
+            full_name,
+            company_name
+          )
+        `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
+      
+      // Fetch emails from auth.users via profiles user_id
+      // Since we can't directly access auth.users, we'll get email from the profile's user_id
+      // We need to match with the user session or use a function
+      // For now, show profile info; email requires edge function or storing it in profiles
+      
       setDocuments(data || []);
     } catch (error) {
       console.error('Error fetching documents:', error);
@@ -442,13 +463,29 @@ const Documents = () => {
 
         <Card className="mb-4">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Database className="h-5 w-5" />
-              I Tuoi Documenti
-              {filteredDocuments.length !== documents.length && (
-                <Badge variant="secondary">{filteredDocuments.length} di {documents.length}</Badge>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <Database className="h-5 w-5" />
+                Documenti
+                {filteredDocuments.length !== documents.length && (
+                  <Badge variant="secondary">{filteredDocuments.length} di {documents.length}</Badge>
+                )}
+              </CardTitle>
+              {(isAdmin || isGestioneCorsi) && (
+                <div className="flex items-center gap-2">
+                  <Filter className="h-4 w-4 text-muted-foreground" />
+                  <Select value={ownerFilter} onValueChange={(v) => setOwnerFilter(v as 'all' | 'mine')}>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Tutti i documenti</SelectItem>
+                      <SelectItem value="mine">Solo i miei</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               )}
-            </CardTitle>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
@@ -465,10 +502,19 @@ const Documents = () => {
                       <FileText className="h-5 w-5 text-muted-foreground" />
                       <div>
                         <span className="font-medium block">{doc.name}</span>
-                        <div className="flex gap-2 mt-1">
+                        <div className="flex flex-wrap gap-2 mt-1">
                           <Badge variant="outline" className="text-xs">{doc.category}</Badge>
                           {doc.area_competenza && (
                             <Badge variant="secondary" className="text-xs">{doc.area_competenza}</Badge>
+                          )}
+                          {(isAdmin || isGestioneCorsi) && doc.profiles && (
+                            <Badge variant="default" className="text-xs">
+                              <User className="h-3 w-3 mr-1" />
+                              {doc.profiles.full_name || doc.profiles.company_name || 'Utente'}
+                            </Badge>
+                          )}
+                          {(isAdmin || isGestioneCorsi) && doc.user_id === user?.id && (
+                            <Badge variant="outline" className="text-xs bg-primary/10">Mio</Badge>
                           )}
                         </div>
                       </div>
