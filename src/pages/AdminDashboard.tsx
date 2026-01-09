@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { FileText, Download, User, Calendar, Building, Shield, Settings, Upload, Award, Trash2, QrCode, Mail, ExternalLink } from 'lucide-react'
+import { FileText, Download, User, Calendar, Building, Shield, Settings, Upload, Award, Trash2, QrCode, Mail, ExternalLink, CheckCircle, XCircle, Loader2, Users } from 'lucide-react'
 import { toast } from 'sonner'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
@@ -49,6 +49,14 @@ interface ChartDataPoint {
   count: number
 }
 
+interface AuthUser {
+  id: string
+  email: string
+  email_confirmed_at: string | null
+  created_at: string
+  last_sign_in_at: string | null
+}
+
 export default function AdminDashboard() {
   const { user, signOut } = useAuth()
   const { isAdmin, isAreaAziendale, role, getRoleDisplayName, loading: roleLoading } = useUserRole()
@@ -62,6 +70,9 @@ export default function AdminDashboard() {
   const [selectedDocForQR, setSelectedDocForQR] = useState<{ url: string; name: string; id: string } | null>(null)
   const [recentQRCodes, setRecentQRCodes] = useState<QRCodeRecord[]>([])
   const [qrChartData, setQrChartData] = useState<ChartDataPoint[]>([])
+  const [authUsers, setAuthUsers] = useState<AuthUser[]>([])
+  const [loadingAuthUsers, setLoadingAuthUsers] = useState(false)
+  const [confirmingUserId, setConfirmingUserId] = useState<string | null>(null)
   const [stats, setStats] = useState({
     totalDocuments: 0,
     totalUsers: 0,
@@ -82,6 +93,7 @@ export default function AdminDashboard() {
       fetchQRChartData()
       if (isAdmin) {
         fetchUsers()
+        fetchAuthUsers()
       }
     } else if (!roleLoading && user && !hasAccess) {
       setLoading(false)
@@ -229,6 +241,40 @@ export default function AdminDashboard() {
       setUsers(data || [])
     } catch (error) {
       console.error('Error fetching users:', error)
+    }
+  }
+
+  const fetchAuthUsers = async () => {
+    try {
+      setLoadingAuthUsers(true)
+      const { data, error } = await supabase.functions.invoke('admin-list-users')
+      
+      if (error) throw error
+      setAuthUsers(data.users || [])
+    } catch (error) {
+      console.error('Error fetching auth users:', error)
+      toast.error('Errore nel caricamento lista utenti')
+    } finally {
+      setLoadingAuthUsers(false)
+    }
+  }
+
+  const handleConfirmUser = async (userId: string) => {
+    try {
+      setConfirmingUserId(userId)
+      const { data, error } = await supabase.functions.invoke('admin-confirm-user', {
+        body: { userId }
+      })
+      
+      if (error) throw error
+      
+      toast.success('Email confermata con successo')
+      fetchAuthUsers()
+    } catch (error: any) {
+      console.error('Error confirming user:', error)
+      toast.error(error.message || 'Errore nella conferma email')
+    } finally {
+      setConfirmingUserId(null)
     }
   }
 
@@ -651,6 +697,86 @@ export default function AdminDashboard() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Gestione Utenti - Solo Admin */}
+          {isAdmin && (
+            <Card className="mb-8">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  Gestione Utenti
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {loadingAuthUsers ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  </div>
+                ) : authUsers.length === 0 ? (
+                  <p className="text-muted-foreground text-center py-4">Nessun utente trovato</p>
+                ) : (
+                  <div className="space-y-3">
+                    {authUsers.map((authUser) => {
+                      const profile = users.find(u => u.user_id === authUser.id)
+                      const isConfirmed = !!authUser.email_confirmed_at
+                      
+                      return (
+                        <div key={authUser.id} className="flex items-center justify-between p-3 border rounded-lg">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium truncate">{authUser.email}</p>
+                              {isConfirmed ? (
+                                <Badge variant="default" className="bg-green-500/20 text-green-700 border-green-500/30">
+                                  <CheckCircle className="h-3 w-3 mr-1" />
+                                  Confermato
+                                </Badge>
+                              ) : (
+                                <Badge variant="destructive" className="bg-red-500/20 text-red-700 border-red-500/30">
+                                  <XCircle className="h-3 w-3 mr-1" />
+                                  Non confermato
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
+                              {profile?.full_name && (
+                                <span className="flex items-center gap-1">
+                                  <User className="h-3 w-3" />
+                                  {profile.full_name}
+                                </span>
+                              )}
+                              <span className="flex items-center gap-1">
+                                <Calendar className="h-3 w-3" />
+                                Registrato: {new Date(authUser.created_at).toLocaleDateString('it-IT')}
+                              </span>
+                              {authUser.last_sign_in_at && (
+                                <span>
+                                  Ultimo accesso: {new Date(authUser.last_sign_in_at).toLocaleDateString('it-IT')}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          {!isConfirmed && (
+                            <Button
+                              size="sm"
+                              onClick={() => handleConfirmUser(authUser.id)}
+                              disabled={confirmingUserId === authUser.id}
+                            >
+                              {confirmingUserId === authUser.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                              ) : (
+                                <CheckCircle className="h-4 w-4 mr-1" />
+                              )}
+                              Conferma Email
+                            </Button>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Upload Attestati - Solo Admin */}
           {isAdmin && (
