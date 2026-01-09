@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { FileText, Download, User, Calendar, Building, Shield, Settings, Upload, Award, Trash2, QrCode, Mail, ExternalLink, CheckCircle, XCircle, Loader2, Users } from 'lucide-react'
+import { FileText, Download, User, Calendar, Building, Shield, Settings, Upload, Award, Trash2, QrCode, Mail, ExternalLink, CheckCircle, XCircle, Loader2, Users, KeyRound } from 'lucide-react'
 import { toast } from 'sonner'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import {
@@ -85,6 +85,7 @@ export default function AdminDashboard() {
   const [loadingAuthUsers, setLoadingAuthUsers] = useState(false)
   const [confirmingUserId, setConfirmingUserId] = useState<string | null>(null)
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null)
+  const [resettingPasswordUserId, setResettingPasswordUserId] = useState<string | null>(null)
   const [stats, setStats] = useState({
     totalDocuments: 0,
     totalUsers: 0,
@@ -308,6 +309,30 @@ export default function AdminDashboard() {
       toast.error(error.message || 'Errore nell\'eliminazione utente')
     } finally {
       setDeletingUserId(null)
+    }
+  }
+
+  const handleResetPassword = async (email: string) => {
+    try {
+      setResettingPasswordUserId(email)
+      const { data, error } = await supabase.functions.invoke('admin-reset-password', {
+        body: { email }
+      })
+      
+      if (error) throw error
+      
+      if (data?.link) {
+        // Copy link to clipboard
+        await navigator.clipboard.writeText(data.link)
+        toast.success(`Link di reset password copiato negli appunti per ${email}`)
+      } else {
+        toast.success(`Link di reset password generato per ${email}`)
+      }
+    } catch (error: any) {
+      console.error('Error resetting password:', error)
+      toast.error(error.message || 'Errore nel reset password')
+    } finally {
+      setResettingPasswordUserId(null)
     }
   }
 
@@ -803,6 +828,20 @@ export default function AdminDashboard() {
                                 Conferma Email
                               </Button>
                             )}
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleResetPassword(authUser.email)}
+                              disabled={resettingPasswordUserId === authUser.email}
+                              title="Genera link reset password"
+                            >
+                              {resettingPasswordUserId === authUser.email ? (
+                                <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                              ) : (
+                                <KeyRound className="h-4 w-4 mr-1" />
+                              )}
+                              Reset Password
+                            </Button>
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
                                 <Button
