@@ -43,6 +43,8 @@ const App = () => (
           <Route path="/qr-stats/:id" element={<QRCodeStats />} />
           <Route path="/qr/:id" element={<QRRedirect />} />
           <Route path="/admin" element={<AdminDashboard />} />
+          {/* Alias: percorso richiesto */}
+          <Route path="/admin/users" element={<UserRoleManager />} />
           <Route path="/user-roles" element={<UserRoleManager />} />
           <Route path="/contact-request" element={<ContactRequest />} />
           <Route path="/profile" element={<Profile />} />
