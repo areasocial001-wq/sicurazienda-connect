@@ -250,6 +250,14 @@ export default function UserRoleManager() {
               <CardTitle className="text-center text-destructive">Accesso Negato</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Box informativo utente corrente */}
+              <div className="p-4 bg-muted rounded-lg border">
+                <p className="text-sm text-muted-foreground mb-1">Sei autenticato come:</p>
+                <p className="font-medium">{user?.email}</p>
+                <Badge className="mt-2 bg-gray-100 text-gray-800">
+                  Ruolo: Utente standard
+                </Badge>
+              </div>
               <p className="text-center text-muted-foreground">
                 Solo gli amministratori possono gestire i ruoli utente.
               </p>
