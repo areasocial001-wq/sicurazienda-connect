@@ -8,15 +8,22 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
-import { Shield, User, Building2 } from 'lucide-react'
+import { Shield, User, Building2, CheckCircle, AlertCircle, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface UserWithProfile {
   id: string
   email: string
-  role: any // Usare any per evitare problemi di tipo con i nuovi ruoli
+  role: any
   full_name?: string
   company_name?: string
+  email_confirmed?: boolean
+}
+
+interface AuthUser {
+  id: string
+  email: string
+  email_confirmed_at: string | null
 }
 
 export default function UserRoleManager() {
@@ -25,6 +32,7 @@ export default function UserRoleManager() {
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [users, setUsers] = useState<UserWithProfile[]>([])
   const [loading, setLoading] = useState(true)
+  const [confirmingUsers, setConfirmingUsers] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     if (!roleLoading && user && isAdmin) {
@@ -50,16 +58,26 @@ export default function UserRoleManager() {
 
       if (profilesError) throw profilesError
 
-      // Combina i dati dei ruoli con i profili
+      // Ottieni lo stato di conferma email tramite edge function
+      const { data: authData, error: authError } = await supabase.functions.invoke('admin-list-users')
+      
+      let authUsers: AuthUser[] = []
+      if (!authError && authData?.users) {
+        authUsers = authData.users
+      }
+
+      // Combina i dati dei ruoli con i profili e lo stato email
       const usersWithProfiles = userRoles.map(userRole => {
         const profile = profiles.find(p => p.user_id === userRole.user_id)
+        const authUser = authUsers.find((u: AuthUser) => u.id === userRole.user_id)
         
         return {
           id: userRole.user_id,
-          email: profile?.full_name || userRole.user_id, // Usiamo full_name come fallback
+          email: authUser?.email || profile?.full_name || userRole.user_id,
           role: userRole.role as any,
           full_name: profile?.full_name,
-          company_name: profile?.company_name
+          company_name: profile?.company_name,
+          email_confirmed: authUser?.email_confirmed_at !== null
         }
       })
 
@@ -82,10 +100,41 @@ export default function UserRoleManager() {
       if (error) throw error
 
       toast.success('Ruolo aggiornato con successo')
-      fetchUsers() // Ricarica i dati
+      fetchUsers()
     } catch (error) {
       console.error('Error updating role:', error)
       toast.error('Errore nell\'aggiornamento del ruolo')
+    }
+  }
+
+  const handleConfirmUser = async (userId: string) => {
+    setConfirmingUsers(prev => new Set(prev).add(userId))
+    
+    try {
+      const { data: sessionData } = await supabase.auth.getSession()
+      
+      const response = await supabase.functions.invoke('admin-confirm-user', {
+        body: { userId },
+        headers: {
+          Authorization: `Bearer ${sessionData.session?.access_token}`
+        }
+      })
+
+      if (response.error) {
+        throw new Error(response.error.message || 'Errore nella conferma utente')
+      }
+
+      toast.success('Email utente confermata con successo!')
+      fetchUsers()
+    } catch (error: any) {
+      console.error('Error confirming user:', error)
+      toast.error(error.message || 'Errore nella conferma dell\'utente')
+    } finally {
+      setConfirmingUsers(prev => {
+        const next = new Set(prev)
+        next.delete(userId)
+        return next
+      })
     }
   }
 
@@ -277,8 +326,42 @@ export default function UserRoleManager() {
                             <span>{userItem.company_name}</span>
                           </div>
                         )}
+                        <div className="flex items-center gap-1 mt-1">
+                          {userItem.email_confirmed ? (
+                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                              <CheckCircle className="h-3 w-3 mr-1" />
+                              Email confermata
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+                              <AlertCircle className="h-3 w-3 mr-1" />
+                              Email non confermata
+                            </Badge>
+                          )}
+                        </div>
                       </div>
                       <div className="flex items-center gap-4">
+                        {!userItem.email_confirmed && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleConfirmUser(userItem.id)}
+                            disabled={confirmingUsers.has(userItem.id)}
+                            className="text-green-600 border-green-300 hover:bg-green-50"
+                          >
+                            {confirmingUsers.has(userItem.id) ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                                Conferma...
+                              </>
+                            ) : (
+                              <>
+                                <CheckCircle className="h-4 w-4 mr-1" />
+                                Conferma Email
+                              </>
+                            )}
+                          </Button>
+                        )}
                         <Badge className={getRoleColor(userItem.role)}>
                           {getRoleDisplayName(userItem.role)}
                         </Badge>
