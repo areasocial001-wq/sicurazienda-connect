@@ -45,7 +45,7 @@ import {
 
 const Documents = () => {
   const { user, loading, signOut } = useAuth();
-  const { isAdmin, loading: roleLoading } = useUserRole();
+  const { isAdmin, isGestioneCorsi, loading: roleLoading } = useUserRole();
   const { classifyDocument, semanticSearch, isProcessing } = useDocumentAgent();
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [documents, setDocuments] = useState<any[]>([]);
@@ -269,26 +269,49 @@ const Documents = () => {
     }
   };
 
-  const handleDelete = async (docId: string, filePath: string, fileName: string) => {
+  const handleDelete = async (
+    docId: string,
+    filePath: string,
+    fileName: string,
+    docUserId?: string | null
+  ) => {
     try {
-      // Delete from storage
-      const { error: storageError } = await supabase.storage
-        .from('documents')
-        .remove([filePath]);
+      // If the document belongs to another user, only privileged roles can delete it.
+      const isOtherUsersDoc = !!docUserId && !!user?.id && docUserId !== user.id;
 
-      if (storageError) {
-        console.error('Storage delete error:', storageError);
+      if (isOtherUsersDoc && !(isAdmin || isGestioneCorsi)) {
+        throw new Error("Non hai i permessi per eliminare documenti di altri utenti.");
       }
 
-      // Delete from database
-      const { error: dbError } = await supabase
-        .from('documents')
-        .delete()
-        .eq('id', docId);
+      if (isAdmin || isGestioneCorsi) {
+        const { error } = await supabase.functions.invoke('admin-delete-document', {
+          body: { documentId: docId },
+        });
 
-      if (dbError) throw dbError;
+        if (error) throw error;
+      } else {
+        // Delete from storage (best-effort)
+        const { error: storageError } = await supabase.storage
+          .from('documents')
+          .remove([filePath]);
 
-      // Refresh the document list
+        if (storageError) {
+          console.error('Storage delete error:', storageError);
+        }
+
+        // Delete from database (and verify at least one row was deleted)
+        const { data: deletedRows, error: dbError } = await supabase
+          .from('documents')
+          .delete()
+          .eq('id', docId)
+          .select('id');
+
+        if (dbError) throw dbError;
+        if (!deletedRows || deletedRows.length === 0) {
+          throw new Error('Eliminazione non consentita (permessi insufficienti).');
+        }
+      }
+
       await fetchDocuments();
 
       toast({
@@ -488,7 +511,7 @@ const Documents = () => {
                           <AlertDialogFooter>
                             <AlertDialogCancel>Annulla</AlertDialogCancel>
                             <AlertDialogAction
-                              onClick={() => handleDelete(doc.id, doc.file_path, doc.name)}
+                              onClick={() => handleDelete(doc.id, doc.file_path, doc.name, doc.user_id)}
                               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                             >
                               Elimina
