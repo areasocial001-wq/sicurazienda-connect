@@ -8,6 +8,7 @@ import { format, isSameDay } from 'date-fns';
 import { it } from 'date-fns/locale';
 import Header from '@/components/Header';
 import BottomNav from '@/components/BottomNav';
+import GoogleCalendarSync from '@/components/GoogleCalendarSync';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -277,6 +278,11 @@ export default function CRMCalendar() {
               </TabsTrigger>
             </TabsList>
           </Tabs>
+        </div>
+
+        {/* Google Calendar Integration Card */}
+        <div className="mb-6">
+          <GoogleCalendarSync userId={user?.id} />
         </div>
 
         {/* Drag indicator */}

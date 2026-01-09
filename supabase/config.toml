@@ -53,3 +53,12 @@ verify_jwt = false
 
 [functions.admin-delete-document]
 verify_jwt = false
+
+[functions.google-drive-auth]
+verify_jwt = false
+
+[functions.google-drive-callback]
+verify_jwt = false
+
+[functions.google-drive-sync]
+verify_jwt = false
