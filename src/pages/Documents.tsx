@@ -288,12 +288,13 @@ const Documents = () => {
 
       if (dbError) throw dbError;
 
+      // Refresh the document list
+      await fetchDocuments();
+
       toast({
         title: "Documento eliminato",
         description: `"${fileName}" è stato eliminato con successo.`,
       });
-
-      fetchDocuments();
     } catch (error: any) {
       toast({
         title: "Errore eliminazione",
