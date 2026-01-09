@@ -303,6 +303,39 @@ export type Database = {
         }
         Relationships: []
       }
+      google_drive_tokens: {
+        Row: {
+          access_token: string
+          created_at: string
+          expires_at: string
+          folder_id: string | null
+          id: string
+          refresh_token: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token: string
+          created_at?: string
+          expires_at: string
+          folder_id?: string | null
+          id?: string
+          refresh_token: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string
+          created_at?: string
+          expires_at?: string
+          folder_id?: string | null
+          id?: string
+          refresh_token?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       message_templates: {
         Row: {
           content: string

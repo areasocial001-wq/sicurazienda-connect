@@ -3,6 +3,7 @@ import Header from "@/components/Header";
 import BottomNav from "@/components/BottomNav";
 import AuthModal from "@/components/AuthModal";
 import QRCodeModal from "@/components/QRCodeModal";
+import GoogleDriveSync from "@/components/GoogleDriveSync";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -425,6 +426,11 @@ const Documents = () => {
               Esci
             </Button>
           </div>
+        </div>
+
+        {/* Google Drive Sync */}
+        <div className="mb-4">
+          <GoogleDriveSync userId={user.id} />
         </div>
 
         {/* AI Search */}
