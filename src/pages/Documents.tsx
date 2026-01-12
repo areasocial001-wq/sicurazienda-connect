@@ -92,27 +92,38 @@ const Documents = () => {
 
   const fetchDocuments = async () => {
     try {
-      // Join with profiles to get owner email
-      const { data, error } = await supabase
+      // Fetch documents
+      const { data: docsData, error: docsError } = await supabase
         .from('documents')
-        .select(`
-          *,
-          profiles:user_id (
-            user_id,
-            full_name,
-            company_name
-          )
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (docsError) throw docsError;
+
+      // Fetch profiles separately and merge
+      const userIds = [...new Set((docsData || []).map(d => d.user_id).filter(Boolean))];
       
-      // Fetch emails from auth.users via profiles user_id
-      // Since we can't directly access auth.users, we'll get email from the profile's user_id
-      // We need to match with the user session or use a function
-      // For now, show profile info; email requires edge function or storing it in profiles
+      let profilesMap: Record<string, { user_id: string; full_name: string | null; company_name: string | null }> = {};
       
-      setDocuments(data || []);
+      if (userIds.length > 0) {
+        const { data: profilesData } = await supabase
+          .from('profiles')
+          .select('user_id, full_name, company_name')
+          .in('user_id', userIds);
+        
+        profilesMap = (profilesData || []).reduce((acc, p) => {
+          if (p.user_id) acc[p.user_id] = p;
+          return acc;
+        }, {} as Record<string, { user_id: string; full_name: string | null; company_name: string | null }>);
+      }
+
+      // Merge documents with profiles
+      const documentsWithProfiles = (docsData || []).map(doc => ({
+        ...doc,
+        profiles: doc.user_id ? profilesMap[doc.user_id] || null : null
+      }));
+      
+      setDocuments(documentsWithProfiles);
     } catch (error) {
       console.error('Error fetching documents:', error);
     }
