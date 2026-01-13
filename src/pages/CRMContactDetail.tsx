@@ -10,6 +10,7 @@ import {
 import Header from '@/components/Header';
 import BottomNav from '@/components/BottomNav';
 import CRMClientDocuments from '@/components/CRMClientDocuments';
+import { ClientUserLinker } from '@/components/ClientUserLinker';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -35,6 +36,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { useCRM, CRMContact, CRMInteraction } from '@/hooks/useCRM';
 import { useAuth } from '@/hooks/useAuth';
+import { useUserRole } from '@/hooks/useUserRole';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -72,6 +74,7 @@ export default function CRMContactDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
+  const { isAdmin } = useUserRole();
   const { updateContact, addInteraction, getInteractions, analyzeContact, aiProcessing } = useCRM();
   
   const [contact, setContact] = useState<CRMContact | null>(null);
@@ -440,6 +443,16 @@ export default function CRMContactDetail() {
                   )}
                 </CardContent>
               </Card>
+
+              {/* Client User Linker - Only for Admins */}
+              {isAdmin && (
+                <ClientUserLinker 
+                  contactId={contact.id}
+                  currentClientUserId={(contact as any).client_user_id}
+                  contactName={contact.name}
+                  onLinked={fetchContact}
+                />
+              )}
             </div>
           </TabsContent>
 
