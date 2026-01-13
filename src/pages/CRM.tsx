@@ -549,7 +549,11 @@ export default function CRM() {
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {filteredContacts.map((contact) => (
-              <Card key={contact.id} className="hover:shadow-md transition-shadow">
+              <Card 
+                key={contact.id} 
+                className="hover:shadow-md transition-shadow cursor-pointer"
+                onClick={() => navigate(`/crm/contact/${contact.id}`)}
+              >
                 <CardContent className="pt-4">
                   <div className="flex items-start justify-between mb-3">
                     <div>
@@ -561,7 +565,8 @@ export default function CRM() {
                         </p>
                       )}
                     </div>
-                    <DropdownMenu>
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon" className="h-8 w-8">
                           <MoreVertical className="h-4 w-4" />
@@ -616,6 +621,7 @@ export default function CRM() {
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
+                    </div>
                   </div>
 
                   <div className="flex items-center gap-2 mb-3 flex-wrap">
