@@ -1,16 +1,36 @@
-import { Home, UserPlus, Users, FileText } from "lucide-react";
+import { Home, UserPlus, Users, FileText, FolderOpen } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { useUserRole } from "@/hooks/useUserRole";
+import { useAuth } from "@/hooks/useAuth";
 
 const BottomNav = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
+  const { isAdmin, isAreaAziendale, loading: roleLoading } = useUserRole();
+
+  // Determine which document route to show based on role
+  const getDocumentsNavItem = () => {
+    // If not logged in or still loading, show generic documents
+    if (!user || roleLoading) {
+      return { path: "/documents", label: "Documenti", icon: FileText };
+    }
+    
+    // Admin and business area users see the full documents area
+    if (isAdmin || isAreaAziendale) {
+      return { path: "/documents", label: "Documenti", icon: FileText };
+    }
+    
+    // Regular users (clients) see their personal document drawer
+    return { path: "/my-documents", label: "I Miei Doc", icon: FolderOpen };
+  };
 
   const navItems = [
     { path: "/", label: "Home", icon: Home },
     { path: "/new-client", label: "Nuovo Cliente", icon: UserPlus },
     { path: "/existing-client", label: "Già Cliente", icon: Users },
-    { path: "/documents", label: "Documenti", icon: FileText },
+    getDocumentsNavItem(),
   ];
 
   return (

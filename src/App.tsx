@@ -7,6 +7,7 @@ import Home from "./pages/Home";
 import NewClient from "./pages/NewClient";
 import ExistingClient from "./pages/ExistingClient";
 import Documents from "./pages/Documents";
+import MyDocuments from "./pages/MyDocuments";
 import Attestati from "./pages/Attestati";
 import QRCodeHistory from "./pages/QRCodeHistory";
 import QRCodeStats from "./pages/QRCodeStats";
@@ -41,6 +42,7 @@ const App = () => (
           <Route path="/new-client" element={<NewClient />} />
           <Route path="/existing-client" element={<ExistingClient />} />
           <Route path="/documents" element={<Documents />} />
+          <Route path="/my-documents" element={<MyDocuments />} />
           <Route path="/attestati" element={<Attestati />} />
           <Route path="/qr-history" element={<QRCodeHistory />} />
           <Route path="/qr-stats/:id" element={<QRCodeStats />} />
