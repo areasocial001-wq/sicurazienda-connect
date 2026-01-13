@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { supabase } from '@/integrations/supabase/client'
 import { useAuth } from '@/hooks/useAuth'
 import { useToast } from '@/hooks/use-toast'
 
@@ -26,11 +27,12 @@ export default function AuthModal({ open, onOpenChange }: AuthModalProps) {
     setLoading(true)
 
     const { error } = await signIn(email, password)
-    
+
     if (error) {
+      const isInvalid = (error.message || '').toLowerCase().includes('invalid login credentials')
       toast({
         title: "Errore di accesso",
-        description: error.message,
+        description: isInvalid ? "Email o password non corretti." : error.message,
         variant: "destructive",
       })
     } else {
@@ -41,8 +43,38 @@ export default function AuthModal({ open, onOpenChange }: AuthModalProps) {
       onOpenChange(false)
       resetForm()
     }
-    
+
     setLoading(false)
+  }
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+      toast({
+        title: "Inserisci la tua email",
+        description: "Scrivi l'email nel campo e poi clicca su 'Password dimenticata?'.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setLoading(true)
+    const redirectTo = `${window.location.origin}/reset-password`
+    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo })
+    setLoading(false)
+
+    if (error) {
+      toast({
+        title: "Errore",
+        description: error.message,
+        variant: "destructive",
+      })
+      return
+    }
+
+    toast({
+      title: "Email inviata",
+      description: "Controlla la posta (anche SPAM) per reimpostare la password.",
+    })
   }
 
   const handleSignUp = async (e: React.FormEvent) => {
@@ -110,6 +142,17 @@ export default function AuthModal({ open, onOpenChange }: AuthModalProps) {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                 />
+                <div className="flex justify-end">
+                  <Button
+                    type="button"
+                    variant="link"
+                    className="px-0 h-auto"
+                    onClick={handleForgotPassword}
+                    disabled={loading}
+                  >
+                    Password dimenticata?
+                  </Button>
+                </div>
               </div>
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? 'Accedendo...' : 'Accedi'}

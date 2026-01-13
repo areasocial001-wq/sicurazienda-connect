@@ -26,6 +26,8 @@ import CRMAnalytics from "./pages/CRMAnalytics";
 import CRMCalendar from "./pages/CRMCalendar";
 import CRMDocumentStats from "./pages/CRMDocumentStats";
 import NotFound from "./pages/NotFound";
+import AuthConfirm from "./pages/AuthConfirm";
+import ResetPassword from "./pages/ResetPassword";
 import ScanNotifications from "./components/ScanNotifications";
 import { FloatingChat } from "./components/FloatingChat";
 
@@ -63,6 +65,8 @@ const App = () => (
           <Route path="/crm/analytics" element={<CRMAnalytics />} />
           <Route path="/crm/calendar" element={<CRMCalendar />} />
           <Route path="/crm/document-stats" element={<CRMDocumentStats />} />
+          <Route path="/auth/confirm" element={<AuthConfirm />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
