@@ -65,10 +65,10 @@ const Home = () => {
           />
           
           <ServiceCard
-            title="Area Documenti"
-            description="Gestione documenti riservata"
+            title="CRM"
+            description="Gestione clienti e documenti"
             icon={FileCheck}
-            onClick={() => navigate("/documents")}
+            onClick={() => navigate("/crm")}
           />
           
           <ServiceCard
