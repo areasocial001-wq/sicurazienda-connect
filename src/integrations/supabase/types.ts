@@ -138,58 +138,76 @@ export type Database = {
       }
       crm_contacts: {
         Row: {
+          address: string | null
           client_user_id: string | null
           company: string | null
           created_at: string
           email: string | null
+          fiscal_code: string | null
           id: string
           last_contact_at: string | null
           name: string
           next_followup_at: string | null
           notes: string | null
+          pec: string | null
           phone: string | null
           role: string | null
+          sdi_code: string | null
           source: string | null
           status: string
           tags: string[] | null
           updated_at: string
           user_id: string
+          vat_number: string | null
+          website: string | null
         }
         Insert: {
+          address?: string | null
           client_user_id?: string | null
           company?: string | null
           created_at?: string
           email?: string | null
+          fiscal_code?: string | null
           id?: string
           last_contact_at?: string | null
           name: string
           next_followup_at?: string | null
           notes?: string | null
+          pec?: string | null
           phone?: string | null
           role?: string | null
+          sdi_code?: string | null
           source?: string | null
           status?: string
           tags?: string[] | null
           updated_at?: string
           user_id: string
+          vat_number?: string | null
+          website?: string | null
         }
         Update: {
+          address?: string | null
           client_user_id?: string | null
           company?: string | null
           created_at?: string
           email?: string | null
+          fiscal_code?: string | null
           id?: string
           last_contact_at?: string | null
           name?: string
           next_followup_at?: string | null
           notes?: string | null
+          pec?: string | null
           phone?: string | null
           role?: string | null
+          sdi_code?: string | null
           source?: string | null
           status?: string
           tags?: string[] | null
           updated_at?: string
           user_id?: string
+          vat_number?: string | null
+          website?: string | null
         }
         Relationships: []
       }
