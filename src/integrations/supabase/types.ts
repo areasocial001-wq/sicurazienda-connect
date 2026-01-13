@@ -92,6 +92,7 @@ export type Database = {
           contact_id: string
           created_at: string
           description: string | null
+          expiry_date: string | null
           file_path: string
           file_size: number | null
           file_type: string | null
@@ -105,6 +106,7 @@ export type Database = {
           contact_id: string
           created_at?: string
           description?: string | null
+          expiry_date?: string | null
           file_path: string
           file_size?: number | null
           file_type?: string | null
@@ -118,6 +120,7 @@ export type Database = {
           contact_id?: string
           created_at?: string
           description?: string | null
+          expiry_date?: string | null
           file_path?: string
           file_size?: number | null
           file_type?: string | null
