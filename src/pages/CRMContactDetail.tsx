@@ -94,6 +94,8 @@ export default function CRMContactDetail() {
     website: '',
     vat_number: '',
     fiscal_code: '',
+    pec: '',
+    sdi_code: '',
   });
 
   const [newInteraction, setNewInteraction] = useState({
@@ -136,6 +138,8 @@ export default function CRMContactDetail() {
         website: (data as any).website || '',
         vat_number: (data as any).vat_number || '',
         fiscal_code: (data as any).fiscal_code || '',
+        pec: (data as any).pec || '',
+        sdi_code: (data as any).sdi_code || '',
       });
     } catch (error) {
       console.error('Error fetching contact:', error);
@@ -354,6 +358,18 @@ export default function CRMContactDetail() {
                       <p className="font-medium">{(contact as any).fiscal_code}</p>
                     </div>
                   )}
+                  {(contact as any).pec && (
+                    <div>
+                      <span className="text-sm text-muted-foreground">PEC</span>
+                      <p className="font-medium">{(contact as any).pec}</p>
+                    </div>
+                  )}
+                  {(contact as any).sdi_code && (
+                    <div>
+                      <span className="text-sm text-muted-foreground">Codice SDI</span>
+                      <p className="font-medium">{(contact as any).sdi_code}</p>
+                    </div>
+                  )}
                   {contact.source && (
                     <div>
                       <span className="text-sm text-muted-foreground">Fonte</span>
@@ -556,6 +572,26 @@ export default function CRMContactDetail() {
                   <Input 
                     value={editForm.fiscal_code} 
                     onChange={(e) => setEditForm({...editForm, fiscal_code: e.target.value})}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>PEC</Label>
+                  <Input 
+                    type="email"
+                    value={editForm.pec} 
+                    onChange={(e) => setEditForm({...editForm, pec: e.target.value})}
+                    placeholder="pec@esempio.it"
+                  />
+                </div>
+                <div>
+                  <Label>Codice SDI</Label>
+                  <Input 
+                    value={editForm.sdi_code} 
+                    onChange={(e) => setEditForm({...editForm, sdi_code: e.target.value})}
+                    placeholder="7 caratteri"
+                    maxLength={7}
                   />
                 </div>
               </div>
