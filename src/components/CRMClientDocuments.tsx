@@ -47,6 +47,7 @@ const areaColors: Record<string, string> = {
   area_tecnica: 'bg-green-500/20 text-green-700 border-green-500/30',
   gestione_corsi: 'bg-purple-500/20 text-purple-700 border-purple-500/30',
   admin: 'bg-orange-500/20 text-orange-700 border-orange-500/30',
+  cliente: 'bg-yellow-500/20 text-yellow-700 border-yellow-500/30',
 };
 
 const getFileIcon = (fileType?: string) => {

@@ -11,7 +11,7 @@ export interface CRMDocument {
   file_path: string;
   file_type?: string;
   file_size?: number;
-  area: 'contabilita' | 'area_tecnica' | 'gestione_corsi' | 'admin';
+  area: 'contabilita' | 'area_tecnica' | 'gestione_corsi' | 'admin' | 'cliente';
   description?: string;
   expiry_date?: string | null;
   created_at: string;
@@ -23,6 +23,7 @@ const areaLabels: Record<string, string> = {
   area_tecnica: 'Area Tecnica',
   gestione_corsi: 'Gestione Corsi',
   admin: 'Amministrazione',
+  cliente: 'Caricati dal cliente',
 };
 
 export function useCRMDocuments(contactId: string | undefined) {
