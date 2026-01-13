@@ -20,6 +20,7 @@ import Profile from "./pages/Profile";
 import AppDocumentation from "./pages/AppDocumentation";
 import Assistente from "./pages/Assistente";
 import CRM from "./pages/CRM";
+import CRMContactDetail from "./pages/CRMContactDetail";
 import CRMAnalytics from "./pages/CRMAnalytics";
 import CRMCalendar from "./pages/CRMCalendar";
 import NotFound from "./pages/NotFound";
@@ -55,6 +56,7 @@ const App = () => (
           <Route path="/documentazione" element={<AppDocumentation />} />
           <Route path="/assistente" element={<Assistente />} />
           <Route path="/crm" element={<CRM />} />
+          <Route path="/crm/contact/:id" element={<CRMContactDetail />} />
           <Route path="/crm/analytics" element={<CRMAnalytics />} />
           <Route path="/crm/calendar" element={<CRMCalendar />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

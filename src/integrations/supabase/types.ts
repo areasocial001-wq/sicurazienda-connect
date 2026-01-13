@@ -86,8 +86,59 @@ export type Database = {
         }
         Relationships: []
       }
+      crm_client_documents: {
+        Row: {
+          area: string
+          contact_id: string
+          created_at: string
+          description: string | null
+          file_path: string
+          file_size: number | null
+          file_type: string | null
+          id: string
+          name: string
+          updated_at: string
+          uploaded_by: string
+        }
+        Insert: {
+          area: string
+          contact_id: string
+          created_at?: string
+          description?: string | null
+          file_path: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+          uploaded_by: string
+        }
+        Update: {
+          area?: string
+          contact_id?: string
+          created_at?: string
+          description?: string | null
+          file_path?: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_client_documents_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crm_contacts: {
         Row: {
+          client_user_id: string | null
           company: string | null
           created_at: string
           email: string | null
@@ -105,6 +156,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          client_user_id?: string | null
           company?: string | null
           created_at?: string
           email?: string | null
@@ -122,6 +174,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          client_user_id?: string | null
           company?: string | null
           created_at?: string
           email?: string | null
