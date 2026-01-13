@@ -87,6 +87,14 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
+    // Log the action to audit_logs
+    await adminClient.rpc('log_audit_event', {
+      p_user_id: requestingUser.id,
+      p_action: 'user_confirmed',
+      p_target_user_id: userId,
+      p_details: { confirmed_email: updatedUser.user.email }
+    });
+
     console.log("User confirmed successfully:", userId);
 
     return new Response(

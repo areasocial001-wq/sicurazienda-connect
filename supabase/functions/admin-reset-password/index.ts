@@ -72,6 +72,10 @@ Deno.serve(async (req) => {
     // Use admin client to send password reset email
     const adminClient = createClient(supabaseUrl, supabaseServiceKey)
     
+    // First get the target user's ID for audit logging
+    const { data: users } = await adminClient.auth.admin.listUsers()
+    const targetUser = users?.users?.find(u => u.email === email)
+    
     // Generate password reset link
     const { data, error: resetError } = await adminClient.auth.admin.generateLink({
       type: 'recovery',
@@ -85,6 +89,14 @@ Deno.serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
+
+    // Log the action to audit_logs
+    await adminClient.rpc('log_audit_event', {
+      p_user_id: user.id,
+      p_action: 'password_reset',
+      p_target_user_id: targetUser?.id || null,
+      p_details: { target_email: email }
+    });
 
     console.log(`Password reset link generated for ${email}`)
 
