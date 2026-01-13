@@ -275,13 +275,17 @@ export default function CRM() {
               <CalendarIcon className="h-4 w-4 mr-2" />
               Calendario
             </Button>
+            <Button variant="outline" onClick={() => navigate('/crm/document-stats')}>
+              <FileText className="h-4 w-4 mr-2" />
+              Documenti
+            </Button>
             <Button variant="outline" onClick={exportContactsCSV}>
               <Download className="h-4 w-4 mr-2" />
-              Export CSV
+              Export
             </Button>
             <Button variant="outline" onClick={handleSuggestFollowups} disabled={aiProcessing}>
               {aiProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Brain className="h-4 w-4 mr-2" />}
-              Suggerimenti AI
+              AI
             </Button>
             <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
               <DialogTrigger asChild>

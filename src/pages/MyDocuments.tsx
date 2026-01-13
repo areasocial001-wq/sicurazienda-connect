@@ -1,9 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { 
   FileText, Download, Folder, Loader2, Lock, User, LogOut,
-  File, FileSpreadsheet, FileImage, AlertTriangle
+  File, FileSpreadsheet, FileImage, AlertTriangle, Upload, Plus
 } from 'lucide-react';
 import Header from '@/components/Header';
 import BottomNav from '@/components/BottomNav';
@@ -12,7 +12,17 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -33,6 +43,7 @@ const areaLabels: Record<string, string> = {
   area_tecnica: 'Area Tecnica',
   gestione_corsi: 'Gestione Corsi',
   admin: 'Amministrazione',
+  cliente: 'Caricati da te',
 };
 
 const areaColors: Record<string, string> = {
@@ -40,6 +51,7 @@ const areaColors: Record<string, string> = {
   area_tecnica: 'bg-blue-500/20 text-blue-700 border-blue-500/30',
   gestione_corsi: 'bg-purple-500/20 text-purple-700 border-purple-500/30',
   admin: 'bg-red-500/20 text-red-700 border-red-500/30',
+  cliente: 'bg-orange-500/20 text-orange-700 border-orange-500/30',
 };
 
 const getFileIcon = (fileType?: string) => {
@@ -62,15 +74,19 @@ export default function MyDocuments() {
   const { toast } = useToast();
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [documents, setDocuments] = useState<ClientDocument[]>([]);
-  const [contactInfo, setContactInfo] = useState<{ name: string; company?: string } | null>(null);
+  const [contactInfo, setContactInfo] = useState<{ id: string; name: string; company?: string } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showUploadDialog, setShowUploadDialog] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [description, setDescription] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchDocuments = useCallback(async () => {
     if (!user) return;
     
     setLoading(true);
     try {
-      // First, find the contact linked to this user
       const { data: contactData, error: contactError } = await supabase
         .from('crm_contacts')
         .select('id, name, company')
@@ -86,9 +102,8 @@ export default function MyDocuments() {
         return;
       }
 
-      setContactInfo({ name: contactData.name, company: contactData.company || undefined });
+      setContactInfo({ id: contactData.id, name: contactData.name, company: contactData.company || undefined });
 
-      // Fetch documents for this contact
       const { data: docsData, error: docsError } = await supabase
         .from('crm_client_documents')
         .select('id, name, file_path, file_type, file_size, area, description, created_at')
@@ -112,6 +127,56 @@ export default function MyDocuments() {
       setLoading(false);
     }
   }, [user, fetchDocuments]);
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+    }
+  };
+
+  const handleUpload = async () => {
+    if (!selectedFile || !contactInfo || !user) return;
+
+    setUploading(true);
+    try {
+      const timestamp = Date.now();
+      const sanitizedName = selectedFile.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const filePath = `${contactInfo.id}/cliente/${timestamp}_${sanitizedName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('crm-documents')
+        .upload(filePath, selectedFile);
+
+      if (uploadError) throw uploadError;
+
+      const { error: dbError } = await supabase
+        .from('crm_client_documents')
+        .insert({
+          contact_id: contactInfo.id,
+          uploaded_by: user.id,
+          name: selectedFile.name,
+          file_path: filePath,
+          file_type: selectedFile.type,
+          file_size: selectedFile.size,
+          area: 'cliente',
+          description: description || null
+        });
+
+      if (dbError) throw dbError;
+
+      toast({ title: "Documento caricato", description: "Il documento è stato inviato con successo" });
+      setShowUploadDialog(false);
+      setSelectedFile(null);
+      setDescription('');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      await fetchDocuments();
+    } catch (error: any) {
+      toast({ title: "Errore upload", description: error.message, variant: "destructive" });
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleDownload = async (document: ClientDocument) => {
     try {
@@ -137,15 +202,13 @@ export default function MyDocuments() {
   const handleSignOut = async () => {
     const { error } = await signOut();
     if (!error) {
-      toast({
-        title: "Disconnessione effettuata",
-        description: "A presto!",
-      });
+      toast({ title: "Disconnessione effettuata", description: "A presto!" });
     }
   };
 
   const getDocumentsByArea = () => {
     const byArea: Record<string, ClientDocument[]> = {};
+    // Put 'cliente' area first
     documents.forEach(doc => {
       if (!byArea[doc.area]) byArea[doc.area] = [];
       byArea[doc.area].push(doc);
@@ -173,25 +236,19 @@ export default function MyDocuments() {
               Accedi per visualizzare i documenti a te riservati
             </p>
           </div>
-
           <Alert className="mb-6">
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
               Per accedere ai tuoi documenti è necessario effettuare l'accesso con l'account collegato.
             </AlertDescription>
           </Alert>
-
           <div className="text-center">
             <Button onClick={() => setAuthModalOpen(true)} size="lg">
               <User className="h-5 w-5 mr-2" />
               Accedi
             </Button>
           </div>
-
-          <AuthModal 
-            open={authModalOpen} 
-            onOpenChange={setAuthModalOpen} 
-          />
+          <AuthModal open={authModalOpen} onOpenChange={setAuthModalOpen} />
         </main>
         <BottomNav />
       </div>
@@ -225,7 +282,6 @@ export default function MyDocuments() {
               Esci
             </Button>
           </div>
-
           <Alert>
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
@@ -255,17 +311,78 @@ export default function MyDocuments() {
               {contactInfo.company && ` - ${contactInfo.company}`}
             </p>
           </div>
-          <Button variant="outline" onClick={handleSignOut}>
-            <LogOut className="h-4 w-4 mr-2" />
-            Esci
-          </Button>
+          <div className="flex gap-2">
+            <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Upload className="h-4 w-4 mr-2" />
+                  Carica
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Carica un documento</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <Label>File</Label>
+                    <Input
+                      ref={fileInputRef}
+                      type="file"
+                      onChange={handleFileSelect}
+                      accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.gif,.txt,.zip"
+                    />
+                    {selectedFile && (
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {selectedFile.name} ({formatFileSize(selectedFile.size)})
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <Label>Descrizione (opzionale)</Label>
+                    <Textarea
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      placeholder="Descrivi brevemente il documento..."
+                      rows={3}
+                    />
+                  </div>
+                  <Button 
+                    onClick={handleUpload} 
+                    className="w-full" 
+                    disabled={!selectedFile || uploading}
+                  >
+                    {uploading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Caricamento...
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Carica documento
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+            <Button variant="outline" onClick={handleSignOut}>
+              <LogOut className="h-4 w-4 mr-2" />
+              Esci
+            </Button>
+          </div>
         </div>
 
         {documents.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">
               <Folder className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-30" />
-              <p className="text-muted-foreground">Nessun documento disponibile</p>
+              <p className="text-muted-foreground mb-4">Nessun documento disponibile</p>
+              <Button onClick={() => setShowUploadDialog(true)}>
+                <Upload className="h-4 w-4 mr-2" />
+                Carica il tuo primo documento
+              </Button>
             </CardContent>
           </Card>
         ) : (
@@ -273,7 +390,7 @@ export default function MyDocuments() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <FileText className="h-5 w-5 text-primary" />
-                Documenti disponibili
+                Documenti
                 <Badge variant="secondary" className="ml-2">{documents.length}</Badge>
               </CardTitle>
             </CardHeader>
