@@ -8,7 +8,7 @@ import heroBackground from "@/assets/hero-background.jpg";
 import { 
   UserPlus, 
   Users, 
-  FileCheck, 
+  Contact, 
   Shield, 
   Phone, 
   Mail,
@@ -67,7 +67,7 @@ const Home = () => {
           <ServiceCard
             title="CRM"
             description="Gestione clienti e documenti"
-            icon={FileCheck}
+            icon={Contact}
             onClick={() => navigate("/crm")}
           />
           
