@@ -211,7 +211,7 @@ export default function CRMClientDocuments({ contactId, contactName }: CRMClient
                         ref={fileInputRef}
                         type="file"
                         onChange={handleFileSelect}
-                        accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.gif,.txt,.zip"
+                        accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.gif,.txt,.zip,.rar,.7z,.tar,.gz"
                       />
                       {selectedFile && (
                         <p className="text-sm text-muted-foreground mt-1">
