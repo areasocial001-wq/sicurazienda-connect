@@ -13,6 +13,8 @@ import QRCodeStats from "./pages/QRCodeStats";
 import QRRedirect from "./pages/QRRedirect";
 import AdminDashboard from "./pages/AdminDashboard";
 import UserRoleManager from "./pages/UserRoleManager";
+import PermissionStatus from "./pages/PermissionStatus";
+import AuditLog from "./pages/AuditLog";
 import ContactRequest from "./pages/ContactRequest";
 import Profile from "./pages/Profile";
 import AppDocumentation from "./pages/AppDocumentation";
@@ -45,6 +47,8 @@ const App = () => (
           <Route path="/admin" element={<AdminDashboard />} />
           {/* Alias: percorso richiesto */}
           <Route path="/admin/users" element={<UserRoleManager />} />
+          <Route path="/admin/permission-status" element={<PermissionStatus />} />
+          <Route path="/admin/audit-log" element={<AuditLog />} />
           <Route path="/user-roles" element={<UserRoleManager />} />
           <Route path="/contact-request" element={<ContactRequest />} />
           <Route path="/profile" element={<Profile />} />
