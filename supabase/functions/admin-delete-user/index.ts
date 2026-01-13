@@ -81,6 +81,10 @@ const handler = async (req: Request): Promise<Response> => {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
+    // Get user info before deleting for audit log
+    const { data: targetUser } = await adminClient.auth.admin.getUserById(userId);
+    const targetEmail = targetUser?.user?.email || 'unknown';
+
     // Delete user from auth
     const { error: deleteError } = await adminClient.auth.admin.deleteUser(userId);
 
@@ -91,6 +95,14 @@ const handler = async (req: Request): Promise<Response> => {
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    // Log the action to audit_logs
+    await adminClient.rpc('log_audit_event', {
+      p_user_id: requestingUser.id,
+      p_action: 'user_deleted',
+      p_target_user_id: userId,
+      p_details: { deleted_email: targetEmail }
+    });
 
     console.log("User deleted successfully:", userId);
 
