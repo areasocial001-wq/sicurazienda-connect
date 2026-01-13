@@ -18,6 +18,17 @@ export function useUserRole() {
 
     const fetchUserRole = async () => {
       try {
+        // Prefer RPC (SECURITY DEFINER) to avoid RLS/policy issues on user_roles
+        const { data: rpcRole, error: rpcError } = await supabase.rpc('get_user_role', {
+          user_uuid: user.id,
+        })
+
+        if (!rpcError && rpcRole) {
+          setRole(rpcRole)
+          return
+        }
+
+        // Fallback to direct table read (kept for backwards compatibility)
         const { data, error } = await supabase
           .from('user_roles')
           .select('role')
