@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client'
 import BottomNav from '@/components/BottomNav'
 import AuthModal from '@/components/AuthModal'
 import QRCodeModal from '@/components/QRCodeModal'
+import AdminResetPassword from '@/components/AdminResetPassword'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -599,14 +600,17 @@ export default function AdminDashboard() {
                 </p>
               </div>
               {isAdmin && (
-                <Button 
-                  onClick={() => window.location.href = '/user-roles'}
-                  variant="outline"
-                  className="flex items-center gap-2"
-                >
-                  <Settings className="h-4 w-4" />
-                  Gestione Ruoli
-                </Button>
+                <div className="flex items-center gap-2">
+                  <AdminResetPassword />
+                  <Button 
+                    onClick={() => window.location.href = '/user-roles'}
+                    variant="outline"
+                    className="flex items-center gap-2"
+                  >
+                    <Settings className="h-4 w-4" />
+                    Gestione Ruoli
+                  </Button>
+                </div>
               )}
             </div>
           </div>
