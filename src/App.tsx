@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Home from "./pages/Home";
+import Auth from "./pages/Auth";
 import NewClient from "./pages/NewClient";
 import ExistingClient from "./pages/ExistingClient";
 import Documents from "./pages/Documents";
@@ -30,6 +31,7 @@ import AuthConfirm from "./pages/AuthConfirm";
 import ResetPassword from "./pages/ResetPassword";
 import ScanNotifications from "./components/ScanNotifications";
 import { FloatingChat } from "./components/FloatingChat";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
@@ -41,33 +43,39 @@ const App = () => (
       <BrowserRouter>
         <ScanNotifications />
         <Routes>
+          {/* Public routes */}
           <Route path="/" element={<Home />} />
-          <Route path="/new-client" element={<NewClient />} />
-          <Route path="/existing-client" element={<ExistingClient />} />
-          <Route path="/documents" element={<Documents />} />
-          <Route path="/my-documents" element={<MyDocuments />} />
-          <Route path="/attestati" element={<Attestati />} />
-          <Route path="/qr-history" element={<QRCodeHistory />} />
-          <Route path="/qr-stats/:id" element={<QRCodeStats />} />
-          <Route path="/qr/:id" element={<QRRedirect />} />
-          <Route path="/admin" element={<AdminDashboard />} />
-          {/* Alias: percorso richiesto */}
-          <Route path="/admin/users" element={<UserRoleManager />} />
-          <Route path="/admin/permission-status" element={<PermissionStatus />} />
-          <Route path="/admin/audit-log" element={<AuditLog />} />
-          <Route path="/user-roles" element={<UserRoleManager />} />
-          <Route path="/contact-request" element={<ContactRequest />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/documentazione" element={<AppDocumentation />} />
-          <Route path="/assistente" element={<Assistente />} />
-          <Route path="/crm" element={<CRM />} />
-          <Route path="/crm/contact/:id" element={<CRMContactDetail />} />
-          <Route path="/crm/analytics" element={<CRMAnalytics />} />
-          <Route path="/crm/calendar" element={<CRMCalendar />} />
-          <Route path="/crm/document-stats" element={<CRMDocumentStats />} />
+          <Route path="/auth" element={<Auth />} />
           <Route path="/auth/confirm" element={<AuthConfirm />} />
           <Route path="/reset-password" element={<ResetPassword />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          <Route path="/qr/:id" element={<QRRedirect />} />
+          <Route path="/new-client" element={<NewClient />} />
+          <Route path="/existing-client" element={<ExistingClient />} />
+          <Route path="/contact-request" element={<ContactRequest />} />
+          
+          {/* Protected routes - require authentication */}
+          <Route path="/documents" element={<ProtectedRoute><Documents /></ProtectedRoute>} />
+          <Route path="/my-documents" element={<ProtectedRoute><MyDocuments /></ProtectedRoute>} />
+          <Route path="/attestati" element={<ProtectedRoute><Attestati /></ProtectedRoute>} />
+          <Route path="/qr-history" element={<ProtectedRoute><QRCodeHistory /></ProtectedRoute>} />
+          <Route path="/qr-stats/:id" element={<ProtectedRoute><QRCodeStats /></ProtectedRoute>} />
+          <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+          <Route path="/documentazione" element={<ProtectedRoute><AppDocumentation /></ProtectedRoute>} />
+          <Route path="/assistente" element={<ProtectedRoute><Assistente /></ProtectedRoute>} />
+          <Route path="/crm" element={<ProtectedRoute><CRM /></ProtectedRoute>} />
+          <Route path="/crm/contact/:id" element={<ProtectedRoute><CRMContactDetail /></ProtectedRoute>} />
+          <Route path="/crm/analytics" element={<ProtectedRoute><CRMAnalytics /></ProtectedRoute>} />
+          <Route path="/crm/calendar" element={<ProtectedRoute><CRMCalendar /></ProtectedRoute>} />
+          <Route path="/crm/document-stats" element={<ProtectedRoute><CRMDocumentStats /></ProtectedRoute>} />
+          
+          {/* Admin routes - require admin role */}
+          <Route path="/admin" element={<ProtectedRoute requireAdmin><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/admin/users" element={<ProtectedRoute requireAdmin><UserRoleManager /></ProtectedRoute>} />
+          <Route path="/admin/permission-status" element={<ProtectedRoute requireAdmin><PermissionStatus /></ProtectedRoute>} />
+          <Route path="/admin/audit-log" element={<ProtectedRoute requireAdmin><AuditLog /></ProtectedRoute>} />
+          <Route path="/user-roles" element={<ProtectedRoute requireAdmin><UserRoleManager /></ProtectedRoute>} />
+          
+          {/* Catch-all route */}
           <Route path="*" element={<NotFound />} />
         </Routes>
         <FloatingChat />
