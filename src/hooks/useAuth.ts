@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { User, Session } from '@supabase/supabase-js'
 import { supabase } from '@/integrations/supabase/client'
+import { buildPublicUrl } from '@/lib/siteUrl'
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null)
@@ -36,7 +37,7 @@ export function useAuth() {
   }
 
   const signUp = async (email: string, password: string, fullName: string, companyName: string) => {
-    const redirectUrl = `${window.location.origin}/documents`
+    const redirectUrl = buildPublicUrl('/documents')
     
     const { data, error } = await supabase.auth.signUp({
       email,

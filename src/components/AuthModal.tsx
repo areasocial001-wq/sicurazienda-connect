@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { supabase } from '@/integrations/supabase/client'
+import { buildPublicUrl } from '@/lib/siteUrl'
 import { useAuth } from '@/hooks/useAuth'
 import { useToast } from '@/hooks/use-toast'
 
@@ -58,7 +59,7 @@ export default function AuthModal({ open, onOpenChange }: AuthModalProps) {
     }
 
     setLoading(true)
-    const redirectTo = `${window.location.origin}/reset-password`
+    const redirectTo = buildPublicUrl('/reset-password')
     const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo })
     setLoading(false)
 

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { buildPublicUrl } from '@/lib/siteUrl';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -51,9 +52,11 @@ const Auth = () => {
     });
 
     if (error) {
+      const msg = (error.message || '').toLowerCase();
+      const isInvalid = msg.includes('invalid login credentials');
       toast({
         title: 'Errore di accesso',
-        description: error.message,
+        description: isInvalid ? 'Email o password non corretti.' : error.message,
         variant: 'destructive',
       });
     } else {
@@ -73,7 +76,7 @@ const Auth = () => {
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/documents`,
+        emailRedirectTo: buildPublicUrl('/documents'),
         data: {
           full_name: fullName,
           company_name: companyName,
@@ -108,7 +111,7 @@ const Auth = () => {
 
     setLoading(true);
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
+      redirectTo: buildPublicUrl('/reset-password'),
     });
 
     if (error) {
