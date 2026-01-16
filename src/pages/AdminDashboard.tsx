@@ -7,6 +7,7 @@ import AuthModal from '@/components/AuthModal'
 import QRCodeModal from '@/components/QRCodeModal'
 import AdminResetPassword from '@/components/AdminResetPassword'
 import AdminCreateUser from '@/components/AdminCreateUser'
+import AdminBulkImportUsers from '@/components/AdminBulkImportUsers'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -769,11 +770,18 @@ export default function AdminDashboard() {
                   <Users className="h-5 w-5" />
                   Gestione Utenti
                 </CardTitle>
-                <AdminCreateUser onUserCreated={() => {
-                  fetchAuthUsers();
-                  fetchUsers();
-                  fetchStats();
-                }} />
+                <div className="flex items-center gap-2">
+                  <AdminBulkImportUsers onUsersImported={() => {
+                    fetchAuthUsers();
+                    fetchUsers();
+                    fetchStats();
+                  }} />
+                  <AdminCreateUser onUserCreated={() => {
+                    fetchAuthUsers();
+                    fetchUsers();
+                    fetchStats();
+                  }} />
+                </div>
               </CardHeader>
               <CardContent>
                 {loadingAuthUsers ? (
