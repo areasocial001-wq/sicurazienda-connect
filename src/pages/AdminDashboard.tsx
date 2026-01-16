@@ -6,6 +6,7 @@ import BottomNav from '@/components/BottomNav'
 import AuthModal from '@/components/AuthModal'
 import QRCodeModal from '@/components/QRCodeModal'
 import AdminResetPassword from '@/components/AdminResetPassword'
+import AdminCreateUser from '@/components/AdminCreateUser'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -763,11 +764,16 @@ export default function AdminDashboard() {
           {/* Gestione Utenti - Solo Admin */}
           {isAdmin && (
             <Card className="mb-8">
-              <CardHeader>
+              <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="flex items-center gap-2">
                   <Users className="h-5 w-5" />
                   Gestione Utenti
                 </CardTitle>
+                <AdminCreateUser onUserCreated={() => {
+                  fetchAuthUsers();
+                  fetchUsers();
+                  fetchStats();
+                }} />
               </CardHeader>
               <CardContent>
                 {loadingAuthUsers ? (

@@ -62,3 +62,6 @@ verify_jwt = false
 
 [functions.google-drive-sync]
 verify_jwt = false
+
+[functions.admin-create-user]
+verify_jwt = false
