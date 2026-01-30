@@ -1,12 +1,13 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, differenceInDays, isAfter, isBefore, addDays } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { 
   ArrowLeft, Search, Filter, X, GraduationCap, Stethoscope, 
   Building, User, AlertTriangle, CheckCircle2, Clock, Loader2,
-  ArrowUpDown, ArrowUp, ArrowDown, Calendar as CalendarIcon
+  ArrowUpDown, ArrowUp, ArrowDown, Calendar as CalendarIcon, Download
 } from 'lucide-react';
+import { toast } from 'sonner';
 import Header from '@/components/Header';
 import BottomNav from '@/components/BottomNav';
 import { Button } from '@/components/ui/button';
@@ -236,6 +237,70 @@ export default function CRMEmployeeDeadlines() {
     else setSortByExpiry('asc');
   };
 
+  const exportToCSV = useCallback(() => {
+    if (filteredActivities.length === 0) {
+      toast.error('Nessuna attività da esportare');
+      return;
+    }
+
+    const headers = [
+      'Tipo Attività',
+      'Nome Attività',
+      'Dipendente',
+      'Azienda',
+      'Data Scadenza',
+      'Giorni alla Scadenza',
+      'Stato'
+    ];
+
+    const getStatusLabel = (expiryDate: string | null): string => {
+      const status = getActivityStatus(expiryDate);
+      switch (status) {
+        case 'expired': return 'Scaduto';
+        case 'expiring_soon': return 'In scadenza';
+        case 'valid': return 'Valido';
+        default: return '-';
+      }
+    };
+
+    const getDaysLabel = (expiryDate: string | null): string => {
+      if (!expiryDate) return '-';
+      const days = differenceInDays(new Date(expiryDate), new Date());
+      if (days < 0) return `${Math.abs(days)} giorni fa`;
+      if (days === 0) return 'Oggi';
+      if (days === 1) return 'Domani';
+      return `Tra ${days} giorni`;
+    };
+
+    const rows = filteredActivities.map(activity => [
+      activity.activity_type === 'formazione' ? 'Formazione' : 'Visita Medica',
+      activity.activity_name,
+      `${activity.employee?.first_name || ''} ${activity.employee?.last_name || ''}`.trim(),
+      activity.employee?.contact?.company || activity.employee?.contact?.name || '-',
+      activity.expiry_date ? format(new Date(activity.expiry_date), 'dd/MM/yyyy') : '-',
+      getDaysLabel(activity.expiry_date),
+      getStatusLabel(activity.expiry_date)
+    ]);
+
+    const csvContent = [
+      headers.join(';'),
+      ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(';'))
+    ].join('\n');
+
+    const BOM = '\uFEFF';
+    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `scadenze_dipendenti_${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    toast.success(`Esportate ${filteredActivities.length} scadenze`);
+  }, [filteredActivities]);
+
   const getStatusBadge = (expiryDate: string | null) => {
     const status = getActivityStatus(expiryDate);
     switch (status) {
@@ -276,19 +341,29 @@ export default function CRMEmployeeDeadlines() {
       
       <main className="container mx-auto p-4 pb-24">
         {/* Header */}
-        <div className="flex items-center gap-3 mb-6">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/crm')}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <CalendarIcon className="h-6 w-6 text-primary" />
-              Scadenze Attività Dipendenti
-            </h1>
-            <p className="text-muted-foreground text-sm">
-              Gestisci formazione e visite mediche
-            </p>
+        <div className="flex items-center justify-between gap-3 mb-6">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={() => navigate('/crm')}>
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div>
+              <h1 className="text-2xl font-bold flex items-center gap-2">
+                <CalendarIcon className="h-6 w-6 text-primary" />
+                Scadenze Attività Dipendenti
+              </h1>
+              <p className="text-muted-foreground text-sm">
+                Gestisci formazione e visite mediche
+              </p>
+            </div>
           </div>
+          <Button 
+            variant="outline" 
+            onClick={exportToCSV}
+            disabled={filteredActivities.length === 0}
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Esporta CSV
+          </Button>
         </div>
 
         {/* Stats Cards */}
