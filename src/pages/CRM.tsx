@@ -9,6 +9,7 @@ import {
   ArrowUpDown, ArrowUp, ArrowDown, Clock, HelpCircle, Info
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
 import Header from '@/components/Header';
 import BottomNav from '@/components/BottomNav';
 import { Button } from '@/components/ui/button';
@@ -633,44 +634,130 @@ export default function CRM() {
           </CardContent>
         </Card>
 
-        {/* Status Legend */}
-        <Card className="mb-4 border-muted">
-          <CardContent className="py-3">
-            <div className="flex items-center gap-2 flex-wrap">
-              <div className="flex items-center gap-1 text-sm text-muted-foreground mr-2">
-                <Info className="h-4 w-4" />
-                <span className="font-medium">Legenda stati:</span>
+        {/* Status Legend & Pie Chart */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+          {/* Status Legend - Clickable */}
+          <Card className="lg:col-span-2 border-muted">
+            <CardContent className="py-3">
+              <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex items-center gap-1 text-sm text-muted-foreground mr-2">
+                  <Info className="h-4 w-4" />
+                  <span className="font-medium">Filtra per stato:</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Badge 
+                    className={`cursor-pointer transition-all ${statusFilter === 'lead' ? 'ring-2 ring-blue-500 ring-offset-2' : ''} bg-blue-500/20 text-blue-700 border-blue-500/30 hover:bg-blue-500/40`}
+                    onClick={() => setStatusFilter(statusFilter === 'lead' ? 'all' : 'lead')}
+                  >
+                    Primo contatto ({statusCounts.lead})
+                  </Badge>
+                  <span className="text-xs text-muted-foreground hidden sm:inline">Nuovo, da qualificare</span>
+                </div>
+                <span className="text-muted-foreground">•</span>
+                <div className="flex items-center gap-1">
+                  <Badge 
+                    className={`cursor-pointer transition-all ${statusFilter === 'prospect' ? 'ring-2 ring-yellow-500 ring-offset-2' : ''} bg-yellow-500/20 text-yellow-700 border-yellow-500/30 hover:bg-yellow-500/40`}
+                    onClick={() => setStatusFilter(statusFilter === 'prospect' ? 'all' : 'prospect')}
+                  >
+                    Potenziale cliente ({statusCounts.prospect})
+                  </Badge>
+                  <span className="text-xs text-muted-foreground hidden sm:inline">In trattativa</span>
+                </div>
+                <span className="text-muted-foreground">•</span>
+                <div className="flex items-center gap-1">
+                  <Badge 
+                    className={`cursor-pointer transition-all ${statusFilter === 'client' ? 'ring-2 ring-green-500 ring-offset-2' : ''} bg-green-500/20 text-green-700 border-green-500/30 hover:bg-green-500/40`}
+                    onClick={() => setStatusFilter(statusFilter === 'client' ? 'all' : 'client')}
+                  >
+                    Cliente ({statusCounts.client})
+                  </Badge>
+                  <span className="text-xs text-muted-foreground hidden sm:inline">Contratto attivo</span>
+                </div>
+                <span className="text-muted-foreground">•</span>
+                <div className="flex items-center gap-1">
+                  <Badge 
+                    className={`cursor-pointer transition-all ${statusFilter === 'inactive' ? 'ring-2 ring-gray-500 ring-offset-2' : ''} bg-gray-500/20 text-gray-700 border-gray-500/30 hover:bg-gray-500/40`}
+                    onClick={() => setStatusFilter(statusFilter === 'inactive' ? 'all' : 'inactive')}
+                  >
+                    Inattivo ({statusCounts.inactive})
+                  </Badge>
+                  <span className="text-xs text-muted-foreground hidden sm:inline">Non più attivo</span>
+                </div>
+                {statusFilter !== 'all' && (
+                  <>
+                    <span className="text-muted-foreground">•</span>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-6 px-2 text-xs"
+                      onClick={() => setStatusFilter('all')}
+                    >
+                      Mostra tutti
+                    </Button>
+                  </>
+                )}
               </div>
-              <div className="flex items-center gap-1">
-                <Badge className="bg-blue-500/20 text-blue-700 border-blue-500/30 hover:bg-blue-500/30">
-                  Primo contatto ({statusCounts.lead})
-                </Badge>
-                <span className="text-xs text-muted-foreground">Nuovo, da qualificare</span>
+            </CardContent>
+          </Card>
+
+          {/* Pie Chart */}
+          <Card className="border-muted">
+            <CardContent className="py-3">
+              <div className="flex items-center justify-center h-full">
+                {contacts.length > 0 ? (
+                  <div className="w-full h-32">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={[
+                            { name: 'Primo contatto', value: statusCounts.lead, fill: '#3b82f6' },
+                            { name: 'Potenziale', value: statusCounts.prospect, fill: '#eab308' },
+                            { name: 'Cliente', value: statusCounts.client, fill: '#22c55e' },
+                            { name: 'Inattivo', value: statusCounts.inactive, fill: '#6b7280' },
+                          ].filter(d => d.value > 0)}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={25}
+                          outerRadius={50}
+                          paddingAngle={2}
+                          dataKey="value"
+                        >
+                          {[
+                            { name: 'Primo contatto', value: statusCounts.lead, fill: '#3b82f6' },
+                            { name: 'Potenziale', value: statusCounts.prospect, fill: '#eab308' },
+                            { name: 'Cliente', value: statusCounts.client, fill: '#22c55e' },
+                            { name: 'Inattivo', value: statusCounts.inactive, fill: '#6b7280' },
+                          ].filter(d => d.value > 0).map((entry, index) => (
+                            <Cell 
+                              key={`cell-${index}`} 
+                              fill={entry.fill}
+                              className="cursor-pointer hover:opacity-80 transition-opacity"
+                              onClick={() => {
+                                const statusMap: Record<string, string> = {
+                                  'Primo contatto': 'lead',
+                                  'Potenziale': 'prospect',
+                                  'Cliente': 'client',
+                                  'Inattivo': 'inactive'
+                                };
+                                const status = statusMap[entry.name];
+                                setStatusFilter(statusFilter === status ? 'all' : status);
+                              }}
+                            />
+                          ))}
+                        </Pie>
+                        <RechartsTooltip 
+                          formatter={(value: number, name: string) => [`${value} contatti`, name]}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                ) : (
+                  <span className="text-sm text-muted-foreground">Nessun dato</span>
+                )}
               </div>
-              <span className="text-muted-foreground">•</span>
-              <div className="flex items-center gap-1">
-                <Badge className="bg-yellow-500/20 text-yellow-700 border-yellow-500/30 hover:bg-yellow-500/30">
-                  Potenziale cliente ({statusCounts.prospect})
-                </Badge>
-                <span className="text-xs text-muted-foreground">In trattativa</span>
-              </div>
-              <span className="text-muted-foreground">•</span>
-              <div className="flex items-center gap-1">
-                <Badge className="bg-green-500/20 text-green-700 border-green-500/30 hover:bg-green-500/30">
-                  Cliente ({statusCounts.client})
-                </Badge>
-                <span className="text-xs text-muted-foreground">Contratto attivo</span>
-              </div>
-              <span className="text-muted-foreground">•</span>
-              <div className="flex items-center gap-1">
-                <Badge className="bg-gray-500/20 text-gray-700 border-gray-500/30 hover:bg-gray-500/30">
-                  Inattivo ({statusCounts.inactive})
-                </Badge>
-                <span className="text-xs text-muted-foreground">Non più attivo</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
 
         {aiInsights && (
           <Card className="mb-4 border-primary/20 bg-primary/5">
