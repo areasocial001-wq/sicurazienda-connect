@@ -12,6 +12,7 @@ import BottomNav from '@/components/BottomNav';
 import CRMClientDocuments from '@/components/CRMClientDocuments';
 import { ClientUserLinker } from '@/components/ClientUserLinker';
 import { ContactActivitiesContracts } from '@/components/ContactActivitiesContracts';
+import { ContactLocationsEmployees } from '@/components/ContactLocationsEmployees';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -280,6 +281,10 @@ export default function CRMContactDetail() {
         <Tabs defaultValue="info" className="space-y-4">
           <TabsList className="flex-wrap h-auto">
             <TabsTrigger value="info">Informazioni</TabsTrigger>
+            <TabsTrigger value="locations" className="flex items-center gap-1">
+              <MapPin className="h-4 w-4" />
+              Sedi
+            </TabsTrigger>
             <TabsTrigger value="activities" className="flex items-center gap-1">
               <ListTodo className="h-4 w-4" />
               Attività
@@ -459,6 +464,11 @@ export default function CRMContactDetail() {
                 />
               )}
             </div>
+          </TabsContent>
+
+          {/* Locations & Employees Tab */}
+          <TabsContent value="locations">
+            <ContactLocationsEmployees contactId={contact.id} />
           </TabsContent>
 
           {/* Activities & Contracts Tab */}
