@@ -6,7 +6,7 @@ import {
   MoreVertical, Sparkles, Loader2, UserPlus, 
   Calendar as CalendarIcon, MessageSquare, FileText, ArrowLeft,
   Brain, TrendingUp, BarChart3, Download, Filter, X, Tag,
-  ArrowUpDown, ArrowUp, ArrowDown, Clock
+  ArrowUpDown, ArrowUp, ArrowDown, Clock, HelpCircle, Info
 } from 'lucide-react';
 import { toast } from 'sonner';
 import Header from '@/components/Header';
@@ -376,21 +376,51 @@ export default function CRM() {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label>Status</Label>
-                      <Select 
-                        value={newContact.status} 
-                        onValueChange={(v) => setNewContact({...newContact, status: v as any})}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="lead">Primo contatto</SelectItem>
-                          <SelectItem value="prospect">Potenziale cliente</SelectItem>
-                          <SelectItem value="client">Cliente</SelectItem>
-                          <SelectItem value="inactive">Inattivo</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <Label>Stato</Label>
+                      <TooltipProvider delayDuration={300}>
+                        <Select 
+                          value={newContact.status} 
+                          onValueChange={(v) => setNewContact({...newContact, status: v as any})}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <SelectItem value="lead">Primo contatto</SelectItem>
+                              </TooltipTrigger>
+                              <TooltipContent side="left" className="max-w-[200px]">
+                                <p className="text-xs">Nuovo contatto acquisito, ancora da qualificare</p>
+                              </TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <SelectItem value="prospect">Potenziale cliente</SelectItem>
+                              </TooltipTrigger>
+                              <TooltipContent side="left" className="max-w-[200px]">
+                                <p className="text-xs">Contatto interessato, in fase di trattativa</p>
+                              </TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <SelectItem value="client">Cliente</SelectItem>
+                              </TooltipTrigger>
+                              <TooltipContent side="left" className="max-w-[200px]">
+                                <p className="text-xs">Cliente attivo con contratto in essere</p>
+                              </TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <SelectItem value="inactive">Inattivo</SelectItem>
+                              </TooltipTrigger>
+                              <TooltipContent side="left" className="max-w-[200px]">
+                                <p className="text-xs">Contatto non più attivo o interessato</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </SelectContent>
+                        </Select>
+                      </TooltipProvider>
                     </div>
                     <div>
                       <Label>Fonte</Label>
@@ -593,7 +623,45 @@ export default function CRM() {
           </CardContent>
         </Card>
 
-        {/* AI Insights Panel */}
+        {/* Status Legend */}
+        <Card className="mb-4 border-muted">
+          <CardContent className="py-3">
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-1 text-sm text-muted-foreground mr-2">
+                <Info className="h-4 w-4" />
+                <span className="font-medium">Legenda stati:</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Badge className="bg-blue-500/20 text-blue-700 border-blue-500/30 hover:bg-blue-500/30">
+                  Primo contatto
+                </Badge>
+                <span className="text-xs text-muted-foreground">Nuovo, da qualificare</span>
+              </div>
+              <span className="text-muted-foreground">•</span>
+              <div className="flex items-center gap-1">
+                <Badge className="bg-yellow-500/20 text-yellow-700 border-yellow-500/30 hover:bg-yellow-500/30">
+                  Potenziale cliente
+                </Badge>
+                <span className="text-xs text-muted-foreground">In trattativa</span>
+              </div>
+              <span className="text-muted-foreground">•</span>
+              <div className="flex items-center gap-1">
+                <Badge className="bg-green-500/20 text-green-700 border-green-500/30 hover:bg-green-500/30">
+                  Cliente
+                </Badge>
+                <span className="text-xs text-muted-foreground">Contratto attivo</span>
+              </div>
+              <span className="text-muted-foreground">•</span>
+              <div className="flex items-center gap-1">
+                <Badge className="bg-gray-500/20 text-gray-700 border-gray-500/30 hover:bg-gray-500/30">
+                  Inattivo
+                </Badge>
+                <span className="text-xs text-muted-foreground">Non più attivo</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {aiInsights && (
           <Card className="mb-4 border-primary/20 bg-primary/5">
             <CardHeader className="pb-2">
