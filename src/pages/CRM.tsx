@@ -86,7 +86,7 @@ export default function CRM() {
   const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
   const [tagFilter, setTagFilter] = useState<string>('all');
   const [showFilters, setShowFilters] = useState(false);
-  const [sortByName, setSortByName] = useState<'asc' | 'desc' | null>(null);
+  const [sortByName, setSortByName] = useState<'asc' | 'desc' | null>('asc');
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showFollowupDialog, setShowFollowupDialog] = useState(false);
   const [followupDate, setFollowupDate] = useState<Date | undefined>(undefined);
@@ -122,6 +122,16 @@ export default function CRM() {
       contact.tags?.forEach(tag => tags.add(tag));
     });
     return Array.from(tags).sort();
+  }, [contacts]);
+
+  // Status counts for legend
+  const statusCounts = useMemo(() => {
+    return {
+      lead: contacts.filter(c => c.status === 'lead').length,
+      prospect: contacts.filter(c => c.status === 'prospect').length,
+      client: contacts.filter(c => c.status === 'client').length,
+      inactive: contacts.filter(c => c.status === 'inactive').length,
+    };
   }, [contacts]);
 
   const filteredContacts = useMemo(() => {
@@ -633,28 +643,28 @@ export default function CRM() {
               </div>
               <div className="flex items-center gap-1">
                 <Badge className="bg-blue-500/20 text-blue-700 border-blue-500/30 hover:bg-blue-500/30">
-                  Primo contatto
+                  Primo contatto ({statusCounts.lead})
                 </Badge>
                 <span className="text-xs text-muted-foreground">Nuovo, da qualificare</span>
               </div>
               <span className="text-muted-foreground">•</span>
               <div className="flex items-center gap-1">
                 <Badge className="bg-yellow-500/20 text-yellow-700 border-yellow-500/30 hover:bg-yellow-500/30">
-                  Potenziale cliente
+                  Potenziale cliente ({statusCounts.prospect})
                 </Badge>
                 <span className="text-xs text-muted-foreground">In trattativa</span>
               </div>
               <span className="text-muted-foreground">•</span>
               <div className="flex items-center gap-1">
                 <Badge className="bg-green-500/20 text-green-700 border-green-500/30 hover:bg-green-500/30">
-                  Cliente
+                  Cliente ({statusCounts.client})
                 </Badge>
                 <span className="text-xs text-muted-foreground">Contratto attivo</span>
               </div>
               <span className="text-muted-foreground">•</span>
               <div className="flex items-center gap-1">
                 <Badge className="bg-gray-500/20 text-gray-700 border-gray-500/30 hover:bg-gray-500/30">
-                  Inattivo
+                  Inattivo ({statusCounts.inactive})
                 </Badge>
                 <span className="text-xs text-muted-foreground">Non più attivo</span>
               </div>
