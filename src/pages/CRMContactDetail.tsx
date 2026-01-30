@@ -11,7 +11,8 @@ import Header from '@/components/Header';
 import BottomNav from '@/components/BottomNav';
 import CRMClientDocuments from '@/components/CRMClientDocuments';
 import { ClientUserLinker } from '@/components/ClientUserLinker';
-import { ContactActivitiesContracts } from '@/components/ContactActivitiesContracts';
+import { ContactActivities } from '@/components/ContactActivities';
+import { ContactContracts } from '@/components/ContactContracts';
 import { ContactLocationsEmployees } from '@/components/ContactLocationsEmployees';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -289,6 +290,10 @@ export default function CRMContactDetail() {
               <ListTodo className="h-4 w-4" />
               Attività
             </TabsTrigger>
+            <TabsTrigger value="contracts" className="flex items-center gap-1">
+              <Briefcase className="h-4 w-4" />
+              Commesse
+            </TabsTrigger>
             <TabsTrigger value="documents">Documenti</TabsTrigger>
             <TabsTrigger value="interactions">Interazioni</TabsTrigger>
           </TabsList>
@@ -471,9 +476,14 @@ export default function CRMContactDetail() {
             <ContactLocationsEmployees contactId={contact.id} />
           </TabsContent>
 
-          {/* Activities & Contracts Tab */}
+          {/* Activities Tab */}
           <TabsContent value="activities">
-            <ContactActivitiesContracts contactId={contact.id} />
+            <ContactActivities contactId={contact.id} />
+          </TabsContent>
+
+          {/* Contracts Tab */}
+          <TabsContent value="contracts">
+            <ContactContracts contactId={contact.id} />
           </TabsContent>
 
           {/* Documents Tab */}
