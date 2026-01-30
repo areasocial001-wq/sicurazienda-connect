@@ -434,7 +434,7 @@ export function ContactLocationsEmployees({ contactId }: ContactLocationsEmploye
                             Nessun dipendente trovato per "{searchQuery}"
                           </p>
                         ) : (
-                          <ScrollArea className="max-h-[60vh]">
+                          <div className="max-h-[60vh] overflow-y-auto pr-2">
                             <div className="space-y-2">
                               {filteredEmployees.map((employee) => {
                                 const empActivities = getActivitiesForEmployee(employee.id);
@@ -615,7 +615,7 @@ export function ContactLocationsEmployees({ contactId }: ContactLocationsEmploye
                                 );
                               })}
                             </div>
-                          </ScrollArea>
+                          </div>
                         )}
                       </>
                     )}
