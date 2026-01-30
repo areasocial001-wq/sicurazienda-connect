@@ -9,7 +9,7 @@ export interface Reminder {
   user_id: string;
   title: string;
   description?: string;
-  type: 'followup' | 'deadline' | 'course_expiry' | 'document_expiry' | 'custom' | 'qr_download';
+  type: 'followup' | 'deadline' | 'course_expiry' | 'document_expiry' | 'custom' | 'qr_download' | 'employee_activity_expiry' | 'qr_expiry';
   reference_id?: string;
   reference_type?: string;
   due_date: string;
