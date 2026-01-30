@@ -21,10 +21,11 @@ const QRRedirect = () => {
       try {
         console.log('[QRRedirect] Fetching QR code from database...');
         
-        // Get QR code info including file path for signed URL generation
+        // Get QR code info - only fetch necessary fields for redirect
+        // Note: RLS policy restricts public access to only necessary fields
         const { data: qrCode, error: qrError } = await supabase
           .from('qr_codes')
-          .select('public_url, is_active, expires_at, document_id')
+          .select('id, public_url, is_active, expires_at, document_id')
           .eq('id', id)
           .maybeSingle();
 
@@ -94,8 +95,7 @@ const QRRedirect = () => {
         if (document?.file_path) {
           console.log('[QRRedirect] Generating fresh signed URL for:', document.file_path);
           
-          // Generate fresh signed URL via edge function (valid for 1 hour for this redirect)
-          // Use direct fetch to avoid Supabase client auth issues for public access
+          // Generate fresh signed URL via edge function with QR code ID for validation
           const edgeFunctionUrl = `https://obzflzotzvwlmgyjxfpv.supabase.co/functions/v1/generate-signed-url`;
           
           try {
@@ -105,7 +105,11 @@ const QRRedirect = () => {
                 'Content-Type': 'application/json',
                 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9iemZsem90enZ3bG1neWp4ZnB2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgwMjY3OTQsImV4cCI6MjA3MzYwMjc5NH0.ajn-6isd6JoZQDVLz4ZIz8u1kWMVcBfy990iDE6Pr5g'
               },
-              body: JSON.stringify({ filePath: document.file_path, expiresIn: 3600 })
+              body: JSON.stringify({ 
+                filePath: document.file_path, 
+                qrCodeId: id, // Pass QR code ID for server-side validation
+                expiresIn: 3600 
+              })
             });
             
             const signedData = await response.json();
@@ -116,7 +120,18 @@ const QRRedirect = () => {
               window.location.href = signedData.signedUrl;
               return;
             } else {
-              console.warn('[QRRedirect] Failed to generate signed URL, falling back to stored URL');
+              console.warn('[QRRedirect] Failed to generate signed URL:', signedData.error);
+              // If validation failed, show appropriate error
+              if (response.status === 403) {
+                if (signedData.error?.includes('disabled')) {
+                  setError('disabled');
+                } else if (signedData.error?.includes('expired')) {
+                  setError('expired');
+                } else {
+                  setError('not_found');
+                }
+                return;
+              }
             }
           } catch (fetchError) {
             console.error('[QRRedirect] Error calling edge function:', fetchError);
