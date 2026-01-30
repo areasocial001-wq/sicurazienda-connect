@@ -158,6 +158,66 @@ serve(async (req) => {
       }
     }
 
+    // Check for employee activities expiring in the next 30 days
+    const { data: expiringActivities, error: activityError } = await supabase
+      .from('crm_employee_activities')
+      .select(`
+        id, 
+        activity_name, 
+        activity_type, 
+        expiry_date, 
+        user_id,
+        employee_id,
+        crm_employees!inner(first_name, last_name, contact_id, crm_contacts(name, company))
+      `)
+      .not('expiry_date', 'is', null)
+      .lte('expiry_date', thirtyDaysFromNow.toISOString().split('T')[0])
+      .gte('expiry_date', now.toISOString().split('T')[0]);
+
+    if (activityError) {
+      console.error('Error fetching expiring employee activities:', activityError);
+    } else {
+      console.log(`Found ${expiringActivities?.length || 0} employee activities expiring soon`);
+
+      for (const activity of expiringActivities || []) {
+        // Check if reminder already exists
+        const { data: existingReminder } = await supabase
+          .from('reminders')
+          .select('id')
+          .eq('reference_id', activity.id)
+          .eq('reference_type', 'employee_activity')
+          .eq('is_completed', false)
+          .maybeSingle();
+
+        if (!existingReminder) {
+          const expiryDate = new Date(activity.expiry_date);
+          const daysUntilExpiry = Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+          const isUrgent = daysUntilExpiry <= 7;
+
+          const employee = activity.crm_employees as any;
+          const employeeName = employee ? `${employee.first_name} ${employee.last_name}` : 'Dipendente';
+          const contact = employee?.crm_contacts;
+          const companyInfo = contact?.company || contact?.name || '';
+
+          const activityTypeLabel = activity.activity_type === 'formazione' ? '📚 Formazione' : '🏥 Visita Medica';
+          
+          remindersToCreate.push({
+            user_id: activity.user_id,
+            title: isUrgent 
+              ? `⚠️ URGENTE: ${activityTypeLabel} - ${employeeName} scade tra ${daysUntilExpiry}g`
+              : `${activityTypeLabel}: ${employeeName} scade tra ${daysUntilExpiry}g`,
+            description: `${activity.activity_name} per ${employeeName}${companyInfo ? ` (${companyInfo})` : ''} scade il ${expiryDate.toLocaleDateString('it-IT')}. ${
+              isUrgent ? 'Pianifica il rinnovo immediatamente.' : 'Ricorda di pianificare il rinnovo.'
+            }`,
+            type: 'employee_activity_expiry',
+            reference_id: activity.id,
+            reference_type: 'employee_activity',
+            due_date: activity.expiry_date,
+          });
+        }
+      }
+    }
+
     // Check for upcoming Google Calendar events
     let calendarRemindersCreated = 0;
     const { data: calendarTokens } = await supabase

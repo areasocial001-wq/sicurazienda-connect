@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Bell, Check, Clock, FileText, Calendar, Users, X, AlarmClock, QrCode } from 'lucide-react';
+import { Bell, Check, Clock, FileText, Calendar, Users, X, AlarmClock, QrCode, GraduationCap, Stethoscope } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -26,6 +26,8 @@ const typeIcons: Record<string, React.ComponentType<{ className?: string }>> = {
   document_expiry: FileText,
   custom: Bell,
   qr_download: QrCode,
+  qr_expiry: QrCode,
+  employee_activity_expiry: GraduationCap,
 };
 
 const typeLabels: Record<string, string> = {
@@ -35,6 +37,8 @@ const typeLabels: Record<string, string> = {
   document_expiry: 'Documento in scadenza',
   custom: 'Promemoria',
   qr_download: 'Download QR',
+  qr_expiry: 'QR in scadenza',
+  employee_activity_expiry: 'Attività dipendente',
 };
 
 const snoozeOptions: { value: SnoozeOption; label: string }[] = [
