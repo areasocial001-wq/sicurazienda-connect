@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { AddActivityDialog } from './AddActivityDialog';
+import { EditActivityDialog } from './EditActivityDialog';
 
 interface Activity {
   id: string;
@@ -122,6 +123,11 @@ export function ContactActivities({ contactId }: ContactActivitiesProps) {
                     )}
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
+                    <EditActivityDialog 
+                      activity={activity} 
+                      onActivityUpdated={fetchActivities} 
+                      onActivityDeleted={fetchActivities} 
+                    />
                     {activity.priority && (
                       <Badge className={cn(priorityColors[activity.priority], 'text-xs')}>
                         {activity.priority}

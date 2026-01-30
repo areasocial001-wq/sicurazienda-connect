@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { AddContractDialog } from './AddContractDialog';
+import { EditContractDialog } from './EditContractDialog';
 
 interface Contract {
   id: string;
@@ -121,9 +122,16 @@ export function ContactContracts({ contactId }: ContactContractsProps) {
                       </p>
                     )}
                   </div>
-                  <Badge className={cn(contractStatusColors[contract.status] || contractStatusColors.pending)}>
-                    {contractStatusLabels[contract.status] || contract.status}
-                  </Badge>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <EditContractDialog 
+                      contract={contract} 
+                      onContractUpdated={fetchContracts} 
+                      onContractDeleted={fetchContracts} 
+                    />
+                    <Badge className={cn(contractStatusColors[contract.status] || contractStatusColors.pending)}>
+                      {contractStatusLabels[contract.status] || contract.status}
+                    </Badge>
+                  </div>
                 </div>
                 <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground flex-wrap">
                   {contract.contract_type && (
