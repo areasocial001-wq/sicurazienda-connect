@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import { AddActivityDialog } from './AddActivityDialog';
 
 interface Activity {
   id: string;
@@ -87,11 +88,12 @@ export function ContactActivities({ contactId }: ContactActivitiesProps) {
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-lg flex items-center gap-2">
           <ListTodo className="h-5 w-5 text-primary" />
           Attività ({activities.length})
         </CardTitle>
+        <AddActivityDialog contactId={contactId} onActivityAdded={fetchActivities} />
       </CardHeader>
       <CardContent>
         {activities.length === 0 ? (
