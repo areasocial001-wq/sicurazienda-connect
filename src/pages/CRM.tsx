@@ -15,7 +15,6 @@ import BottomNav from '@/components/BottomNav';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Calendar } from '@/components/ui/calendar';
@@ -77,7 +76,7 @@ export default function CRM() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const { 
-    contacts, loading, loadingProgress, aiProcessing, fetchContacts, searchContacts,
+    contacts, loading, aiProcessing, fetchContacts, searchContacts,
     addContact, updateContact, deleteContact,
     addInteraction, analyzeContact, suggestFollowups, generateEmail
   } = useCRM();
@@ -304,35 +303,9 @@ export default function CRM() {
     return null;
   }
 
-  // Loading progress percentage
-  const loadingPercentage = loadingProgress.total > 0 
-    ? Math.round((loadingProgress.loaded / loadingProgress.total) * 100) 
-    : 0;
-
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      
-      {/* Loading Progress Overlay */}
-      {loading && loadingProgress.total > 0 && (
-        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
-          <Card className="w-80">
-            <CardContent className="pt-6">
-              <div className="flex flex-col items-center gap-4">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <div className="text-center">
-                  <p className="font-medium">Caricamento contatti...</p>
-                  <p className="text-sm text-muted-foreground">
-                    {loadingProgress.loaded} di {loadingProgress.total} caricati
-                  </p>
-                </div>
-                <Progress value={loadingPercentage} className="w-full" />
-                <p className="text-xs text-muted-foreground">{loadingPercentage}%</p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
       
       <main className="container mx-auto p-4 pb-24">
         {/* Header */}
