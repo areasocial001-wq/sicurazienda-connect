@@ -8,18 +8,29 @@ export interface CRMContact {
   id: string;
   user_id: string;
   name: string;
-  email?: string;
-  phone?: string;
-  company?: string;
-  role?: string;
-  status: 'lead' | 'prospect' | 'client' | 'inactive';
-  source?: string;
-  notes?: string;
-  tags?: string[];
-  last_contact_at?: string;
-  next_followup_at?: string;
+  email?: string | null;
+  phone?: string | null;
+  company?: string | null;
+  role?: string | null;
+  status: string;
+  source?: string | null;
+  notes?: string | null;
+  tags?: string[] | null;
+  last_contact_at?: string | null;
+  next_followup_at?: string | null;
   created_at: string;
   updated_at: string;
+  // Additional fields from database
+  address?: string | null;
+  client_user_id?: string | null;
+  code?: string | null;
+  rating?: string | null;
+  owner_name?: string | null;
+  website?: string | null;
+  vat_number?: string | null;
+  fiscal_code?: string | null;
+  pec?: string | null;
+  sdi_code?: string | null;
 }
 
 export interface CRMInteraction {
@@ -62,26 +73,38 @@ export function useCRM() {
       // Fetch all contacts using pagination to overcome the 1000 row limit
       const allContacts: CRMContact[] = [];
       const pageSize = 1000;
-      let page = 0;
-      let hasMore = true;
+      let currentOffset = 0;
 
-      while (hasMore) {
-        const { data, error } = await supabase
-          .from('crm_contacts')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('updated_at', { ascending: false })
-          .range(page * pageSize, (page + 1) * pageSize - 1);
+      while (currentOffset < totalCount) {
+        try {
+          const { data, error } = await supabase
+            .from('crm_contacts')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('updated_at', { ascending: false })
+            .range(currentOffset, currentOffset + pageSize - 1);
 
-        if (error) throw error;
-        
-        if (data && data.length > 0) {
-          allContacts.push(...(data as CRMContact[]));
-          setLoadingProgress({ loaded: allContacts.length, total: totalCount });
-          hasMore = data.length === pageSize;
-          page++;
-        } else {
-          hasMore = false;
+          if (error) {
+            console.error('Error fetching batch at offset', currentOffset, error);
+            throw error;
+          }
+          
+          if (data && data.length > 0) {
+            allContacts.push(...(data as CRMContact[]));
+            setLoadingProgress({ loaded: allContacts.length, total: totalCount });
+          }
+          
+          // Always increment offset to avoid infinite loop
+          currentOffset += pageSize;
+          
+          // If we got fewer results than page size, we're done
+          if (!data || data.length < pageSize) {
+            break;
+          }
+        } catch (batchError) {
+          console.error('Batch fetch error:', batchError);
+          // Continue with partial data rather than failing completely
+          break;
         }
       }
 
