@@ -7,6 +7,7 @@ import {
   CheckCircle, Clock, Search, ChevronsUpDown, Pencil, X, Download, Trash2, Filter
 } from 'lucide-react';
 import { AddEmployeeActivityDialog } from './AddEmployeeActivityDialog';
+import { EditEmployeeActivityDialog } from './EditEmployeeActivityDialog';
 import { ExportLocationActivities } from './ExportLocationActivities';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -765,22 +766,30 @@ export function ContactLocationsEmployees({ contactId }: ContactLocationsEmploye
                                                     </div>
                                                   )}
                                                 </div>
-                                                <Button
-                                                  variant="ghost"
-                                                  size="icon"
-                                                  className="h-6 w-6 text-muted-foreground hover:text-destructive flex-shrink-0"
-                                                  onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setPendingDelete({
-                                                      activityId: activity.id,
-                                                      activityName: activity.activity_name,
-                                                      employeeName: `${employee.first_name} ${employee.last_name}`
-                                                    });
-                                                  }}
-                                                  disabled={updatingId === activity.id}
-                                                >
-                                                  <Trash2 className="h-3 w-3" />
-                                                </Button>
+                                                <div className="flex items-center gap-1 flex-shrink-0">
+                                                  <EditEmployeeActivityDialog
+                                                    activityId={activity.id}
+                                                    activityName={activity.activity_name}
+                                                    activityType={activity.activity_type}
+                                                    onActivityUpdated={fetchData}
+                                                  />
+                                                  <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-6 w-6 text-muted-foreground hover:text-destructive flex-shrink-0"
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      setPendingDelete({
+                                                        activityId: activity.id,
+                                                        activityName: activity.activity_name,
+                                                        employeeName: `${employee.first_name} ${employee.last_name}`
+                                                      });
+                                                    }}
+                                                    disabled={updatingId === activity.id}
+                                                  >
+                                                    <Trash2 className="h-3 w-3" />
+                                                  </Button>
+                                                </div>
                                                 </div>
                                               </div>
                                             </div>
