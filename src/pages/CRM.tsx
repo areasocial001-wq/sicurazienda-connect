@@ -18,6 +18,12 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Calendar } from '@/components/ui/calendar';
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -426,18 +432,48 @@ export default function CRM() {
                   className="pl-10"
                 />
               </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[150px]">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tutti</SelectItem>
-                  <SelectItem value="lead">Primo contatto</SelectItem>
-                  <SelectItem value="prospect">Potenziale cliente</SelectItem>
-                  <SelectItem value="client">Cliente</SelectItem>
-                  <SelectItem value="inactive">Inattivo</SelectItem>
-                </SelectContent>
-              </Select>
+              <TooltipProvider delayDuration={300}>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Stato" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tutti gli stati</SelectItem>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <SelectItem value="lead">Primo contatto</SelectItem>
+                      </TooltipTrigger>
+                      <TooltipContent side="left" className="max-w-[200px]">
+                        <p className="text-xs">Nuovo contatto acquisito, ancora da qualificare</p>
+                      </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <SelectItem value="prospect">Potenziale cliente</SelectItem>
+                      </TooltipTrigger>
+                      <TooltipContent side="left" className="max-w-[200px]">
+                        <p className="text-xs">Contatto interessato, in fase di trattativa</p>
+                      </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <SelectItem value="client">Cliente</SelectItem>
+                      </TooltipTrigger>
+                      <TooltipContent side="left" className="max-w-[200px]">
+                        <p className="text-xs">Cliente attivo con contratto in essere</p>
+                      </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <SelectItem value="inactive">Inattivo</SelectItem>
+                      </TooltipTrigger>
+                      <TooltipContent side="left" className="max-w-[200px]">
+                        <p className="text-xs">Contatto non più attivo o interessato</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </SelectContent>
+                </Select>
+              </TooltipProvider>
               <Button 
                 variant={sortByName ? "secondary" : "outline"}
                 onClick={() => {
