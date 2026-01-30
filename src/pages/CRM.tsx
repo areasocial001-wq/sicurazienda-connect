@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { 
@@ -15,6 +15,7 @@ import BottomNav from '@/components/BottomNav';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Calendar } from '@/components/ui/calendar';
@@ -76,12 +77,14 @@ export default function CRM() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const { 
-    contacts, loading, aiProcessing, fetchContacts,
+    contacts, loading, loadingProgress, aiProcessing, fetchContacts, searchContacts,
     addContact, updateContact, deleteContact,
     addInteraction, analyzeContact, suggestFollowups, generateEmail
   } = useCRM();
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [serverSearchResults, setServerSearchResults] = useState<CRMContact[] | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
   const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
@@ -125,6 +128,25 @@ export default function CRM() {
     return Array.from(tags).sort();
   }, [contacts]);
 
+  // Debounced server-side search
+  useEffect(() => {
+    const debounceTimer = setTimeout(async () => {
+      if (searchQuery.length >= 2) {
+        setIsSearching(true);
+        const results = await searchContacts(searchQuery);
+        setServerSearchResults(results);
+        setIsSearching(false);
+      } else {
+        setServerSearchResults(null);
+      }
+    }, 300);
+
+    return () => clearTimeout(debounceTimer);
+  }, [searchQuery, searchContacts]);
+
+  // Use server search results if available, otherwise use local contacts
+  const baseContacts = serverSearchResults !== null ? serverSearchResults : contacts;
+
   // Status counts for legend
   const statusCounts = useMemo(() => {
     return {
@@ -136,8 +158,10 @@ export default function CRM() {
   }, [contacts]);
 
   const filteredContacts = useMemo(() => {
-    let result = contacts.filter(contact => {
-      const matchesSearch = contact.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    let result = baseContacts.filter(contact => {
+      // Skip client-side text search if using server search
+      const matchesSearch = serverSearchResults !== null ? true : 
+        contact.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         contact.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         contact.company?.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesStatus = statusFilter === 'all' || contact.status === statusFilter;
@@ -171,7 +195,7 @@ export default function CRM() {
     }
 
     return result;
-  }, [contacts, searchQuery, statusFilter, dateFrom, dateTo, tagFilter, sortByName]);
+  }, [baseContacts, serverSearchResults, searchQuery, statusFilter, dateFrom, dateTo, tagFilter, sortByName]);
 
   const hasActiveFilters = statusFilter !== 'all' || dateFrom || dateTo || tagFilter !== 'all';
 
@@ -280,9 +304,35 @@ export default function CRM() {
     return null;
   }
 
+  // Loading progress percentage
+  const loadingPercentage = loadingProgress.total > 0 
+    ? Math.round((loadingProgress.loaded / loadingProgress.total) * 100) 
+    : 0;
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
+      
+      {/* Loading Progress Overlay */}
+      {loading && loadingProgress.total > 0 && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
+          <Card className="w-80">
+            <CardContent className="pt-6">
+              <div className="flex flex-col items-center gap-4">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <div className="text-center">
+                  <p className="font-medium">Caricamento contatti...</p>
+                  <p className="text-sm text-muted-foreground">
+                    {loadingProgress.loaded} di {loadingProgress.total} caricati
+                  </p>
+                </div>
+                <Progress value={loadingPercentage} className="w-full" />
+                <p className="text-xs text-muted-foreground">{loadingPercentage}%</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
       
       <main className="container mx-auto p-4 pb-24">
         {/* Header */}
@@ -465,13 +515,32 @@ export default function CRM() {
           <CardContent className="pt-4">
             <div className="flex gap-4 flex-wrap items-center">
               <div className="relative flex-1 min-w-[200px]">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                {isSearching ? (
+                  <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground animate-spin" />
+                ) : (
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                )}
                 <Input
-                  placeholder="Cerca per nome, email, azienda..."
+                  placeholder="Cerca per nome, email, azienda... (min. 2 caratteri)"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 pr-10"
                 />
+                {searchQuery && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6"
+                    onClick={() => setSearchQuery('')}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                )}
+                {serverSearchResults !== null && (
+                  <span className="absolute right-10 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                    {serverSearchResults.length} risultati
+                  </span>
+                )}
               </div>
               <TooltipProvider delayDuration={300}>
                 <Select value={statusFilter} onValueChange={setStatusFilter}>

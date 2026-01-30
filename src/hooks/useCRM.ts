@@ -40,12 +40,25 @@ export function useCRM() {
   const { isConnected: isGoogleConnected, createEvent: createGoogleEvent } = useGoogleCalendar(user?.id);
   const [contacts, setContacts] = useState<CRMContact[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState({ loaded: 0, total: 0 });
   const [aiProcessing, setAiProcessing] = useState(false);
 
   const fetchContacts = useCallback(async () => {
     if (!user) return;
     setLoading(true);
+    setLoadingProgress({ loaded: 0, total: 0 });
     try {
+      // First, get total count
+      const { count, error: countError } = await supabase
+        .from('crm_contacts')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id);
+
+      if (countError) throw countError;
+      
+      const totalCount = count || 0;
+      setLoadingProgress({ loaded: 0, total: totalCount });
+
       // Fetch all contacts using pagination to overcome the 1000 row limit
       const allContacts: CRMContact[] = [];
       const pageSize = 1000;
@@ -64,6 +77,7 @@ export function useCRM() {
         
         if (data && data.length > 0) {
           allContacts.push(...(data as CRMContact[]));
+          setLoadingProgress({ loaded: allContacts.length, total: totalCount });
           hasMore = data.length === pageSize;
           page++;
         } else {
@@ -76,8 +90,34 @@ export function useCRM() {
       console.error('Error fetching contacts:', error);
     } finally {
       setLoading(false);
+      setLoadingProgress({ loaded: 0, total: 0 });
     }
   }, [user]);
+
+  // Server-side search for better performance with large datasets
+  const searchContacts = useCallback(async (searchTerm: string) => {
+    if (!user) return [];
+    if (!searchTerm.trim()) {
+      return contacts;
+    }
+    
+    try {
+      const searchPattern = `%${searchTerm.toLowerCase()}%`;
+      const { data, error } = await supabase
+        .from('crm_contacts')
+        .select('*')
+        .eq('user_id', user.id)
+        .or(`name.ilike.${searchPattern},company.ilike.${searchPattern},email.ilike.${searchPattern},phone.ilike.${searchPattern}`)
+        .order('name', { ascending: true })
+        .limit(500);
+
+      if (error) throw error;
+      return data as CRMContact[];
+    } catch (error) {
+      console.error('Error searching contacts:', error);
+      return [];
+    }
+  }, [user, contacts]);
 
   useEffect(() => {
     fetchContacts();
@@ -271,8 +311,10 @@ export function useCRM() {
   return {
     contacts,
     loading,
+    loadingProgress,
     aiProcessing,
     fetchContacts,
+    searchContacts,
     addContact,
     updateContact,
     deleteContact,
