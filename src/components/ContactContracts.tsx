@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
-import { Briefcase, Calendar, Loader2 } from 'lucide-react';
+import { Briefcase, Calendar, Loader2, FileText, TrendingUp, TrendingDown } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
@@ -140,22 +140,57 @@ export function ContactContracts({ contactId }: ContactContractsProps) {
                   {contract.contract_type && (
                     <span className="text-primary/70">{contract.contract_type}</span>
                   )}
-                  {contract.contract_amount && (
-                    <span className="font-medium text-foreground">
-                      {formatCurrency(contract.contract_amount)}
-                    </span>
-                  )}
-                  {contract.quote_amount && !contract.contract_amount && (
-                    <span className="font-medium text-muted-foreground">
-                      Preventivo: {formatCurrency(contract.quote_amount)}
-                    </span>
-                  )}
                   <span className="flex items-center gap-1">
                     <Calendar className="h-3 w-3" />
                     {formatDate(contract.start_date)} - {formatDate(contract.end_date)}
                   </span>
                   {contract.responsible && (
                     <span>Resp: {contract.responsible}</span>
+                  )}
+                </div>
+                
+                {/* Cost information row */}
+                <div className="flex items-center gap-4 mt-2 text-xs flex-wrap border-t pt-2">
+                  {contract.quote_amount !== null && contract.quote_amount !== undefined && (
+                    <span className="flex items-center gap-1">
+                      <FileText className="h-3 w-3 text-muted-foreground" />
+                      <span className="text-muted-foreground">Preventivo:</span>
+                      <span className="font-medium text-foreground">{formatCurrency(contract.quote_amount)}</span>
+                    </span>
+                  )}
+                  {contract.contract_amount !== null && contract.contract_amount !== undefined && (
+                    <span className="flex items-center gap-1">
+                      <Briefcase className="h-3 w-3 text-primary" />
+                      <span className="text-muted-foreground">Contratto:</span>
+                      <span className="font-semibold text-primary">{formatCurrency(contract.contract_amount)}</span>
+                    </span>
+                  )}
+                  {contract.internal_cost !== null && contract.internal_cost !== undefined && (
+                    <span className="flex items-center gap-1">
+                      <TrendingDown className="h-3 w-3 text-orange-500" />
+                      <span className="text-muted-foreground">Costo Int:</span>
+                      <span className="font-medium text-orange-600">{formatCurrency(contract.internal_cost)}</span>
+                    </span>
+                  )}
+                  {contract.external_cost !== null && contract.external_cost !== undefined && (
+                    <span className="flex items-center gap-1">
+                      <TrendingUp className="h-3 w-3 text-red-500" />
+                      <span className="text-muted-foreground">Costo Est:</span>
+                      <span className="font-medium text-red-600">{formatCurrency(contract.external_cost)}</span>
+                    </span>
+                  )}
+                  {(contract.contract_amount && (contract.internal_cost || contract.external_cost)) && (
+                    <span className="flex items-center gap-1 ml-auto">
+                      <span className="text-muted-foreground">Margine:</span>
+                      <span className={cn(
+                        "font-semibold",
+                        (contract.contract_amount - (contract.internal_cost || 0) - (contract.external_cost || 0)) >= 0 
+                          ? "text-green-600" 
+                          : "text-red-600"
+                      )}>
+                        {formatCurrency(contract.contract_amount - (contract.internal_cost || 0) - (contract.external_cost || 0))}
+                      </span>
+                    </span>
                   )}
                 </div>
               </div>
