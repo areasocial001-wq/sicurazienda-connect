@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
-import { ListTodo, Calendar, Loader2 } from 'lucide-react';
+import { ListTodo, Calendar, Loader2, Receipt, Clock, Euro } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
@@ -162,7 +162,46 @@ export function ContactActivities({ contactId }: ContactActivitiesProps) {
                   {activity.assignee && (
                     <span>Assegnato a: {activity.assignee}</span>
                   )}
+                  {activity.owner_name && (
+                    <span>Proprietario: {activity.owner_name}</span>
+                  )}
                 </div>
+                
+                {/* Billing information row */}
+                {(activity.is_invoiced || activity.invoice_number || activity.actual_time || activity.actual_cost) && (
+                  <div className="flex items-center gap-4 mt-2 text-xs flex-wrap border-t pt-2 mt-2">
+                    {activity.is_invoiced && (
+                      <Badge variant="outline" className="bg-green-500/10 text-green-700 border-green-500/30 gap-1">
+                        <Receipt className="h-3 w-3" />
+                        Fatturata
+                      </Badge>
+                    )}
+                    {activity.invoice_number && (
+                      <span className="text-muted-foreground">
+                        Fatt. n° <span className="font-medium text-foreground">{activity.invoice_number}</span>
+                        {activity.invoice_date && ` del ${formatDate(activity.invoice_date)}`}
+                      </span>
+                    )}
+                    {activity.invoiced_hours && (
+                      <span className="flex items-center gap-1 text-muted-foreground">
+                        <Clock className="h-3 w-3" />
+                        {activity.invoiced_hours}h fatturate
+                      </span>
+                    )}
+                    {activity.actual_time && (
+                      <span className="flex items-center gap-1 text-muted-foreground">
+                        <Clock className="h-3 w-3" />
+                        {activity.actual_time}h effettive
+                      </span>
+                    )}
+                    {activity.actual_cost && (
+                      <span className="flex items-center gap-1 text-muted-foreground">
+                        <Euro className="h-3 w-3" />
+                        €{activity.actual_cost.toFixed(2)}
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
           </div>
