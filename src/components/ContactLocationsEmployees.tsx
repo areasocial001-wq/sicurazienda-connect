@@ -4,7 +4,7 @@ import { it } from 'date-fns/locale';
 import { 
   MapPin, Users, ChevronDown, ChevronUp, Loader2, 
   Building, Phone, Mail, Calendar, AlertTriangle,
-  CheckCircle, Clock, Search, ChevronsUpDown, Pencil, X, Download
+  CheckCircle, Clock, Search, ChevronsUpDown, Pencil, X, Download, Trash2, Filter
 } from 'lucide-react';
 import { AddEmployeeActivityDialog } from './AddEmployeeActivityDialog';
 import { ExportLocationActivities } from './ExportLocationActivities';
@@ -35,6 +35,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuCheckboxItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 
@@ -79,6 +87,17 @@ interface PendingDateChange {
   newDate: Date;
 }
 
+interface ActivityFilters {
+  types: string[];
+  statuses: string[];
+}
+
+interface PendingDelete {
+  activityId: string;
+  activityName: string;
+  employeeName: string;
+}
+
 const activityTypeLabels: Record<string, string> = {
   formazione: 'Formazione',
   visita: 'Visita Medica',
@@ -95,7 +114,9 @@ export function ContactLocationsEmployees({ contactId }: ContactLocationsEmploye
   const [expandedEmployees, setExpandedEmployees] = useState<Set<string>>(new Set());
   const [searchQueries, setSearchQueries] = useState<Record<string, string>>({});
   const [pendingDateChange, setPendingDateChange] = useState<PendingDateChange | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [activityFilters, setActivityFilters] = useState<Record<string, ActivityFilters>>({});
 
   useEffect(() => {
     fetchData();
@@ -278,6 +299,84 @@ export function ContactLocationsEmployees({ contactId }: ContactLocationsEmploye
     setSearchQueries(prev => ({ ...prev, [locationId]: query }));
   };
 
+  const getLocationFilters = (locationId: string): ActivityFilters => {
+    return activityFilters[locationId] || { types: [], statuses: [] };
+  };
+
+  const updateActivityFilters = (locationId: string, filters: Partial<ActivityFilters>) => {
+    setActivityFilters(prev => ({
+      ...prev,
+      [locationId]: { ...getLocationFilters(locationId), ...filters }
+    }));
+  };
+
+  const toggleTypeFilter = (locationId: string, type: string) => {
+    const current = getLocationFilters(locationId);
+    const newTypes = current.types.includes(type)
+      ? current.types.filter(t => t !== type)
+      : [...current.types, type];
+    updateActivityFilters(locationId, { types: newTypes });
+  };
+
+  const toggleStatusFilter = (locationId: string, status: string) => {
+    const current = getLocationFilters(locationId);
+    const newStatuses = current.statuses.includes(status)
+      ? current.statuses.filter(s => s !== status)
+      : [...current.statuses, status];
+    updateActivityFilters(locationId, { statuses: newStatuses });
+  };
+
+  const getFilteredActivitiesForEmployee = (employeeId: string, locationId: string) => {
+    const empActivities = getActivitiesForEmployee(employeeId);
+    const filters = getLocationFilters(locationId);
+    
+    if (filters.types.length === 0 && filters.statuses.length === 0) {
+      return empActivities;
+    }
+    
+    return empActivities.filter(activity => {
+      const matchesType = filters.types.length === 0 || 
+        filters.types.includes(activity.activity_type);
+      
+      const status = getExpiryStatus(activity.expiry_date);
+      const matchesStatus = filters.statuses.length === 0 ||
+        (filters.statuses.includes('expired') && status === 'expired') ||
+        (filters.statuses.includes('expiring') && status === 'expiring') ||
+        (filters.statuses.includes('valid') && status === 'valid');
+      
+      return matchesType && matchesStatus;
+    });
+  };
+
+  const handleDeleteActivity = async () => {
+    if (!pendingDelete) return;
+    
+    setUpdatingId(pendingDelete.activityId);
+    
+    try {
+      const { error } = await supabase
+        .from('crm_employee_activities')
+        .delete()
+        .eq('id', pendingDelete.activityId);
+
+      if (error) throw error;
+
+      setActivities(prev => prev.filter(a => a.id !== pendingDelete.activityId));
+      toast.success('Attività eliminata');
+    } catch (error) {
+      console.error('Error deleting activity:', error);
+      toast.error('Errore durante l\'eliminazione');
+    } finally {
+      setUpdatingId(null);
+      setPendingDelete(null);
+    }
+  };
+
+  const getActiveFiltersCount = (locationId: string) => {
+    const filters = getLocationFilters(locationId);
+    return filters.types.length + filters.statuses.length;
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
@@ -410,6 +509,73 @@ export function ContactLocationsEmployees({ contactId }: ContactLocationsEmploye
                               </Button>
                             )}
                           </div>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="gap-1 text-xs h-8"
+                              >
+                                <Filter className="h-3 w-3" />
+                                Filtri
+                                {getActiveFiltersCount(location.id) > 0 && (
+                                  <Badge variant="secondary" className="ml-1 h-4 px-1 text-[10px]">
+                                    {getActiveFiltersCount(location.id)}
+                                  </Badge>
+                                )}
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48">
+                              <DropdownMenuLabel>Tipo Attività</DropdownMenuLabel>
+                              <DropdownMenuCheckboxItem
+                                checked={getLocationFilters(location.id).types.includes('formazione')}
+                                onCheckedChange={() => toggleTypeFilter(location.id, 'formazione')}
+                              >
+                                Formazione
+                              </DropdownMenuCheckboxItem>
+                              <DropdownMenuCheckboxItem
+                                checked={getLocationFilters(location.id).types.includes('visita_medica')}
+                                onCheckedChange={() => toggleTypeFilter(location.id, 'visita_medica')}
+                              >
+                                Visita Medica
+                              </DropdownMenuCheckboxItem>
+                              <DropdownMenuCheckboxItem
+                                checked={getLocationFilters(location.id).types.includes('cartella_sanitaria')}
+                                onCheckedChange={() => toggleTypeFilter(location.id, 'cartella_sanitaria')}
+                              >
+                                Cartella Sanitaria
+                              </DropdownMenuCheckboxItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuLabel>Stato Scadenza</DropdownMenuLabel>
+                              <DropdownMenuCheckboxItem
+                                checked={getLocationFilters(location.id).statuses.includes('expired')}
+                                onCheckedChange={() => toggleStatusFilter(location.id, 'expired')}
+                              >
+                                <span className="flex items-center gap-2">
+                                  <AlertTriangle className="h-3 w-3 text-red-500" />
+                                  Scaduto
+                                </span>
+                              </DropdownMenuCheckboxItem>
+                              <DropdownMenuCheckboxItem
+                                checked={getLocationFilters(location.id).statuses.includes('expiring')}
+                                onCheckedChange={() => toggleStatusFilter(location.id, 'expiring')}
+                              >
+                                <span className="flex items-center gap-2">
+                                  <Clock className="h-3 w-3 text-yellow-500" />
+                                  In scadenza (&lt;30gg)
+                                </span>
+                              </DropdownMenuCheckboxItem>
+                              <DropdownMenuCheckboxItem
+                                checked={getLocationFilters(location.id).statuses.includes('valid')}
+                                onCheckedChange={() => toggleStatusFilter(location.id, 'valid')}
+                              >
+                                <span className="flex items-center gap-2">
+                                  <CheckCircle className="h-3 w-3 text-green-500" />
+                                  Valido
+                                </span>
+                              </DropdownMenuCheckboxItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                           <Button
                             variant="outline"
                             size="sm"
@@ -437,7 +603,7 @@ export function ContactLocationsEmployees({ contactId }: ContactLocationsEmploye
                           <div className="max-h-[60vh] overflow-y-auto pr-2">
                             <div className="space-y-2">
                               {filteredEmployees.map((employee) => {
-                                const empActivities = getActivitiesForEmployee(employee.id);
+                                const empActivities = getFilteredActivitiesForEmployee(employee.id, location.id);
                                 const expiringCount = countExpiringActivities(employee.id);
                                 const isEmpExpanded = expandedEmployees.has(employee.id);
 
@@ -496,7 +662,8 @@ export function ContactLocationsEmployees({ contactId }: ContactLocationsEmploye
                                                     {activityTypeLabels[activity.activity_type] || activity.activity_type}
                                                   </p>
                                                 </div>
-                                                <div className="text-right flex-shrink-0 space-y-1">
+                                                <div className="flex items-start gap-2">
+                                                  <div className="text-right flex-shrink-0 space-y-1">
                                                   {/* Execution Date */}
                                                   <div className="flex items-center gap-1 text-muted-foreground">
                                                     <span className="text-[10px]">Esec:</span>
@@ -598,6 +765,23 @@ export function ContactLocationsEmployees({ contactId }: ContactLocationsEmploye
                                                     </div>
                                                   )}
                                                 </div>
+                                                <Button
+                                                  variant="ghost"
+                                                  size="icon"
+                                                  className="h-6 w-6 text-muted-foreground hover:text-destructive flex-shrink-0"
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setPendingDelete({
+                                                      activityId: activity.id,
+                                                      activityName: activity.activity_name,
+                                                      employeeName: `${employee.first_name} ${employee.last_name}`
+                                                    });
+                                                  }}
+                                                  disabled={updatingId === activity.id}
+                                                >
+                                                  <Trash2 className="h-3 w-3" />
+                                                </Button>
+                                                </div>
                                               </div>
                                             </div>
                                           );
@@ -653,6 +837,30 @@ export function ContactLocationsEmployees({ contactId }: ContactLocationsEmploye
             <AlertDialogCancel>Annulla</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDateChange}>
               Conferma
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!pendingDelete} onOpenChange={() => setPendingDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Conferma eliminazione</AlertDialogTitle>
+            <AlertDialogDescription>
+              Stai per eliminare l'attività "<strong>{pendingDelete?.activityName}</strong>" 
+              del dipendente <strong>{pendingDelete?.employeeName}</strong>.
+              <br /><br />
+              Questa azione non può essere annullata.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annulla</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteActivity}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Elimina
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
