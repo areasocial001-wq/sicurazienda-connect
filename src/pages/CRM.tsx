@@ -268,6 +268,10 @@ export default function CRM() {
             </div>
           </div>
           <div className="flex gap-2 flex-wrap">
+            <Button variant="outline" onClick={() => navigate('/crm/dashboard')}>
+              <TrendingUp className="h-4 w-4 mr-2" />
+              Dashboard
+            </Button>
             <Button variant="outline" onClick={() => navigate('/crm/analytics')}>
               <BarChart3 className="h-4 w-4 mr-2" />
               Analytics

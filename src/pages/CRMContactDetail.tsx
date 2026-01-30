@@ -5,12 +5,13 @@ import { it } from 'date-fns/locale';
 import { 
   ArrowLeft, Building, Mail, Phone, User, Calendar, 
   Tag, Loader2, Edit, MessageSquare, Brain, Sparkles,
-  MapPin, Globe, FileText, Clock, TrendingUp
+  MapPin, Globe, FileText, Clock, TrendingUp, ListTodo, Briefcase
 } from 'lucide-react';
 import Header from '@/components/Header';
 import BottomNav from '@/components/BottomNav';
 import CRMClientDocuments from '@/components/CRMClientDocuments';
 import { ClientUserLinker } from '@/components/ClientUserLinker';
+import { ContactActivitiesContracts } from '@/components/ContactActivitiesContracts';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -277,8 +278,12 @@ export default function CRMContactDetail() {
         )}
 
         <Tabs defaultValue="info" className="space-y-4">
-          <TabsList>
+          <TabsList className="flex-wrap h-auto">
             <TabsTrigger value="info">Informazioni</TabsTrigger>
+            <TabsTrigger value="activities" className="flex items-center gap-1">
+              <ListTodo className="h-4 w-4" />
+              Attività
+            </TabsTrigger>
             <TabsTrigger value="documents">Documenti</TabsTrigger>
             <TabsTrigger value="interactions">Interazioni</TabsTrigger>
           </TabsList>
@@ -454,6 +459,11 @@ export default function CRMContactDetail() {
                 />
               )}
             </div>
+          </TabsContent>
+
+          {/* Activities & Contracts Tab */}
+          <TabsContent value="activities">
+            <ContactActivitiesContracts contactId={contact.id} />
           </TabsContent>
 
           {/* Documents Tab */}
