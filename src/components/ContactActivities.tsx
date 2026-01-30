@@ -21,6 +21,15 @@ interface Activity {
   description?: string;
   work_type?: string;
   project_name?: string;
+  owner_name?: string;
+  completion_date?: string;
+  actual_time?: number;
+  actual_cost?: number;
+  is_invoiced?: boolean;
+  invoice_number?: string;
+  invoice_date?: string;
+  invoiced_hours?: number;
+  billing_notes?: string;
 }
 
 interface ContactActivitiesProps {
@@ -30,13 +39,17 @@ interface ContactActivitiesProps {
 const activityStatusColors: Record<string, string> = {
   not_started: 'bg-gray-500/20 text-gray-700 border-gray-500/30',
   in_progress: 'bg-blue-500/20 text-blue-700 border-blue-500/30',
+  waiting_input: 'bg-yellow-500/20 text-yellow-700 border-yellow-500/30',
+  postponed: 'bg-orange-500/20 text-orange-700 border-orange-500/30',
   completed: 'bg-green-500/20 text-green-700 border-green-500/30',
   cancelled: 'bg-red-500/20 text-red-700 border-red-500/30',
 };
 
 const activityStatusLabels: Record<string, string> = {
-  not_started: 'Da iniziare',
+  not_started: 'Non Iniziato',
   in_progress: 'In corso',
+  waiting_input: 'In attesa di Input',
+  postponed: 'Rimandato',
   completed: 'Completata',
   cancelled: 'Annullata',
 };
@@ -61,7 +74,7 @@ export function ContactActivities({ contactId }: ContactActivitiesProps) {
     try {
       const { data, error } = await supabase
         .from('crm_activities')
-        .select('id, name, type, status, priority, start_date, end_date, assignee, description, work_type, project_name')
+        .select('id, name, type, status, priority, start_date, end_date, assignee, description, work_type, project_name, owner_name, completion_date, actual_time, actual_cost, is_invoiced, invoice_number, invoice_date, invoiced_hours, billing_notes')
         .eq('contact_id', contactId)
         .order('start_date', { ascending: false });
 
