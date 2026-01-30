@@ -5,7 +5,7 @@ import { it } from 'date-fns/locale';
 import { 
   ArrowLeft, Search, Filter, X, GraduationCap, Stethoscope, 
   Building, User, AlertTriangle, CheckCircle2, Clock, Loader2,
-  ArrowUpDown, ArrowUp, ArrowDown, Calendar as CalendarIcon, Download
+  ArrowUpDown, ArrowUp, ArrowDown, Calendar as CalendarIcon, Download, Pencil
 } from 'lucide-react';
 import { toast } from 'sonner';
 import Header from '@/components/Header';
@@ -30,6 +30,12 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Label } from '@/components/ui/label';
+import { Calendar } from '@/components/ui/calendar';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
@@ -62,6 +68,7 @@ export default function CRMEmployeeDeadlines() {
   const { user, loading: authLoading } = useAuth();
   const [activities, setActivities] = useState<EmployeeActivity[]>([]);
   const [loading, setLoading] = useState(true);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
   
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -301,6 +308,36 @@ export default function CRMEmployeeDeadlines() {
     toast.success(`Esportate ${filteredActivities.length} scadenze`);
   }, [filteredActivities]);
 
+  const updateExpiryDate = useCallback(async (activityId: string, newDate: Date | undefined) => {
+    if (!newDate) return;
+    
+    setUpdatingId(activityId);
+    try {
+      const formattedDate = format(newDate, 'yyyy-MM-dd');
+      
+      const { error } = await supabase
+        .from('crm_employee_activities')
+        .update({ expiry_date: formattedDate })
+        .eq('id', activityId);
+
+      if (error) throw error;
+
+      // Update local state
+      setActivities(prev => prev.map(activity => 
+        activity.id === activityId 
+          ? { ...activity, expiry_date: formattedDate }
+          : activity
+      ));
+
+      toast.success('Data di scadenza aggiornata');
+    } catch (error) {
+      console.error('Error updating expiry date:', error);
+      toast.error('Errore durante l\'aggiornamento');
+    } finally {
+      setUpdatingId(null);
+    }
+  }, []);
+
   const getStatusBadge = (expiryDate: string | null) => {
     const status = getActivityStatus(expiryDate);
     switch (status) {
@@ -530,6 +567,7 @@ export default function CRMEmployeeDeadlines() {
                       </Button>
                     </TableHead>
                     <TableHead>Stato</TableHead>
+                    <TableHead className="w-10"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -575,6 +613,35 @@ export default function CRMEmployeeDeadlines() {
                       </TableCell>
                       <TableCell>
                         {getStatusBadge(activity.expiry_date)}
+                      </TableCell>
+                      <TableCell>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={(e) => e.stopPropagation()}
+                              disabled={updatingId === activity.id}
+                            >
+                              {updatingId === activity.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Pencil className="h-4 w-4 text-muted-foreground" />
+                              )}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="end" onClick={(e) => e.stopPropagation()}>
+                            <Calendar
+                              mode="single"
+                              selected={activity.expiry_date ? new Date(activity.expiry_date) : undefined}
+                              onSelect={(date) => updateExpiryDate(activity.id, date)}
+                              initialFocus
+                              locale={it}
+                              className="pointer-events-auto"
+                            />
+                          </PopoverContent>
+                        </Popover>
                       </TableCell>
                     </TableRow>
                   ))}
