@@ -4,8 +4,10 @@ import { it } from 'date-fns/locale';
 import { 
   MapPin, Users, ChevronDown, ChevronUp, Loader2, 
   Building, Phone, Mail, Calendar, AlertTriangle,
-  CheckCircle, Clock, Search, ChevronsUpDown, Pencil, X
+  CheckCircle, Clock, Search, ChevronsUpDown, Pencil, X, Download
 } from 'lucide-react';
+import { AddEmployeeActivityDialog } from './AddEmployeeActivityDialog';
+import { ExportLocationActivities } from './ExportLocationActivities';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -417,6 +419,14 @@ export function ContactLocationsEmployees({ contactId }: ContactLocationsEmploye
                             <ChevronsUpDown className="h-3 w-3" />
                             {allEmployeesExpanded ? 'Chiudi tutti' : 'Espandi tutti'}
                           </Button>
+                          <ExportLocationActivities
+                            locationId={location.id}
+                            locationName={location.name}
+                            employees={locationEmployees}
+                            activities={activities.filter(a => 
+                              locationEmployees.some(e => e.id === a.employee_id)
+                            )}
+                          />
                         </div>
 
                         {filteredEmployees.length === 0 ? (
@@ -592,6 +602,13 @@ export function ContactLocationsEmployees({ contactId }: ContactLocationsEmploye
                                             </div>
                                           );
                                         })}
+                                        <div className="pt-2 border-t mt-2">
+                                          <AddEmployeeActivityDialog
+                                            employeeId={employee.id}
+                                            employeeName={`${employee.first_name} ${employee.last_name}`}
+                                            onActivityAdded={fetchData}
+                                          />
+                                        </div>
                                       </div>
                                     </CollapsibleContent>
                                   </Collapsible>
