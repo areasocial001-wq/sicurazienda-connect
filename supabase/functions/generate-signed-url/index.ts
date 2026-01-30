@@ -8,7 +8,8 @@ const corsHeaders = {
 
 interface GenerateSignedUrlRequest {
   filePath: string;
-  expiresIn?: number; // seconds, default 7 days
+  qrCodeId?: string; // Required for public access - validates against active QR code
+  expiresIn?: number; // seconds, default 1 hour for QR access
 }
 
 serve(async (req: Request): Promise<Response> => {
@@ -23,7 +24,7 @@ serve(async (req: Request): Promise<Response> => {
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { filePath, expiresIn = 604800 }: GenerateSignedUrlRequest = await req.json();
+    const { filePath, qrCodeId, expiresIn = 3600 }: GenerateSignedUrlRequest = await req.json();
 
     if (!filePath) {
       return new Response(
@@ -32,7 +33,139 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    console.log(`Generating signed URL for: ${filePath}, expires in: ${expiresIn}s`);
+    // Check for authenticated user via Authorization header
+    const authHeader = req.headers.get("authorization");
+    let isAuthenticated = false;
+    let userId: string | null = null;
+
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      const token = authHeader.replace("Bearer ", "");
+      // Use anon key to validate the JWT token
+      const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || supabaseServiceKey;
+      const userClient = createClient(supabaseUrl, anonKey, {
+        global: { headers: { Authorization: `Bearer ${token}` } }
+      });
+      
+      const { data: { user }, error: userError } = await userClient.auth.getUser();
+      if (user && !userError) {
+        isAuthenticated = true;
+        userId = user.id;
+      }
+    }
+
+    // If authenticated, check if user owns the document
+    if (isAuthenticated && userId) {
+      const { data: document, error: docError } = await supabase
+        .from("documents")
+        .select("id, user_id")
+        .eq("file_path", filePath)
+        .maybeSingle();
+
+      if (document) {
+        // User owns the document OR is admin
+        const { data: userRole } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", userId)
+          .single();
+
+        const isAdmin = userRole?.role === "admin";
+        const isOwner = document.user_id === userId;
+
+        if (isOwner || isAdmin) {
+          console.log(`Authenticated access granted for: ${filePath}`);
+          const { data, error } = await supabase.storage
+            .from("documents")
+            .createSignedUrl(filePath, expiresIn);
+
+          if (error) {
+            console.error("Error creating signed URL:", error);
+            return new Response(
+              JSON.stringify({ error: error.message }),
+              { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+
+          return new Response(
+            JSON.stringify({ 
+              signedUrl: data.signedUrl,
+              expiresAt: new Date(Date.now() + expiresIn * 1000).toISOString()
+            }),
+            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      }
+    }
+
+    // For unauthenticated access, REQUIRE a valid QR code ID
+    if (!qrCodeId) {
+      console.log("Unauthenticated request without qrCodeId - access denied");
+      return new Response(
+        JSON.stringify({ error: "Unauthorized: qrCodeId required for public access" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Validate that the QR code exists, is active, not expired, and matches the file path
+    console.log(`Validating QR code: ${qrCodeId} for file: ${filePath}`);
+    
+    const { data: qrCode, error: qrError } = await supabase
+      .from("qr_codes")
+      .select("id, document_id, is_active, expires_at")
+      .eq("id", qrCodeId)
+      .maybeSingle();
+
+    if (qrError || !qrCode) {
+      console.error("QR code not found:", qrCodeId);
+      return new Response(
+        JSON.stringify({ error: "Invalid QR code" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Check if QR code is active
+    if (!qrCode.is_active) {
+      console.log("QR code is disabled:", qrCodeId);
+      return new Response(
+        JSON.stringify({ error: "QR code is disabled" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Check if QR code is expired
+    if (qrCode.expires_at && new Date(qrCode.expires_at) < new Date()) {
+      console.log("QR code is expired:", qrCodeId);
+      return new Response(
+        JSON.stringify({ error: "QR code is expired" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Verify the file path matches the document associated with the QR code
+    const { data: document, error: docError } = await supabase
+      .from("documents")
+      .select("id, file_path")
+      .eq("id", qrCode.document_id)
+      .maybeSingle();
+
+    if (docError || !document) {
+      console.error("Document not found for QR code:", qrCode.document_id);
+      return new Response(
+        JSON.stringify({ error: "Document not found" }),
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Validate that the requested file path matches the document's file path
+    if (document.file_path !== filePath) {
+      console.error("File path mismatch. Requested:", filePath, "Expected:", document.file_path);
+      return new Response(
+        JSON.stringify({ error: "Unauthorized: file path does not match QR code document" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log(`QR code validated. Generating signed URL for: ${filePath}`);
 
     const { data, error } = await supabase.storage
       .from("documents")
@@ -46,7 +179,7 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    console.log("Signed URL generated successfully");
+    console.log("Signed URL generated successfully via QR code validation");
 
     return new Response(
       JSON.stringify({ 
