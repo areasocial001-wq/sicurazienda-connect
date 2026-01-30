@@ -86,6 +86,95 @@ export type Database = {
         }
         Relationships: []
       }
+      crm_activities: {
+        Row: {
+          actual_cost: number | null
+          actual_time: number | null
+          assignee: string | null
+          billing_notes: string | null
+          completion_date: string | null
+          contact_id: string | null
+          created_at: string
+          description: string | null
+          end_date: string | null
+          id: string
+          invoice_date: string | null
+          invoice_number: string | null
+          invoiced_hours: number | null
+          is_invoiced: boolean | null
+          name: string
+          owner_name: string | null
+          priority: string | null
+          project_name: string | null
+          start_date: string | null
+          status: string
+          type: string
+          updated_at: string
+          user_id: string
+          work_type: string | null
+        }
+        Insert: {
+          actual_cost?: number | null
+          actual_time?: number | null
+          assignee?: string | null
+          billing_notes?: string | null
+          completion_date?: string | null
+          contact_id?: string | null
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          invoice_date?: string | null
+          invoice_number?: string | null
+          invoiced_hours?: number | null
+          is_invoiced?: boolean | null
+          name: string
+          owner_name?: string | null
+          priority?: string | null
+          project_name?: string | null
+          start_date?: string | null
+          status?: string
+          type?: string
+          updated_at?: string
+          user_id: string
+          work_type?: string | null
+        }
+        Update: {
+          actual_cost?: number | null
+          actual_time?: number | null
+          assignee?: string | null
+          billing_notes?: string | null
+          completion_date?: string | null
+          contact_id?: string | null
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          invoice_date?: string | null
+          invoice_number?: string | null
+          invoiced_hours?: number | null
+          is_invoiced?: boolean | null
+          name?: string
+          owner_name?: string | null
+          priority?: string | null
+          project_name?: string | null
+          start_date?: string | null
+          status?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+          work_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_activities_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crm_client_documents: {
         Row: {
           area: string
@@ -143,6 +232,7 @@ export type Database = {
         Row: {
           address: string | null
           client_user_id: string | null
+          code: string | null
           company: string | null
           created_at: string
           email: string | null
@@ -152,8 +242,10 @@ export type Database = {
           name: string
           next_followup_at: string | null
           notes: string | null
+          owner_name: string | null
           pec: string | null
           phone: string | null
+          rating: string | null
           role: string | null
           sdi_code: string | null
           source: string | null
@@ -167,6 +259,7 @@ export type Database = {
         Insert: {
           address?: string | null
           client_user_id?: string | null
+          code?: string | null
           company?: string | null
           created_at?: string
           email?: string | null
@@ -176,8 +269,10 @@ export type Database = {
           name: string
           next_followup_at?: string | null
           notes?: string | null
+          owner_name?: string | null
           pec?: string | null
           phone?: string | null
+          rating?: string | null
           role?: string | null
           sdi_code?: string | null
           source?: string | null
@@ -191,6 +286,7 @@ export type Database = {
         Update: {
           address?: string | null
           client_user_id?: string | null
+          code?: string | null
           company?: string | null
           created_at?: string
           email?: string | null
@@ -200,8 +296,10 @@ export type Database = {
           name?: string
           next_followup_at?: string | null
           notes?: string | null
+          owner_name?: string | null
           pec?: string | null
           phone?: string | null
+          rating?: string | null
           role?: string | null
           sdi_code?: string | null
           source?: string | null
@@ -213,6 +311,83 @@ export type Database = {
           website?: string | null
         }
         Relationships: []
+      }
+      crm_contracts: {
+        Row: {
+          contact_id: string | null
+          contract_amount: number | null
+          contract_date: string | null
+          contract_expiry_date: string | null
+          contract_type: string | null
+          created_at: string
+          description: string | null
+          documentation_delivery_date: string | null
+          end_date: string | null
+          external_cost: number | null
+          group_name: string | null
+          id: string
+          internal_cost: number | null
+          name: string
+          quote_amount: number | null
+          responsible: string | null
+          start_date: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          contact_id?: string | null
+          contract_amount?: number | null
+          contract_date?: string | null
+          contract_expiry_date?: string | null
+          contract_type?: string | null
+          created_at?: string
+          description?: string | null
+          documentation_delivery_date?: string | null
+          end_date?: string | null
+          external_cost?: number | null
+          group_name?: string | null
+          id?: string
+          internal_cost?: number | null
+          name: string
+          quote_amount?: number | null
+          responsible?: string | null
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          contact_id?: string | null
+          contract_amount?: number | null
+          contract_date?: string | null
+          contract_expiry_date?: string | null
+          contract_type?: string | null
+          created_at?: string
+          description?: string | null
+          documentation_delivery_date?: string | null
+          end_date?: string | null
+          external_cost?: number | null
+          group_name?: string | null
+          id?: string
+          internal_cost?: number | null
+          name?: string
+          quote_amount?: number | null
+          responsible?: string | null
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_contracts_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       crm_interactions: {
         Row: {
