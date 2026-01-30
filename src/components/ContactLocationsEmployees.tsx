@@ -269,7 +269,7 @@ export function ContactLocationsEmployees({ contactId }: ContactLocationsEmploye
                         Nessun dipendente registrato
                       </p>
                     ) : (
-                      <ScrollArea className="max-h-[400px]">
+                      <ScrollArea className="max-h-[60vh]">
                         <div className="space-y-2">
                           {locationEmployees.map((employee) => {
                             const empActivities = getActivitiesForEmployee(employee.id);
