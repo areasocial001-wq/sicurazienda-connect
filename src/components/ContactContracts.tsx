@@ -23,6 +23,9 @@ interface Contract {
   group_name?: string;
   contract_date?: string;
   contract_expiry_date?: string;
+  documentation_delivery_date?: string;
+  internal_cost?: number;
+  external_cost?: number;
 }
 
 interface ContactContractsProps {
@@ -56,7 +59,7 @@ export function ContactContracts({ contactId }: ContactContractsProps) {
     try {
       const { data, error } = await supabase
         .from('crm_contracts')
-        .select('id, name, status, contract_type, contract_amount, quote_amount, start_date, end_date, responsible, description, group_name, contract_date, contract_expiry_date')
+        .select('id, name, status, contract_type, contract_amount, quote_amount, start_date, end_date, responsible, description, group_name, contract_date, contract_expiry_date, documentation_delivery_date, internal_cost, external_cost')
         .eq('contact_id', contactId)
         .order('start_date', { ascending: false });
 

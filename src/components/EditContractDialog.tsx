@@ -24,6 +24,9 @@ interface Contract {
   group_name?: string;
   contract_date?: string;
   contract_expiry_date?: string;
+  documentation_delivery_date?: string;
+  internal_cost?: number;
+  external_cost?: number;
 }
 
 interface EditContractDialogProps {
@@ -50,6 +53,9 @@ export function EditContractDialog({ contract, onContractUpdated, onContractDele
     group_name: '',
     contract_date: '',
     contract_expiry_date: '',
+    documentation_delivery_date: '',
+    internal_cost: '',
+    external_cost: '',
   });
 
   useEffect(() => {
@@ -67,6 +73,9 @@ export function EditContractDialog({ contract, onContractUpdated, onContractDele
         group_name: contract.group_name || '',
         contract_date: contract.contract_date || '',
         contract_expiry_date: contract.contract_expiry_date || '',
+        documentation_delivery_date: contract.documentation_delivery_date || '',
+        internal_cost: contract.internal_cost?.toString() || '',
+        external_cost: contract.external_cost?.toString() || '',
       });
     }
   }, [open, contract]);
@@ -92,6 +101,9 @@ export function EditContractDialog({ contract, onContractUpdated, onContractDele
           group_name: formData.group_name.trim() || null,
           contract_date: formData.contract_date || null,
           contract_expiry_date: formData.contract_expiry_date || null,
+          documentation_delivery_date: formData.documentation_delivery_date || null,
+          internal_cost: formData.internal_cost ? parseFloat(formData.internal_cost) : null,
+          external_cost: formData.external_cost ? parseFloat(formData.external_cost) : null,
         })
         .eq('id', contract.id);
 
@@ -134,19 +146,30 @@ export function EditContractDialog({ contract, onContractUpdated, onContractDele
           <Pencil className="h-4 w-4" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Modifica Commessa</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="name">Nome *</Label>
+            <Label htmlFor="name">Commessa *</Label>
             <Input
               id="name"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               placeholder="Nome commessa"
               required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="description">Descrizione</Label>
+            <Textarea
+              id="description"
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              placeholder="Descrizione della commessa"
+              rows={3}
             />
           </div>
 
@@ -158,7 +181,7 @@ export function EditContractDialog({ contract, onContractUpdated, onContractDele
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="active">Attiva</SelectItem>
+                  <SelectItem value="active">In corso</SelectItem>
                   <SelectItem value="pending">In attesa</SelectItem>
                   <SelectItem value="completed">Completata</SelectItem>
                   <SelectItem value="cancelled">Annullata</SelectItem>
@@ -167,12 +190,34 @@ export function EditContractDialog({ contract, onContractUpdated, onContractDele
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="contract_type">Tipo Contratto</Label>
+              <Label htmlFor="responsible">Responsabile Commessa</Label>
+              <Input
+                id="responsible"
+                value={formData.responsible}
+                onChange={(e) => setFormData({ ...formData, responsible: e.target.value })}
+                placeholder="Nome responsabile"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="group_name">Gruppo / Utente</Label>
+              <Input
+                id="group_name"
+                value={formData.group_name}
+                onChange={(e) => setFormData({ ...formData, group_name: e.target.value })}
+                placeholder="es. GESTIONE CORSI"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="contract_type">Tipologia Contratto</Label>
               <Input
                 id="contract_type"
                 value={formData.contract_type}
                 onChange={(e) => setFormData({ ...formData, contract_type: e.target.value })}
-                placeholder="es. Consulenza"
+                placeholder="es. Cons. 1° anno"
               />
             </div>
           </div>
@@ -227,7 +272,7 @@ export function EditContractDialog({ contract, onContractUpdated, onContractDele
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="contract_date">Data Contratto</Label>
+              <Label htmlFor="contract_date">Data Stipula Contratto</Label>
               <Input
                 id="contract_date"
                 type="date"
@@ -248,34 +293,39 @@ export function EditContractDialog({ contract, onContractUpdated, onContractDele
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="group_name">Gruppo</Label>
+            <Label htmlFor="documentation_delivery_date">Consegna Documentazione</Label>
             <Input
-              id="group_name"
-              value={formData.group_name}
-              onChange={(e) => setFormData({ ...formData, group_name: e.target.value })}
-              placeholder="Nome gruppo/categoria"
+              id="documentation_delivery_date"
+              type="date"
+              value={formData.documentation_delivery_date}
+              onChange={(e) => setFormData({ ...formData, documentation_delivery_date: e.target.value })}
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="responsible">Responsabile</Label>
-            <Input
-              id="responsible"
-              value={formData.responsible}
-              onChange={(e) => setFormData({ ...formData, responsible: e.target.value })}
-              placeholder="Nome responsabile"
-            />
-          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="internal_cost">Costo Interno (€)</Label>
+              <Input
+                id="internal_cost"
+                type="number"
+                step="0.01"
+                value={formData.internal_cost}
+                onChange={(e) => setFormData({ ...formData, internal_cost: e.target.value })}
+                placeholder="0.00"
+              />
+            </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="description">Descrizione</Label>
-            <Textarea
-              id="description"
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="Descrizione della commessa"
-              rows={3}
-            />
+            <div className="space-y-2">
+              <Label htmlFor="external_cost">Costo Esterno (€)</Label>
+              <Input
+                id="external_cost"
+                type="number"
+                step="0.01"
+                value={formData.external_cost}
+                onChange={(e) => setFormData({ ...formData, external_cost: e.target.value })}
+                placeholder="0.00"
+              />
+            </div>
           </div>
 
           <div className="flex justify-between pt-4">
