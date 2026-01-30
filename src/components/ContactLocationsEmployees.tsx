@@ -9,6 +9,7 @@ import {
 import { AddEmployeeActivityDialog } from './AddEmployeeActivityDialog';
 import { EditEmployeeActivityDialog } from './EditEmployeeActivityDialog';
 import { ExportLocationActivities } from './ExportLocationActivities';
+import { CRMEmployeeActivitiesImport } from './CRMEmployeeActivitiesImport';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -402,14 +403,17 @@ export function ContactLocationsEmployees({ contactId }: ContactLocationsEmploye
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <h3 className="font-semibold flex items-center gap-2">
           <MapPin className="h-5 w-5 text-primary" />
           Sedi e Dipendenti
         </h3>
-        <Badge variant="secondary">
-          {locations.length} sedi, {employees.length} dipendenti
-        </Badge>
+        <div className="flex items-center gap-2">
+          <CRMEmployeeActivitiesImport contactId={contactId} onImportComplete={fetchData} />
+          <Badge variant="secondary">
+            {locations.length} sedi, {employees.length} dipendenti
+          </Badge>
+        </div>
       </div>
 
       <div className="space-y-3">
