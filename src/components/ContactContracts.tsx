@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import { AddContractDialog } from './AddContractDialog';
 
 interface Contract {
   id: string;
@@ -87,11 +88,12 @@ export function ContactContracts({ contactId }: ContactContractsProps) {
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-lg flex items-center gap-2">
           <Briefcase className="h-5 w-5 text-primary" />
           Commesse ({contracts.length})
         </CardTitle>
+        <AddContractDialog contactId={contactId} onContractAdded={fetchContracts} />
       </CardHeader>
       <CardContent>
         {contracts.length === 0 ? (
