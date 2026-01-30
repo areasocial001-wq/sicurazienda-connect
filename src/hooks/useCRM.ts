@@ -46,14 +46,32 @@ export function useCRM() {
     if (!user) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('crm_contacts')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('updated_at', { ascending: false });
+      // Fetch all contacts using pagination to overcome the 1000 row limit
+      const allContacts: CRMContact[] = [];
+      const pageSize = 1000;
+      let page = 0;
+      let hasMore = true;
 
-      if (error) throw error;
-      setContacts(data as CRMContact[] || []);
+      while (hasMore) {
+        const { data, error } = await supabase
+          .from('crm_contacts')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('updated_at', { ascending: false })
+          .range(page * pageSize, (page + 1) * pageSize - 1);
+
+        if (error) throw error;
+        
+        if (data && data.length > 0) {
+          allContacts.push(...(data as CRMContact[]));
+          hasMore = data.length === pageSize;
+          page++;
+        } else {
+          hasMore = false;
+        }
+      }
+
+      setContacts(allContacts);
     } catch (error) {
       console.error('Error fetching contacts:', error);
     } finally {
