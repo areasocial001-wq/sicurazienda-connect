@@ -6,7 +6,7 @@ import {
   MoreVertical, Sparkles, Loader2, UserPlus, 
   Calendar as CalendarIcon, MessageSquare, FileText, ArrowLeft,
   Brain, TrendingUp, BarChart3, Download, Filter, X, Tag,
-  ArrowUpDown, ArrowUp, ArrowDown, Clock, HelpCircle, Info
+  ArrowUpDown, ArrowUp, ArrowDown, Clock, HelpCircle, Info, Link2Off
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
@@ -371,6 +371,10 @@ export default function CRM() {
             <Button variant="outline" onClick={() => navigate('/crm/employee-deadlines')}>
               <Clock className="h-4 w-4 mr-2" />
               Scadenze
+            </Button>
+            <Button variant="outline" onClick={() => navigate('/crm/orphaned')}>
+              <Link2Off className="h-4 w-4 mr-2" />
+              Orfani
             </Button>
             <CRMDataImport onImportComplete={fetchContacts} />
             <CRMLocationsImport onImportComplete={fetchContacts} />

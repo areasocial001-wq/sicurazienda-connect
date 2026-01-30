@@ -28,6 +28,7 @@ import CRMCalendar from "./pages/CRMCalendar";
 import CRMDocumentStats from "./pages/CRMDocumentStats";
 import CRMDashboard from "./pages/CRMDashboard";
 import CRMEmployeeDeadlines from "./pages/CRMEmployeeDeadlines";
+import CRMOrphanedItems from "./pages/CRMOrphanedItems";
 import NotFound from "./pages/NotFound";
 import AuthConfirm from "./pages/AuthConfirm";
 import ResetPassword from "./pages/ResetPassword";
@@ -71,6 +72,7 @@ const App = () => (
           <Route path="/crm/document-stats" element={<ProtectedRoute><CRMDocumentStats /></ProtectedRoute>} />
           <Route path="/crm/dashboard" element={<ProtectedRoute><CRMDashboard /></ProtectedRoute>} />
           <Route path="/crm/employee-deadlines" element={<ProtectedRoute><CRMEmployeeDeadlines /></ProtectedRoute>} />
+          <Route path="/crm/orphaned" element={<ProtectedRoute><CRMOrphanedItems /></ProtectedRoute>} />
           
           {/* Admin routes - require admin role */}
           <Route path="/admin" element={<ProtectedRoute requireAdmin><AdminDashboard /></ProtectedRoute>} />
