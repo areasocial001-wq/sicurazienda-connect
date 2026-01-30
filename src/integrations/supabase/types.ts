@@ -389,6 +389,125 @@ export type Database = {
           },
         ]
       }
+      crm_employee_activities: {
+        Row: {
+          activity_name: string
+          activity_type: string
+          created_at: string
+          employee_id: string | null
+          execution_date: string | null
+          expiry_date: string | null
+          id: string
+          notes: string | null
+          status: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          activity_name: string
+          activity_type: string
+          created_at?: string
+          employee_id?: string | null
+          execution_date?: string | null
+          expiry_date?: string | null
+          id?: string
+          notes?: string | null
+          status?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          activity_name?: string
+          activity_type?: string
+          created_at?: string
+          employee_id?: string | null
+          execution_date?: string | null
+          expiry_date?: string | null
+          id?: string
+          notes?: string | null
+          status?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_employee_activities_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "crm_employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_employees: {
+        Row: {
+          contact_id: string | null
+          created_at: string
+          email: string | null
+          first_name: string
+          fiscal_code: string | null
+          hire_date: string | null
+          id: string
+          last_name: string
+          location_id: string | null
+          notes: string | null
+          phone: string | null
+          role: string | null
+          status: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          contact_id?: string | null
+          created_at?: string
+          email?: string | null
+          first_name: string
+          fiscal_code?: string | null
+          hire_date?: string | null
+          id?: string
+          last_name: string
+          location_id?: string | null
+          notes?: string | null
+          phone?: string | null
+          role?: string | null
+          status?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          contact_id?: string | null
+          created_at?: string
+          email?: string | null
+          first_name?: string
+          fiscal_code?: string | null
+          hire_date?: string | null
+          id?: string
+          last_name?: string
+          location_id?: string | null
+          notes?: string | null
+          phone?: string | null
+          role?: string | null
+          status?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_employees_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_employees_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "crm_locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crm_interactions: {
         Row: {
           completed_at: string | null
@@ -426,6 +545,77 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "crm_interactions_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_locations: {
+        Row: {
+          address: string | null
+          city: string | null
+          code: string | null
+          contact_id: string | null
+          country: string | null
+          created_at: string
+          email: string | null
+          id: string
+          is_main_location: boolean | null
+          location_type: string | null
+          name: string
+          notes: string | null
+          pec: string | null
+          phone: string | null
+          postal_code: string | null
+          province: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address?: string | null
+          city?: string | null
+          code?: string | null
+          contact_id?: string | null
+          country?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_main_location?: boolean | null
+          location_type?: string | null
+          name: string
+          notes?: string | null
+          pec?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          province?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address?: string | null
+          city?: string | null
+          code?: string | null
+          contact_id?: string | null
+          country?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_main_location?: boolean | null
+          location_type?: string | null
+          name?: string
+          notes?: string | null
+          pec?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          province?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_locations_contact_id_fkey"
             columns: ["contact_id"]
             isOneToOne: false
             referencedRelation: "crm_contacts"

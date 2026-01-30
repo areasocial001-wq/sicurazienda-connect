@@ -48,6 +48,7 @@ import { useCRM, CRMContact } from '@/hooks/useCRM';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
 import { CRMDataImport } from '@/components/CRMDataImport';
+import { CRMLocationsImport } from '@/components/CRMLocationsImport';
 
 const statusColors: Record<string, string> = {
   lead: 'bg-blue-500/20 text-blue-700 border-blue-500/30',
@@ -285,6 +286,7 @@ export default function CRM() {
               Documenti
             </Button>
             <CRMDataImport onImportComplete={fetchContacts} />
+            <CRMLocationsImport onImportComplete={fetchContacts} />
             <Button variant="outline" onClick={exportContactsCSV}>
               <Download className="h-4 w-4 mr-2" />
               Export
