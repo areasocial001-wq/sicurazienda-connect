@@ -5,7 +5,8 @@ import {
   Users, Plus, Search, Phone, Mail, Building, 
   MoreVertical, Sparkles, Loader2, UserPlus, 
   Calendar as CalendarIcon, MessageSquare, FileText, ArrowLeft,
-  Brain, TrendingUp, BarChart3, Download, Filter, X, Tag
+  Brain, TrendingUp, BarChart3, Download, Filter, X, Tag,
+  ArrowUpDown, ArrowUp, ArrowDown, Clock
 } from 'lucide-react';
 import { toast } from 'sonner';
 import Header from '@/components/Header';
@@ -79,6 +80,7 @@ export default function CRM() {
   const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
   const [tagFilter, setTagFilter] = useState<string>('all');
   const [showFilters, setShowFilters] = useState(false);
+  const [sortByName, setSortByName] = useState<'asc' | 'desc' | null>(null);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showFollowupDialog, setShowFollowupDialog] = useState(false);
   const [followupDate, setFollowupDate] = useState<Date | undefined>(undefined);
@@ -116,29 +118,43 @@ export default function CRM() {
     return Array.from(tags).sort();
   }, [contacts]);
 
-  const filteredContacts = contacts.filter(contact => {
-    const matchesSearch = contact.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      contact.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      contact.company?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || contact.status === statusFilter;
-    
-    // Date filter
-    let matchesDate = true;
-    if (dateFrom || dateTo) {
-      const contactDate = new Date(contact.created_at);
-      if (dateFrom && contactDate < dateFrom) matchesDate = false;
-      if (dateTo) {
-        const endOfDay = new Date(dateTo);
-        endOfDay.setHours(23, 59, 59, 999);
-        if (contactDate > endOfDay) matchesDate = false;
+  const filteredContacts = useMemo(() => {
+    let result = contacts.filter(contact => {
+      const matchesSearch = contact.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        contact.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        contact.company?.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesStatus = statusFilter === 'all' || contact.status === statusFilter;
+      
+      // Date filter
+      let matchesDate = true;
+      if (dateFrom || dateTo) {
+        const contactDate = new Date(contact.created_at);
+        if (dateFrom && contactDate < dateFrom) matchesDate = false;
+        if (dateTo) {
+          const endOfDay = new Date(dateTo);
+          endOfDay.setHours(23, 59, 59, 999);
+          if (contactDate > endOfDay) matchesDate = false;
+        }
       }
+      
+      // Tag filter
+      const matchesTag = tagFilter === 'all' || contact.tags?.includes(tagFilter);
+      
+      return matchesSearch && matchesStatus && matchesDate && matchesTag;
+    });
+
+    // Sort by company/name alphabetically
+    if (sortByName) {
+      result = [...result].sort((a, b) => {
+        const nameA = (a.company || a.name).toLowerCase();
+        const nameB = (b.company || b.name).toLowerCase();
+        const compare = nameA.localeCompare(nameB, 'it');
+        return sortByName === 'asc' ? compare : -compare;
+      });
     }
-    
-    // Tag filter
-    const matchesTag = tagFilter === 'all' || contact.tags?.includes(tagFilter);
-    
-    return matchesSearch && matchesStatus && matchesDate && matchesTag;
-  });
+
+    return result;
+  }, [contacts, searchQuery, statusFilter, dateFrom, dateTo, tagFilter, sortByName]);
 
   const hasActiveFilters = statusFilter !== 'all' || dateFrom || dateTo || tagFilter !== 'all';
 
@@ -285,6 +301,10 @@ export default function CRM() {
               <FileText className="h-4 w-4 mr-2" />
               Documenti
             </Button>
+            <Button variant="outline" onClick={() => navigate('/crm/employee-deadlines')}>
+              <Clock className="h-4 w-4 mr-2" />
+              Scadenze
+            </Button>
             <CRMDataImport onImportComplete={fetchContacts} />
             <CRMLocationsImport onImportComplete={fetchContacts} />
             <Button variant="outline" onClick={exportContactsCSV}>
@@ -418,6 +438,23 @@ export default function CRM() {
                   <SelectItem value="inactive">Inattivo</SelectItem>
                 </SelectContent>
               </Select>
+              <Button 
+                variant={sortByName ? "secondary" : "outline"}
+                onClick={() => {
+                  if (sortByName === null) setSortByName('asc');
+                  else if (sortByName === 'asc') setSortByName('desc');
+                  else setSortByName(null);
+                }}
+              >
+                {sortByName === 'asc' ? (
+                  <ArrowUp className="h-4 w-4 mr-2" />
+                ) : sortByName === 'desc' ? (
+                  <ArrowDown className="h-4 w-4 mr-2" />
+                ) : (
+                  <ArrowUpDown className="h-4 w-4 mr-2" />
+                )}
+                A-Z
+              </Button>
               <Button 
                 variant={showFilters ? "secondary" : "outline"} 
                 onClick={() => setShowFilters(!showFilters)}
