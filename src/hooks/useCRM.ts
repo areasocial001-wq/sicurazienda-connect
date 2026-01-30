@@ -73,37 +73,31 @@ export function useCRM() {
       // Fetch all contacts using pagination to overcome the 1000 row limit
       const allContacts: CRMContact[] = [];
       const pageSize = 1000;
-      let currentOffset = 0;
+      const totalPages = Math.ceil(totalCount / pageSize);
+      
+      for (let page = 0; page < totalPages; page++) {
+        const fromIndex = page * pageSize;
+        const toIndex = fromIndex + pageSize - 1;
+        
+        const { data, error } = await supabase
+          .from('crm_contacts')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('updated_at', { ascending: false })
+          .range(fromIndex, toIndex);
 
-      while (currentOffset < totalCount) {
-        try {
-          const { data, error } = await supabase
-            .from('crm_contacts')
-            .select('*')
-            .eq('user_id', user.id)
-            .order('updated_at', { ascending: false })
-            .range(currentOffset, currentOffset + pageSize - 1);
-
-          if (error) {
-            console.error('Error fetching batch at offset', currentOffset, error);
-            throw error;
-          }
-          
-          if (data && data.length > 0) {
-            allContacts.push(...(data as CRMContact[]));
-            setLoadingProgress({ loaded: allContacts.length, total: totalCount });
-          }
-          
-          // Always increment offset to avoid infinite loop
-          currentOffset += pageSize;
-          
-          // If we got fewer results than page size, we're done
-          if (!data || data.length < pageSize) {
-            break;
-          }
-        } catch (batchError) {
-          console.error('Batch fetch error:', batchError);
-          // Continue with partial data rather than failing completely
+        if (error) {
+          console.error(`Error fetching page ${page + 1}/${totalPages}:`, error);
+          break;
+        }
+        
+        if (data) {
+          allContacts.push(...(data as CRMContact[]));
+          setLoadingProgress({ loaded: allContacts.length, total: totalCount });
+        }
+        
+        // If we got no data, stop
+        if (!data || data.length === 0) {
           break;
         }
       }
