@@ -59,8 +59,8 @@ const statusColors: Record<string, string> = {
 };
 
 const statusLabels: Record<string, string> = {
-  lead: 'Lead',
-  prospect: 'Prospect',
+  lead: 'Primo contatto',
+  prospect: 'Potenziale cliente',
   client: 'Cliente',
   inactive: 'Inattivo',
 };
@@ -379,8 +379,8 @@ export default function CRM() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="lead">Lead</SelectItem>
-                          <SelectItem value="prospect">Prospect</SelectItem>
+                          <SelectItem value="lead">Primo contatto</SelectItem>
+                          <SelectItem value="prospect">Potenziale cliente</SelectItem>
                           <SelectItem value="client">Cliente</SelectItem>
                           <SelectItem value="inactive">Inattivo</SelectItem>
                         </SelectContent>
@@ -432,8 +432,8 @@ export default function CRM() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Tutti</SelectItem>
-                  <SelectItem value="lead">Lead</SelectItem>
-                  <SelectItem value="prospect">Prospect</SelectItem>
+                  <SelectItem value="lead">Primo contatto</SelectItem>
+                  <SelectItem value="prospect">Potenziale cliente</SelectItem>
                   <SelectItem value="client">Cliente</SelectItem>
                   <SelectItem value="inactive">Inattivo</SelectItem>
                 </SelectContent>
