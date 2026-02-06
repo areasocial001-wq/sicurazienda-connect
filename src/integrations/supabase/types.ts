@@ -1066,6 +1066,7 @@ export type Database = {
         | "area_tecnica"
         | "gestione_corsi"
         | "consulenti_tecnici"
+        | "medicina"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1200,6 +1201,7 @@ export const Constants = {
         "area_tecnica",
         "gestione_corsi",
         "consulenti_tecnici",
+        "medicina",
       ],
     },
   },
