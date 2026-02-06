@@ -22,26 +22,28 @@ const areaLabels: Record<string, string> = {
   contabilita: 'Contabilità',
   area_tecnica: 'Area Tecnica',
   gestione_corsi: 'Gestione Corsi',
+  medicina: 'Medicina',
   admin: 'Amministrazione',
   cliente: 'Caricati dal cliente',
 };
 
 export function useCRMDocuments(contactId: string | undefined) {
   const { toast } = useToast();
-  const { role, isAdmin, isContabilita, isAreaTecnica, isGestioneCorsi } = useUserRole();
+  const { role, isAdmin, isContabilita, isAreaTecnica, isGestioneCorsi, isMedicina } = useUserRole();
   const [documents, setDocuments] = useState<CRMDocument[]>([]);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
   // Determine which area the current user can upload to
-  const getUserArea = useCallback((): 'contabilita' | 'area_tecnica' | 'gestione_corsi' | 'admin' | null => {
+  const getUserArea = useCallback((): 'contabilita' | 'area_tecnica' | 'gestione_corsi' | 'medicina' | 'admin' | null => {
     if (isAdmin) return 'admin';
     if (isContabilita) return 'contabilita';
     if (isAreaTecnica) return 'area_tecnica';
     if (isGestioneCorsi) return 'gestione_corsi';
+    if (isMedicina) return 'medicina';
     return null;
-  }, [isAdmin, isContabilita, isAreaTecnica, isGestioneCorsi]);
+  }, [isAdmin, isContabilita, isAreaTecnica, isGestioneCorsi, isMedicina]);
 
   const canUpload = getUserArea() !== null;
 

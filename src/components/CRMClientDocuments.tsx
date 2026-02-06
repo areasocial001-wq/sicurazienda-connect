@@ -46,6 +46,7 @@ const areaColors: Record<string, string> = {
   contabilita: 'bg-blue-500/20 text-blue-700 border-blue-500/30',
   area_tecnica: 'bg-green-500/20 text-green-700 border-green-500/30',
   gestione_corsi: 'bg-purple-500/20 text-purple-700 border-purple-500/30',
+  medicina: 'bg-rose-500/20 text-rose-700 border-rose-500/30',
   admin: 'bg-orange-500/20 text-orange-700 border-orange-500/30',
   cliente: 'bg-yellow-500/20 text-yellow-700 border-yellow-500/30',
 };
