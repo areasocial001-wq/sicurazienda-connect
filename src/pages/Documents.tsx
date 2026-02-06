@@ -170,7 +170,7 @@ const Documents = () => {
 
       if (uploadError) throw uploadError;
 
-      const { error: dbError } = await supabase
+      const { data: insertedDoc, error: dbError } = await supabase
         .from('documents')
         .insert({
           user_id: user.id,
@@ -179,9 +179,16 @@ const Documents = () => {
           file_type: pendingFile.type,
           category: aiSuggestion?.category || 'Upload Utente',
           area_competenza: selectedArea
-        });
+        })
+        .select()
+        .single();
 
       if (dbError) throw dbError;
+
+      // Workflow automatizzato: estrai dati e crea promemoria scadenze
+      if (insertedDoc) {
+        triggerDocumentWorkflow(insertedDoc.id, pendingFile.name, aiSuggestion);
+      }
 
       toast({
         title: "Upload completato",
@@ -199,6 +206,81 @@ const Documents = () => {
       });
     } finally {
       setUploading(false);
+    }
+  };
+
+  // Workflow automatizzato post-upload: estrazione dati + creazione promemoria scadenze
+  const triggerDocumentWorkflow = async (
+    documentId: string,
+    fileName: string,
+    classification: typeof aiSuggestion
+  ) => {
+    try {
+      // Step 1: Estrai dati dal documento via edge function
+      const { data: extractResult } = await supabase.functions.invoke('document-agent', {
+        body: { action: 'extract', filename: fileName, content: fileName }
+      });
+
+      if (extractResult?.success && extractResult.result) {
+        const extracted = extractResult.result;
+
+        // Save extracted data
+        await supabase.from('document_extracted_data').insert({
+          document_id: documentId,
+          dates: extracted.date || extracted.date_rilevanti || null,
+          amounts: extracted.importi || null,
+          people: extracted.persone || extracted.soggetti || null,
+          companies: extracted.aziende || null,
+          codes: extracted.codici || null,
+          addresses: extracted.indirizzi || null,
+          contacts: extracted.contatti || null,
+          summary: extracted.summary || classification?.suggerimento || null,
+          raw_data: extracted,
+        });
+
+        // Step 2: Crea promemoria automatici per date trovate
+        const dates = extracted.date || extracted.date_rilevanti || [];
+        if (dates.length > 0 && user) {
+          for (const dateStr of dates) {
+            try {
+              const parsedDate = new Date(dateStr);
+              if (!isNaN(parsedDate.getTime()) && parsedDate > new Date()) {
+                await supabase.from('reminders').insert({
+                  user_id: user.id,
+                  title: `Scadenza: ${fileName}`,
+                  description: `Scadenza automatica rilevata dal documento "${fileName}". Data: ${dateStr}`,
+                  due_date: parsedDate.toISOString(),
+                  type: 'document_expiry',
+                  reference_id: documentId,
+                  reference_type: 'document',
+                });
+              }
+            } catch {
+              // Skip invalid dates
+            }
+          }
+
+          // Also update document expiry_date with the earliest future date
+          const futureDates = dates
+            .map((d: string) => new Date(d))
+            .filter((d: Date) => !isNaN(d.getTime()) && d > new Date())
+            .sort((a: Date, b: Date) => a.getTime() - b.getTime());
+
+          if (futureDates.length > 0) {
+            await supabase.from('documents').update({
+              expiry_date: futureDates[0].toISOString().split('T')[0],
+            }).eq('id', documentId);
+          }
+
+          toast({
+            title: "Workflow AI completato",
+            description: `Estratti dati e creati ${Math.min(dates.length, 5)} promemoria automatici.`,
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Document workflow error:', error);
+      // Don't show error toast - the upload itself succeeded
     }
   };
 

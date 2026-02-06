@@ -57,6 +57,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
 import { CRMDataImport } from '@/components/CRMDataImport';
 import { CRMLocationsImport } from '@/components/CRMLocationsImport';
+import { AIContactAutoFill } from '@/components/AIContactAutoFill';
+import { CRMDataCleanup } from '@/components/CRMDataCleanup';
 
 const statusColors: Record<string, string> = {
   lead: 'bg-blue-500/20 text-blue-700 border-blue-500/30',
@@ -371,6 +373,22 @@ export default function CRM() {
                   <DialogTitle>Aggiungi Contatto</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4">
+                  {/* AI Auto-fill */}
+                  <AIContactAutoFill onExtracted={(data) => {
+                    setNewContact(prev => ({
+                      ...prev,
+                      name: data.name || prev.name,
+                      email: data.email || prev.email,
+                      phone: data.phone || prev.phone,
+                      company: data.company || prev.company,
+                      role: data.role || prev.role,
+                      notes: data.notes || prev.notes,
+                      source: prev.source,
+                      status: prev.status,
+                      tags: prev.tags,
+                    }));
+                  }} />
+                  
                   <div>
                     <Label>Nome *</Label>
                     <Input 
@@ -825,6 +843,16 @@ export default function CRM() {
             </CardContent>
           </Card>
         )}
+
+        {/* Data Cleanup Section */}
+        <div className="mb-4">
+          <CRMDataCleanup 
+            contacts={contacts} 
+            onApplyFix={async (contactId, updates) => {
+              await updateContact(contactId, updates);
+            }}
+          />
+        </div>
 
         {/* Contacts Grid */}
         {loading ? (
