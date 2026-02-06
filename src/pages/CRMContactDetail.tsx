@@ -14,6 +14,7 @@ import { ClientUserLinker } from '@/components/ClientUserLinker';
 import { ContactActivities } from '@/components/ContactActivities';
 import { ContactContracts } from '@/components/ContactContracts';
 import { ContactLocationsEmployees } from '@/components/ContactLocationsEmployees';
+import { AIContactPanel } from '@/components/AIContactPanel';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -468,6 +469,9 @@ export default function CRMContactDetail() {
                   onLinked={fetchContact}
                 />
               )}
+
+              {/* AI Panel */}
+              <AIContactPanel contact={contact} />
             </div>
           </TabsContent>
 

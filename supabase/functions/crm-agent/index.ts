@@ -146,6 +146,46 @@ Per ogni item fornisci:
 - Azione consigliata
 - Tempo stimato per completare`;
     }
+    else if (action === "extract_contact" && data.text) {
+      systemPrompt = `Sei un assistente per l'estrazione di dati di contatto da testi non strutturati (email, biglietti da visita, note).
+
+Estrai TUTTI i dati di contatto trovati nel testo e rispondi SOLO con un JSON valido con questi campi (usa null se non trovato):
+{
+  "name": "Nome e Cognome",
+  "email": "email@esempio.it",
+  "phone": "+39 xxx",
+  "company": "Nome Azienda",
+  "role": "Ruolo/Posizione",
+  "address": "Indirizzo completo",
+  "website": "https://...",
+  "vat_number": "P.IVA",
+  "fiscal_code": "Codice Fiscale",
+  "pec": "email PEC",
+  "sdi_code": "Codice SDI",
+  "notes": "Altre info rilevanti non mappabili"
+}`;
+      userMessage = `Estrai i dati di contatto dal seguente testo:\n\n${data.text}`;
+    }
+    else if (action === "cleanup_data" && data.contacts) {
+      systemPrompt = `Sei un assistente per la pulizia e normalizzazione di dati CRM aziendali italiani.
+
+Analizza l'elenco contatti e rispondi con un JSON valido:
+{
+  "duplicates": [
+    {"group": ["id1", "id2"], "names": ["Nome1", "Nome2"], "reason": "Motivo duplicato"}
+  ],
+  "normalizations": [
+    {"contact_id": "id", "contact_name": "Nome", "field": "phone", "current_value": "valore attuale", "suggested_value": "valore corretto", "reason": "Motivo"}
+  ],
+  "missing_data": [
+    {"contact_id": "id", "contact_name": "Nome", "missing_fields": ["email", "phone"]}
+  ],
+  "summary": "Riepilogo dell'analisi in markdown"
+}
+
+Cerca: duplicati per nome/email/P.IVA simili, numeri di telefono non formattati, email invalide, P.IVA malformate, dati mancanti importanti.`;
+      userMessage = `Analizza questi ${data.contacts.length} contatti CRM per pulizia dati:\n${JSON.stringify(data.contacts)}`;
+    }
     else {
       userMessage = data.query || "Fornisci suggerimenti generali per migliorare la gestione dei contatti CRM.";
     }
