@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/integrations/supabase/client'
 import { useAuth } from './useAuth'
 
-export type UserRole = 'admin' | 'user' | 'contabilita' | 'area_tecnica' | 'gestione_corsi' | 'consulenti_tecnici' | null
+export type UserRole = 'admin' | 'user' | 'contabilita' | 'area_tecnica' | 'gestione_corsi' | 'consulenti_tecnici' | 'medicina' | null
 
 export function useUserRole() {
   const [role, setRole] = useState<UserRole>(null)
@@ -58,7 +58,8 @@ export function useUserRole() {
   const isAreaTecnica = role === 'area_tecnica'
   const isGestioneCorsi = role === 'gestione_corsi'
   const isConsulentiTecnici = role === 'consulenti_tecnici'
-  const isAreaAziendale = ['contabilita', 'area_tecnica', 'gestione_corsi', 'consulenti_tecnici'].includes(role || '')
+  const isMedicina = role === 'medicina'
+  const isAreaAziendale = ['contabilita', 'area_tecnica', 'gestione_corsi', 'consulenti_tecnici', 'medicina'].includes(role || '')
 
   const getRoleDisplayName = () => {
     switch (role) {
@@ -67,6 +68,7 @@ export function useUserRole() {
       case 'area_tecnica': return 'Area Tecnica'
       case 'gestione_corsi': return 'Gestione Corsi'
       case 'consulenti_tecnici': return 'Consulenti Tecnici'
+      case 'medicina': return 'Medicina'
       case 'user': return 'Utente'
       default: return 'Non definito'
     }
@@ -81,6 +83,7 @@ export function useUserRole() {
     isAreaTecnica,
     isGestioneCorsi,
     isConsulentiTecnici,
+    isMedicina,
     isAreaAziendale,
     getRoleDisplayName,
   }
