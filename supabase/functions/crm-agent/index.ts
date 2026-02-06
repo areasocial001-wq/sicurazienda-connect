@@ -44,6 +44,7 @@ serve(async (req) => {
 
     let userMessage = "";
     let additionalContext = "";
+    let systemPrompt = CRM_AGENT_PROMPT;
 
     // Fetch relevant data based on action
     if (action === "analyze_contact" && data.contactId) {
@@ -119,7 +120,6 @@ Fornisci:
 - Stato attuale della relazione`;
     }
     else if (action === "check_reminders") {
-      // Get upcoming deadlines
       const { data: reminders } = await supabase
         .from("reminders")
         .select("*")
@@ -128,7 +128,6 @@ Fornisci:
         .lte("due_date", new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString())
         .order("due_date", { ascending: true });
 
-      // Get documents with expiry dates
       const { data: expiringDocs } = await supabase
         .from("documents")
         .select("*")
@@ -187,7 +186,7 @@ Cerca: duplicati per nome/email/P.IVA simili, numeri di telefono non formattati,
       userMessage = `Analizza questi ${data.contacts.length} contatti CRM per pulizia dati:\n${JSON.stringify(data.contacts)}`;
     }
     else {
-      userMessage = data.query || "Fornisci suggerimenti generali per migliorare la gestione dei contatti CRM.";
+      userMessage = data?.query || "Fornisci suggerimenti generali per migliorare la gestione dei contatti CRM.";
     }
 
     console.log(`CRM Agent action: ${action}`, { userId });
@@ -201,7 +200,7 @@ Cerca: duplicati per nome/email/P.IVA simili, numeri di telefono non formattati,
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
         messages: [
-          { role: "system", content: CRM_AGENT_PROMPT },
+          { role: "system", content: systemPrompt },
           { role: "user", content: userMessage },
         ],
       }),
@@ -216,7 +215,6 @@ Cerca: duplicati per nome/email/P.IVA simili, numeri di telefono non formattati,
     const aiData = await response.json();
     const aiResponse = aiData.choices?.[0]?.message?.content;
 
-    // Parse JSON response
     let result;
     try {
       const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
