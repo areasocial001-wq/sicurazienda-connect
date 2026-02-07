@@ -351,6 +351,10 @@ export default function CRM() {
               <Link2Off className="h-4 w-4 mr-2" />
               Orfani
             </Button>
+            <Button variant="outline" onClick={() => navigate('/crm/departments')}>
+              <Building className="h-4 w-4 mr-2" />
+              Dipartimenti
+            </Button>
             <CRMDataImport onImportComplete={fetchContacts} />
             <CRMLocationsImport onImportComplete={fetchContacts} />
             <Button variant="outline" onClick={exportContactsCSV}>
