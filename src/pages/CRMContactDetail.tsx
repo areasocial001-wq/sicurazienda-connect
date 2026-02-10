@@ -87,6 +87,7 @@ export default function CRMContactDetail() {
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showInteractionDialog, setShowInteractionDialog] = useState(false);
   const [aiInsights, setAiInsights] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState('info');
   
   const [editForm, setEditForm] = useState({
     name: '',
@@ -280,7 +281,7 @@ export default function CRMContactDetail() {
           </Card>
         )}
 
-        <Tabs defaultValue="info" className="space-y-4">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
           <TabsList className="flex-wrap h-auto">
             <TabsTrigger value="info">Informazioni</TabsTrigger>
             <TabsTrigger value="locations" className="flex items-center gap-1">
@@ -492,7 +493,12 @@ export default function CRMContactDetail() {
 
           {/* Documents Tab */}
           <TabsContent value="documents">
-            <CRMClientDocuments contactId={contact.id} contactName={contact.name} />
+            <CRMClientDocuments 
+              contactId={contact.id} 
+              contactName={contact.name} 
+              clientUserId={(contact as any).client_user_id}
+              onLinkClient={isAdmin ? () => setActiveTab('info') : undefined}
+            />
           </TabsContent>
 
           {/* Interactions Tab */}
