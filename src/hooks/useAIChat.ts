@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 export type Message = {
   role: 'user' | 'assistant';
@@ -32,11 +33,19 @@ export function useAIChat() {
     };
 
     try {
+      // Get current session token for authentication
+      const { data: { session } } = await supabase.auth.getSession();
+      const accessToken = session?.access_token;
+      
+      if (!accessToken) {
+        throw new Error('Sessione scaduta. Effettua nuovamente il login.');
+      }
+
       const resp = await fetch(CHAT_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9iemZsem90enZ3bG1neWp4ZnB2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgwMjY3OTQsImV4cCI6MjA3MzYwMjc5NH0.ajn-6isd6JoZQDVLz4ZIz8u1kWMVcBfy990iDE6Pr5g`,
+          Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify({ 
           messages: [...messages, userMsg],

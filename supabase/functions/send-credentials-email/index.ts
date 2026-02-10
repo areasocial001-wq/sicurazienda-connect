@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Resend } from "npm:resend@2.0.0";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
@@ -7,6 +8,15 @@ const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
 
 interface SendCredentialsRequest {
   email: string;
@@ -22,6 +32,47 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
+    // Validate authentication
+    const authHeader = req.headers.get("authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(
+        JSON.stringify({ error: "Autenticazione richiesta" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const token = authHeader.replace("Bearer ", "");
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: `Bearer ${token}` } },
+    });
+
+    const { data, error: claimsError } = await supabase.auth.getClaims(token);
+    if (claimsError || !data?.claims) {
+      return new Response(
+        JSON.stringify({ error: "Token non valido" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Check that user has an appropriate role (not just any user)
+    const supabaseAdmin = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const userId = data.claims.sub as string;
+    const { data: roleData } = await supabaseAdmin
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId)
+      .single();
+
+    const allowedRoles = ["admin", "contabilita", "area_tecnica", "gestione_corsi", "consulenti_tecnici", "medicina"];
+    if (!roleData || !allowedRoles.includes(roleData.role)) {
+      return new Response(
+        JSON.stringify({ error: "Permessi insufficienti" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const { email, password, fullName, companyName, loginUrl }: SendCredentialsRequest = await req.json();
 
     if (!email || !password) {
@@ -31,9 +82,23 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return new Response(
+        JSON.stringify({ error: "Formato email non valido" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const appUrl = loginUrl || "https://sicurazienda-connect.lovable.app/auth";
-    const greeting = fullName ? `Gentile ${fullName}` : "Gentile Cliente";
-    const companyLine = companyName ? `<p>Azienda: <strong>${companyName}</strong></p>` : "";
+    const safeFullName = fullName ? escapeHtml(fullName) : null;
+    const safeCompanyName = companyName ? escapeHtml(companyName) : null;
+    const safeEmail = escapeHtml(email);
+    const safePassword = escapeHtml(password);
+    
+    const greeting = safeFullName ? `Gentile ${safeFullName}` : "Gentile Cliente";
+    const companyLine = safeCompanyName ? `<p>Azienda: <strong>${safeCompanyName}</strong></p>` : "";
 
     const emailResponse = await resend.emails.send({
       from: "SicurAzienda <noreply@sicurazienda.com>",
@@ -70,8 +135,8 @@ const handler = async (req: Request): Promise<Response> => {
               Di seguito trovi le tue credenziali di accesso:</p>
               ${companyLine}
               <div class="credentials">
-                <p>📧 <strong>Email:</strong> ${email}</p>
-                <p>🔑 <strong>Password:</strong> ${password}</p>
+                <p>📧 <strong>Email:</strong> ${safeEmail}</p>
+                <p>🔑 <strong>Password:</strong> ${safePassword}</p>
               </div>
               <p style="text-align: center;">
                 <a href="${appUrl}" class="btn">Accedi al Portale</a>
@@ -100,7 +165,7 @@ const handler = async (req: Request): Promise<Response> => {
   } catch (error: any) {
     console.error("Error sending credentials email:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: "Errore nell'invio dell'email" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
