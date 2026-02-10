@@ -31,29 +31,63 @@ serve(async (req) => {
   }
 
   try {
-    const { action, data, userId } = await req.json();
+    // Validate authentication
+    const authHeader = req.headers.get("authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Autenticazione richiesta" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const token = authHeader.replace("Bearer ", "");
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const userClient = createClient(SUPABASE_URL, supabaseAnonKey, {
+      global: { headers: { Authorization: `Bearer ${token}` } },
+    });
+
+    const { data: claimsData, error: claimsError } = await userClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Token non valido" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Use the authenticated user's ID instead of trusting client-supplied userId
+    const authenticatedUserId = claimsData.claims.sub as string;
+
+    const { action, data } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY non configurata");
     }
 
-    const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY!);
 
     let userMessage = "";
     let additionalContext = "";
     let systemPrompt = CRM_AGENT_PROMPT;
 
-    // Fetch relevant data based on action
+    // Fetch relevant data based on action — always use authenticatedUserId
     if (action === "analyze_contact" && data.contactId) {
       const { data: contact } = await supabase
         .from("crm_contacts")
         .select("*")
         .eq("id", data.contactId)
+        .eq("user_id", authenticatedUserId)
         .single();
       
+      if (!contact) {
+        return new Response(JSON.stringify({ success: false, error: "Contatto non trovato" }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       const { data: interactions } = await supabase
         .from("crm_interactions")
         .select("*")
@@ -71,7 +105,7 @@ Ultime interazioni: ${JSON.stringify(interactions)}`;
       const { data: contacts } = await supabase
         .from("crm_contacts")
         .select("*")
-        .eq("user_id", userId)
+        .eq("user_id", authenticatedUserId)
         .order("last_contact_at", { ascending: true })
         .limit(20);
 
@@ -123,7 +157,7 @@ Fornisci:
       const { data: reminders } = await supabase
         .from("reminders")
         .select("*")
-        .eq("user_id", userId)
+        .eq("user_id", authenticatedUserId)
         .eq("is_completed", false)
         .lte("due_date", new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString())
         .order("due_date", { ascending: true });
@@ -131,7 +165,7 @@ Fornisci:
       const { data: expiringDocs } = await supabase
         .from("documents")
         .select("*")
-        .eq("user_id", userId)
+        .eq("user_id", authenticatedUserId)
         .not("expiry_date", "is", null)
         .lte("expiry_date", new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString())
         .order("expiry_date", { ascending: true });
@@ -189,7 +223,7 @@ Cerca: duplicati per nome/email/P.IVA simili, numeri di telefono non formattati,
       userMessage = data?.query || "Fornisci suggerimenti generali per migliorare la gestione dei contatti CRM.";
     }
 
-    console.log(`CRM Agent action: ${action}`, { userId });
+    console.log(`CRM Agent action: ${action}`, { userId: authenticatedUserId });
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
