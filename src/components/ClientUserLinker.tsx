@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link2, Link2Off, Search, Loader2, UserCheck } from 'lucide-react';
+import { CreateClientAccount } from './CreateClientAccount';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -28,6 +29,8 @@ interface ClientUserLinkerProps {
   contactId: string;
   currentClientUserId?: string | null;
   contactName: string;
+  contactEmail?: string | null;
+  contactCompany?: string | null;
   onLinked?: () => void;
 }
 
@@ -41,6 +44,8 @@ export function ClientUserLinker({
   contactId, 
   currentClientUserId, 
   contactName,
+  contactEmail,
+  contactCompany,
   onLinked 
 }: ClientUserLinkerProps) {
   const { toast } = useToast();
@@ -198,12 +203,20 @@ export function ClientUserLinker({
               <p className="text-sm text-muted-foreground">
                 Collega un account utente per permettere al cliente di accedere ai propri documenti.
               </p>
+              <CreateClientAccount
+                contactId={contactId}
+                contactName={contactName}
+                contactEmail={contactEmail}
+                contactCompany={contactCompany}
+                onAccountCreated={onLinked}
+              />
               <Button 
+                variant="outline"
                 className="w-full"
                 onClick={() => setShowDialog(true)}
               >
                 <Link2 className="h-4 w-4 mr-2" />
-                Collega Account Utente
+                Collega Account Esistente
               </Button>
             </div>
           )}

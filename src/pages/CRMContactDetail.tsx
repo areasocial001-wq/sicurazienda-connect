@@ -467,6 +467,8 @@ export default function CRMContactDetail() {
                   contactId={contact.id}
                   currentClientUserId={(contact as any).client_user_id}
                   contactName={contact.name}
+                  contactEmail={contact.email}
+                  contactCompany={contact.company}
                   onLinked={fetchContact}
                 />
               )}
