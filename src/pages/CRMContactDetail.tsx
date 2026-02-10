@@ -78,7 +78,7 @@ export default function CRMContactDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
-  const { isAdmin } = useUserRole();
+  const { isAdmin, isAreaAziendale } = useUserRole();
   const { updateContact, addInteraction, getInteractions, analyzeContact, aiProcessing } = useCRM();
   
   const [contact, setContact] = useState<CRMContact | null>(null);
@@ -461,8 +461,8 @@ export default function CRMContactDetail() {
                 </CardContent>
               </Card>
 
-              {/* Client User Linker - Only for Admins */}
-              {isAdmin && (
+              {/* Client User Linker - For Admins and Business Areas */}
+              {(isAdmin || isAreaAziendale) && (
                 <ClientUserLinker 
                   contactId={contact.id}
                   currentClientUserId={(contact as any).client_user_id}
@@ -497,7 +497,7 @@ export default function CRMContactDetail() {
               contactId={contact.id} 
               contactName={contact.name} 
               clientUserId={(contact as any).client_user_id}
-              onLinkClient={isAdmin ? () => setActiveTab('info') : undefined}
+              onLinkClient={(isAdmin || isAreaAziendale) ? () => setActiveTab('info') : undefined}
             />
           </TabsContent>
 
