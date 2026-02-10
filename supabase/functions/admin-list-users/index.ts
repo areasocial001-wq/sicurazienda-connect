@@ -47,9 +47,10 @@ const handler = async (req: Request): Promise<Response> => {
       .eq("user_id", requestingUser.id)
       .single();
 
-    if (roleError || roleData?.role !== "admin") {
+    const allowedRoles = ["admin", "contabilita", "area_tecnica", "gestione_corsi", "consulenti_tecnici", "medicina"];
+    if (roleError || !allowedRoles.includes(roleData?.role)) {
       return new Response(
-        JSON.stringify({ error: "Only admins can list users" }),
+        JSON.stringify({ error: "Non hai i permessi per questa operazione" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -76,7 +77,8 @@ const handler = async (req: Request): Promise<Response> => {
       email: user.email,
       email_confirmed_at: user.email_confirmed_at,
       created_at: user.created_at,
-      last_sign_in_at: user.last_sign_in_at
+      last_sign_in_at: user.last_sign_in_at,
+      user_metadata: user.user_metadata,
     }));
 
     return new Response(
