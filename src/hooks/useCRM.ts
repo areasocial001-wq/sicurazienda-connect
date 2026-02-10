@@ -62,8 +62,7 @@ export function useCRM() {
       // First, get total count
       const { count, error: countError } = await supabase
         .from('crm_contacts')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id);
+        .select('*', { count: 'exact', head: true });
 
       if (countError) throw countError;
       
@@ -82,7 +81,6 @@ export function useCRM() {
         const { data, error } = await supabase
           .from('crm_contacts')
           .select('*')
-          .eq('user_id', user.id)
           .order('updated_at', { ascending: false })
           .range(fromIndex, toIndex);
 
@@ -123,7 +121,6 @@ export function useCRM() {
       const { data, error } = await supabase
         .from('crm_contacts')
         .select('*')
-        .eq('user_id', user.id)
         .or(`name.ilike.${searchPattern},company.ilike.${searchPattern},email.ilike.${searchPattern},phone.ilike.${searchPattern}`)
         .order('name', { ascending: true })
         .limit(500);
