@@ -4,7 +4,7 @@ import { it } from 'date-fns/locale';
 import { 
   FolderOpen, Upload, Download, Trash2, FileText, 
   File, Image, FileSpreadsheet, Loader2, Plus, Search,
-  Calendar, AlertTriangle, Clock, X, Link2
+  Calendar, AlertTriangle, Clock, X, Link2, UserPlus
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -40,6 +40,7 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion';
 import { useCRMDocuments, CRMDocument } from '@/hooks/useCRMDocuments';
+import { CreateClientAccount } from './CreateClientAccount';
 import { cn } from '@/lib/utils';
 
 const areaColors: Record<string, string> = {
@@ -87,11 +88,13 @@ const getExpiryStatus = (expiryDate?: string | null) => {
 interface CRMClientDocumentsProps {
   contactId: string;
   contactName: string;
+  contactEmail?: string | null;
+  contactCompany?: string | null;
   clientUserId?: string | null;
   onLinkClient?: () => void;
 }
 
-export default function CRMClientDocuments({ contactId, contactName, clientUserId, onLinkClient }: CRMClientDocumentsProps) {
+export default function CRMClientDocuments({ contactId, contactName, contactEmail, contactCompany, clientUserId, onLinkClient }: CRMClientDocumentsProps) {
   const {
     documents,
     loading,
@@ -280,6 +283,13 @@ export default function CRMClientDocuments({ contactId, contactName, clientUserI
                         <p className="text-xs text-muted-foreground">
                           Il cliente non potrà visualizzare i documenti nella sezione "I miei documenti" finché non viene collegato un account utente.
                         </p>
+                        <CreateClientAccount
+                          contactId={contactId}
+                          contactName={contactName}
+                          contactEmail={contactEmail}
+                          contactCompany={contactCompany}
+                          onAccountCreated={() => { setShowUploadDialog(false); onLinkClient(); }}
+                        />
                         <Button 
                           type="button"
                           variant="outline" 
@@ -288,7 +298,7 @@ export default function CRMClientDocuments({ contactId, contactName, clientUserI
                           onClick={() => { setShowUploadDialog(false); onLinkClient(); }}
                         >
                           <Link2 className="h-4 w-4 mr-2" />
-                          Collega Account Utente
+                          Collega Account Esistente
                         </Button>
                       </div>
                     )}

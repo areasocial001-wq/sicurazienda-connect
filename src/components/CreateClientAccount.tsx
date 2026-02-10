@@ -12,6 +12,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 
 interface CreateClientAccountProps {
@@ -29,6 +30,7 @@ export function CreateClientAccount({
   contactCompany,
   onAccountCreated,
 }: CreateClientAccountProps) {
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -96,7 +98,23 @@ export function CreateClientAccount({
         toast.warning('Account creato ma non collegato automaticamente. Collega manualmente.');
       }
 
-      // 3. Send credentials email
+      // 3. Log audit event
+      if (user) {
+        await supabase.rpc('log_audit_event', {
+          p_user_id: user.id,
+          p_action: 'client_account_created',
+          p_target_user_id: newUserId,
+          p_details: {
+            contact_id: contactId,
+            contact_name: contactName,
+            created_email: email,
+            company_name: companyName || null,
+            auto_linked: !linkError,
+          },
+        });
+      }
+
+      // 4. Send credentials email
       if (sendEmail) {
         const { error: emailError } = await supabase.functions.invoke('send-credentials-email', {
           body: { email, password, fullName, companyName },

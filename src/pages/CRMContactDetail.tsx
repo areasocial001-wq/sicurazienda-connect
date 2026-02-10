@@ -497,9 +497,11 @@ export default function CRMContactDetail() {
           <TabsContent value="documents">
             <CRMClientDocuments 
               contactId={contact.id} 
-              contactName={contact.name} 
+              contactName={contact.name}
+              contactEmail={contact.email}
+              contactCompany={contact.company}
               clientUserId={(contact as any).client_user_id}
-              onLinkClient={(isAdmin || isAreaAziendale) ? () => setActiveTab('info') : undefined}
+              onLinkClient={(isAdmin || isAreaAziendale) ? () => { setActiveTab('info'); fetchContact(); } : undefined}
             />
           </TabsContent>
 
