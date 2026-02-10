@@ -4,7 +4,7 @@ import { it } from 'date-fns/locale';
 import { 
   FolderOpen, Upload, Download, Trash2, FileText, 
   File, Image, FileSpreadsheet, Loader2, Plus, Search,
-  Calendar, AlertTriangle, Clock, X
+  Calendar, AlertTriangle, Clock, X, Link2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -87,9 +87,11 @@ const getExpiryStatus = (expiryDate?: string | null) => {
 interface CRMClientDocumentsProps {
   contactId: string;
   contactName: string;
+  clientUserId?: string | null;
+  onLinkClient?: () => void;
 }
 
-export default function CRMClientDocuments({ contactId, contactName }: CRMClientDocumentsProps) {
+export default function CRMClientDocuments({ contactId, contactName, clientUserId, onLinkClient }: CRMClientDocumentsProps) {
   const {
     documents,
     loading,
@@ -267,6 +269,27 @@ export default function CRMClientDocuments({ contactId, contactName }: CRMClient
                         <Badge className={areaColors[userArea]}>
                           {areaLabels[userArea]}
                         </Badge>
+                      </div>
+                    )}
+                    {!clientUserId && onLinkClient && (
+                      <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/5 p-3 space-y-2">
+                        <div className="flex items-center gap-2 text-sm font-medium text-yellow-700">
+                          <AlertTriangle className="h-4 w-4" />
+                          Account cliente non collegato
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Il cliente non potrà visualizzare i documenti nella sezione "I miei documenti" finché non viene collegato un account utente.
+                        </p>
+                        <Button 
+                          type="button"
+                          variant="outline" 
+                          size="sm"
+                          className="w-full"
+                          onClick={() => { setShowUploadDialog(false); onLinkClient(); }}
+                        >
+                          <Link2 className="h-4 w-4 mr-2" />
+                          Collega Account Utente
+                        </Button>
                       </div>
                     )}
                     <Button 
