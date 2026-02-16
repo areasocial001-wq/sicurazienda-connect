@@ -10,12 +10,13 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, NotebookPen, StickyNote, Menu, Sparkles, FileText } from "lucide-react";
+import { Plus, NotebookPen, StickyNote, Menu, Sparkles, FileText, Scissors } from "lucide-react";
 import SicurNoteSidebar from "@/components/notes/SicurNoteSidebar";
 import NotesList from "@/components/notes/NotesList";
 import NoteEditorPanel from "@/components/notes/NoteEditorPanel";
 import NoteSemanticSearch from "@/components/notes/NoteSemanticSearch";
 import { NOTE_TEMPLATES } from "@/components/notes/noteTemplates";
+import WebClipperDialog from "@/components/notes/WebClipperDialog";
 
 const Notes = () => {
   const { user } = useAuth();
@@ -40,6 +41,7 @@ const Notes = () => {
   const [showContactPicker, setShowContactPicker] = useState(false);
   const [showSemanticSearch, setShowSemanticSearch] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
+  const [showWebClipper, setShowWebClipper] = useState(false);
 
   // Open specific note from URL param (e.g., from CRM contact detail)
   useEffect(() => {
@@ -125,6 +127,21 @@ const Notes = () => {
   const handleSelectNote = (note: Note) => {
     setActiveNote(note);
     if (isMobile) setMobileView('editor');
+  };
+
+  const handleWebClip = async (data: { title: string; url: string; content: string; notebook_id: string | null }) => {
+    const result = await createNote.mutateAsync({
+      title: data.title,
+      content: data.content,
+      notebook_id: data.notebook_id,
+      tags: ["web-clip"],
+    });
+    if (result) {
+      const newNote = { ...result, tags: result.tags || [], contact: null } as Note;
+      setActiveNote(newNote);
+      if (isMobile) setMobileView('editor');
+      toast.success("Web clip salvato in SicurNote");
+    }
   };
 
   if (!user) {
@@ -293,6 +310,13 @@ const Notes = () => {
             >
               <Sparkles className="h-3 w-3 mr-1" /> AI Search
             </Button>
+            <Button
+              variant="ghost" size="sm"
+              className="text-xs h-7"
+              onClick={() => setShowWebClipper(true)}
+            >
+              <Scissors className="h-3 w-3 mr-1" /> Web Clip
+            </Button>
           </div>
           {showSemanticSearch && (
             <div className="p-2 border-b border-border bg-muted/20">
@@ -342,6 +366,15 @@ const Notes = () => {
           )}
         </div>
       </div>
+
+      {/* Web Clipper Dialog */}
+      <WebClipperDialog
+        open={showWebClipper}
+        onOpenChange={setShowWebClipper}
+        notebooks={notebooks}
+        selectedNotebook={selectedNotebook}
+        onClip={handleWebClip}
+      />
     </div>
   );
 };

@@ -10,8 +10,9 @@ import { toast } from "sonner";
 import {
   Pin, PinOff, Archive, ArchiveRestore, Trash2,
   Tag, Paperclip, Download, X, Plus, Save,
-  FileText, Image, Music, File, ChevronLeft, Sparkles,
+  FileText, Image, Music, File, ChevronLeft, Sparkles, Share2,
 } from "lucide-react";
+import NoteShareDialog from "./NoteShareDialog";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
 
@@ -46,6 +47,7 @@ const NoteEditorPanel = ({
   const [isUploading, setIsUploading] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const [showAI, setShowAI] = useState(false);
+  const [showShare, setShowShare] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
@@ -156,6 +158,9 @@ const NoteEditorPanel = ({
         </Button>
         <Button variant="ghost" size="icon" className={`h-7 w-7 ${showAI ? 'text-primary' : ''}`} onClick={() => setShowAI(!showAI)} title="Assistente AI">
           <Sparkles className="h-4 w-4" />
+        </Button>
+        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowShare(true)} title="Condividi">
+          <Share2 className="h-4 w-4" />
         </Button>
         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowDetails(!showDetails)} title="Dettagli">
           <Tag className="h-4 w-4" />
@@ -272,6 +277,13 @@ const NoteEditorPanel = ({
           </div>
         </div>
       )}
+      {/* Share Dialog */}
+      <NoteShareDialog
+        open={showShare}
+        onOpenChange={setShowShare}
+        noteId={note.id}
+        noteTitle={note.title}
+      />
     </div>
   );
 };
