@@ -11,11 +11,12 @@ import {
   Pin, PinOff, Archive, ArchiveRestore, Trash2,
   Tag, Paperclip, Download, X, Plus, Save,
   FileText, Image, Music, File, ChevronLeft, Sparkles, Share2,
-  MessageSquare, History,
+  MessageSquare, History, FileDown,
 } from "lucide-react";
 import NoteShareDialog from "./NoteShareDialog";
 import NoteComments from "./NoteComments";
 import NoteVersionHistory from "./NoteVersionHistory";
+import NoteExport from "./NoteExport";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
 
@@ -173,6 +174,7 @@ const NoteEditorPanel = ({
         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowVersionHistory(true)} title="Cronologia versioni">
           <History className="h-4 w-4" />
         </Button>
+        <NoteExport note={note} />
         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowDetails(!showDetails)} title="Dettagli">
           <Tag className="h-4 w-4" />
         </Button>

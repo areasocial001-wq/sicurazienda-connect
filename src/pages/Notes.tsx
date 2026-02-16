@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import Header from "@/components/Header";
 import BottomNav from "@/components/BottomNav";
 import { useNotes, Note } from "@/hooks/useNotes";
@@ -10,17 +11,19 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, NotebookPen, StickyNote, Menu, Sparkles, FileText, Scissors } from "lucide-react";
+import { Plus, NotebookPen, StickyNote, Menu, Sparkles, FileText, Scissors, Upload } from "lucide-react";
 import SicurNoteSidebar from "@/components/notes/SicurNoteSidebar";
 import NotesList from "@/components/notes/NotesList";
 import NoteEditorPanel from "@/components/notes/NoteEditorPanel";
 import NoteSemanticSearch from "@/components/notes/NoteSemanticSearch";
 import { NOTE_TEMPLATES } from "@/components/notes/noteTemplates";
 import WebClipperDialog from "@/components/notes/WebClipperDialog";
+import EnexImportDialog from "@/components/notes/EnexImportDialog";
 
 const Notes = () => {
   const { user } = useAuth();
   const isMobile = useIsMobile();
+  const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
   const {
     notes, allNotes, sharedNotes, notebooks, allTags, isLoading,
@@ -43,7 +46,7 @@ const Notes = () => {
   const [showSemanticSearch, setShowSemanticSearch] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
   const [showWebClipper, setShowWebClipper] = useState(false);
-
+  const [showEnexImport, setShowEnexImport] = useState(false);
   // Open specific note from URL param (e.g., from CRM contact detail)
   useEffect(() => {
     const noteId = searchParams.get("noteId");
@@ -354,6 +357,13 @@ const Notes = () => {
             >
               <Scissors className="h-3 w-3 mr-1" /> Web Clip
             </Button>
+            <Button
+              variant="ghost" size="sm"
+              className="text-xs h-7"
+              onClick={() => setShowEnexImport(true)}
+            >
+              <Upload className="h-3 w-3 mr-1" /> Import .enex
+            </Button>
           </div>
           {showSemanticSearch && (
             <div className="p-2 border-b border-border bg-muted/20">
@@ -411,6 +421,16 @@ const Notes = () => {
         notebooks={notebooks}
         selectedNotebook={selectedNotebook}
         onClip={handleWebClip}
+      />
+
+      {/* Enex Import Dialog */}
+      <EnexImportDialog
+        open={showEnexImport}
+        onOpenChange={setShowEnexImport}
+        onImportComplete={() => {
+          queryClient.invalidateQueries({ queryKey: ['notes'] });
+        }}
+        selectedNotebook={selectedNotebook}
       />
     </div>
   );

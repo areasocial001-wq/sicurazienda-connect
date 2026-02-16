@@ -876,6 +876,57 @@ export type Database = {
           },
         ]
       }
+      note_comment_notifications: {
+        Row: {
+          comment_id: string
+          comment_preview: string | null
+          commenter_name: string | null
+          created_at: string
+          id: string
+          is_read: boolean
+          note_id: string
+          note_title: string | null
+          user_id: string
+        }
+        Insert: {
+          comment_id: string
+          comment_preview?: string | null
+          commenter_name?: string | null
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          note_id: string
+          note_title?: string | null
+          user_id: string
+        }
+        Update: {
+          comment_id?: string
+          comment_preview?: string | null
+          commenter_name?: string | null
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          note_id?: string
+          note_title?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "note_comment_notifications_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "note_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "note_comment_notifications_note_id_fkey"
+            columns: ["note_id"]
+            isOneToOne: false
+            referencedRelation: "notes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       note_comments: {
         Row: {
           content: string
