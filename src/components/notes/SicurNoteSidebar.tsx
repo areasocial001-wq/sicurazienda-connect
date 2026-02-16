@@ -22,7 +22,7 @@ interface SicurNoteSidebarProps {
   setShowArchived: (show: boolean) => void;
   showSharedWithMe: boolean;
   setShowSharedWithMe: (show: boolean) => void;
-  onCreateNotebook: (name: string) => void;
+  onCreateNotebook: (name: string, color?: string) => void;
   onDeleteNotebook: (id: string) => void;
   noteCountByNotebook: Record<string, number>;
   totalNotes: number;
@@ -30,6 +30,10 @@ interface SicurNoteSidebarProps {
   collapsed?: boolean;
   onOpenNote?: (noteId: string) => void;
 }
+
+const NOTEBOOK_LABEL_COLORS = [
+  "#ef4444", "#f97316", "#eab308", "#22c55e", "#3b82f6", "#8b5cf6", "#ec4899", "#14b8a6",
+];
 
 const SicurNoteSidebar = ({
   notebooks, allTags, selectedNotebook, setSelectedNotebook,
@@ -40,6 +44,7 @@ const SicurNoteSidebar = ({
 }: SicurNoteSidebarProps) => {
   const [showNewNotebook, setShowNewNotebook] = useState(false);
   const [newNotebookName, setNewNotebookName] = useState("");
+  const [newNotebookColor, setNewNotebookColor] = useState(NOTEBOOK_LABEL_COLORS[4]);
   const [notebooksOpen, setNotebooksOpen] = useState(true);
   const [tagsOpen, setTagsOpen] = useState(true);
   const [bookmarkletCopied, setBookmarkletCopied] = useState(false);
@@ -54,8 +59,9 @@ const SicurNoteSidebar = ({
 
   const handleCreate = () => {
     if (!newNotebookName.trim()) return;
-    onCreateNotebook(newNotebookName.trim());
+    onCreateNotebook(newNotebookName.trim(), newNotebookColor);
     setNewNotebookName("");
+    setNewNotebookColor(NOTEBOOK_LABEL_COLORS[4]);
     setShowNewNotebook(false);
   };
 
@@ -129,6 +135,10 @@ const SicurNoteSidebar = ({
                     }`}
                     onClick={() => { setSelectedNotebook(nb.id); setSelectedTag(null); setShowArchived(false); }}
                   >
+                    <div
+                      className="w-2.5 h-2.5 rounded-full shrink-0"
+                      style={{ backgroundColor: nb.color || '#3b82f6' }}
+                    />
                     <span className="text-base shrink-0">{nb.icon}</span>
                     <span className="flex-1 truncate">{nb.name}</span>
                     <span className="text-xs opacity-60">{noteCountByNotebook[nb.id] || 0}</span>
@@ -145,7 +155,7 @@ const SicurNoteSidebar = ({
                 ))}
 
                 {showNewNotebook ? (
-                  <div className="flex gap-1 px-2 pt-1">
+                  <div className="px-2 pt-1 space-y-1.5">
                     <Input
                       value={newNotebookName}
                       onChange={e => setNewNotebookName(e.target.value)}
@@ -154,12 +164,25 @@ const SicurNoteSidebar = ({
                       onKeyDown={e => e.key === "Enter" && handleCreate()}
                       autoFocus
                     />
-                    <Button size="icon" variant="ghost" className="h-7 w-7 hover:bg-white/10" onClick={handleCreate}>
-                      <Plus className="h-3 w-3" />
-                    </Button>
-                    <Button size="icon" variant="ghost" className="h-7 w-7 hover:bg-white/10" onClick={() => setShowNewNotebook(false)}>
-                      <X className="h-3 w-3" />
-                    </Button>
+                    <div className="flex items-center gap-1 px-1">
+                      <span className="text-[10px] opacity-60 mr-1">Colore:</span>
+                      {NOTEBOOK_LABEL_COLORS.map(c => (
+                        <button
+                          key={c}
+                          onClick={() => setNewNotebookColor(c)}
+                          className={`w-4 h-4 rounded-full border-2 transition-all ${newNotebookColor === c ? 'border-white scale-110' : 'border-transparent'}`}
+                          style={{ backgroundColor: c }}
+                        />
+                      ))}
+                    </div>
+                    <div className="flex gap-1">
+                      <Button size="icon" variant="ghost" className="h-7 w-7 hover:bg-white/10" onClick={handleCreate}>
+                        <Plus className="h-3 w-3" />
+                      </Button>
+                      <Button size="icon" variant="ghost" className="h-7 w-7 hover:bg-white/10" onClick={() => setShowNewNotebook(false)}>
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
                   </div>
                 ) : (
                   <button
