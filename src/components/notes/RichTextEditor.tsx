@@ -13,6 +13,7 @@ import { TableCell } from '@tiptap/extension-table-cell';
 import { TableHeader } from '@tiptap/extension-table-header';
 import Link from '@tiptap/extension-link';
 import { TextStyle } from '@tiptap/extension-text-style';
+import { Color } from '@tiptap/extension-color';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import {
@@ -26,7 +27,7 @@ import {
   Plus, Trash2, ArrowDown, ArrowRight as ArrowRightIcon,
   AlignLeft as ImgLeft, AlignCenter as ImgCenter, AlignRight as ImgRight,
   Link as LinkIcon, Unlink, Merge, SplitSquareHorizontal,
-  Paintbrush, Smile,
+  Paintbrush, Smile, Type, ArrowUp, ArrowDown as ArrowDownIcon,
 } from 'lucide-react';
 import { useEffect, useCallback, useMemo, useState } from 'react';
 import { Input } from '@/components/ui/input';
@@ -68,6 +69,19 @@ const CELL_COLORS = [
   { label: 'Viola', value: '#ddd6fe' },
   { label: 'Rosa', value: '#fbcfe8' },
   { label: 'Grigio', value: '#e5e7eb' },
+];
+
+const TEXT_COLORS = [
+  { label: 'Default', value: '' },
+  { label: 'Nero', value: '#000000' },
+  { label: 'Rosso', value: '#dc2626' },
+  { label: 'Arancione', value: '#ea580c' },
+  { label: 'Giallo scuro', value: '#ca8a04' },
+  { label: 'Verde', value: '#16a34a' },
+  { label: 'Blu', value: '#2563eb' },
+  { label: 'Viola', value: '#7c3aed' },
+  { label: 'Rosa', value: '#db2777' },
+  { label: 'Grigio', value: '#6b7280' },
 ];
 
 const EMOJI_LIST = [
@@ -133,6 +147,7 @@ const RichTextEditor = ({ content, onChange, placeholder, noteId }: RichTextEdit
         },
       }),
       TextStyle,
+      Color,
       Link.configure({ openOnClick: false, HTMLAttributes: { class: 'text-primary underline cursor-pointer' } }),
     ],
     content,
@@ -309,6 +324,37 @@ const RichTextEditor = ({ content, onChange, placeholder, noteId }: RichTextEdit
           <Highlighter className="h-3.5 w-3.5" />
         </MenuButton>
 
+        {/* Text color picker */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button type="button" variant="ghost" size="icon" className="h-7 w-7" title="Colore testo">
+              <Type className="h-3.5 w-3.5" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-2" align="start">
+            <p className="text-[10px] text-muted-foreground mb-1">Colore testo</p>
+            <div className="flex flex-wrap gap-1">
+              {TEXT_COLORS.map((c) => (
+                <button
+                  key={c.value || 'default'}
+                  className="h-5 w-5 rounded border border-border hover:scale-110 transition-transform flex items-center justify-center"
+                  style={{ background: c.value || 'transparent' }}
+                  title={c.label}
+                  onClick={() => {
+                    if (c.value) {
+                      editor.chain().focus().setColor(c.value).run();
+                    } else {
+                      editor.chain().focus().unsetColor().run();
+                    }
+                  }}
+                >
+                  {!c.value && <span className="text-[8px]">A</span>}
+                </button>
+              ))}
+            </div>
+          </PopoverContent>
+        </Popover>
+
         <Separator orientation="vertical" className="h-5 mx-1" />
 
         <MenuButton onClick={() => editor.chain().focus().toggleBulletList().run()} isActive={editor.isActive('bulletList')} title="Elenco puntato">
@@ -390,6 +436,57 @@ const RichTextEditor = ({ content, onChange, placeholder, noteId }: RichTextEdit
                 </Button>
                 <Button variant="ghost" size="sm" className="w-full justify-start text-xs gap-1.5" onClick={() => editor.chain().focus().splitCell().run()}>
                   <SplitSquareHorizontal className="h-3 w-3" /> Dividi cella
+                </Button>
+                <Separator className="my-1" />
+                <Button variant="ghost" size="sm" className="w-full justify-start text-xs gap-1.5" onClick={() => {
+                  // Move row up: add row before, copy content conceptually (swap via delete+add)
+                  const { state } = editor;
+                  const { $from } = state.selection;
+                  // Find current row index
+                  let depth = $from.depth;
+                  while (depth > 0 && $from.node(depth).type.name !== 'tableRow') depth--;
+                  if (depth > 0) {
+                    const rowStart = $from.before(depth);
+                    const table = $from.node(depth - 1);
+                    const rowIndex = $from.index(depth - 1);
+                    if (rowIndex > 0) {
+                      // Get row nodes
+                      const currentRow = table.child(rowIndex);
+                      const prevRow = table.child(rowIndex - 1);
+                      const tableStart = $from.before(depth - 1) + 1;
+                      let offset = 0;
+                      for (let i = 0; i < rowIndex - 1; i++) offset += table.child(i).nodeSize;
+                      const prevRowPos = tableStart + offset;
+                      const tr = state.tr;
+                      tr.replaceWith(prevRowPos, prevRowPos + prevRow.nodeSize + currentRow.nodeSize, [currentRow.copy(currentRow.content), prevRow.copy(prevRow.content)]);
+                      editor.view.dispatch(tr);
+                    }
+                  }
+                }} title="Sposta riga su">
+                  <ArrowUp className="h-3 w-3" /> Sposta riga su
+                </Button>
+                <Button variant="ghost" size="sm" className="w-full justify-start text-xs gap-1.5" onClick={() => {
+                  const { state } = editor;
+                  const { $from } = state.selection;
+                  let depth = $from.depth;
+                  while (depth > 0 && $from.node(depth).type.name !== 'tableRow') depth--;
+                  if (depth > 0) {
+                    const table = $from.node(depth - 1);
+                    const rowIndex = $from.index(depth - 1);
+                    if (rowIndex < table.childCount - 1) {
+                      const currentRow = table.child(rowIndex);
+                      const nextRow = table.child(rowIndex + 1);
+                      const tableStart = $from.before(depth - 1) + 1;
+                      let offset = 0;
+                      for (let i = 0; i < rowIndex; i++) offset += table.child(i).nodeSize;
+                      const currentRowPos = tableStart + offset;
+                      const tr = state.tr;
+                      tr.replaceWith(currentRowPos, currentRowPos + currentRow.nodeSize + nextRow.nodeSize, [nextRow.copy(nextRow.content), currentRow.copy(currentRow.content)]);
+                      editor.view.dispatch(tr);
+                    }
+                  }
+                }} title="Sposta riga giù">
+                  <ArrowDownIcon className="h-3 w-3" /> Sposta riga giù
                 </Button>
                 <Separator className="my-1" />
                 <div className="px-1">
