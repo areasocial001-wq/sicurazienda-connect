@@ -26,6 +26,11 @@ const stripHtml = (html: string) => {
   return tmp.textContent || tmp.innerText || "";
 };
 
+const extractFirstImage = (html: string): string | null => {
+  const match = html.match(/<img[^>]+src="([^"]+)"/);
+  return match?.[1] || null;
+};
+
 const NotesList = ({
   notes, activeNoteId, searchQuery, setSearchQuery,
   onSelectNote, onCreateNote, isLoading, title,
@@ -166,9 +171,16 @@ const NotesList = ({
                       <span className="text-[10px] text-muted-foreground">📌 {note.contact.name}</span>
                     )}
                   </div>
-                  {note.color && (
-                    <div className="w-2 h-2 rounded-full shrink-0 mt-1.5" style={{ backgroundColor: note.color }} />
-                  )}
+                  {(() => {
+                    const thumb = extractFirstImage(note.content);
+                    if (thumb) return (
+                      <img src={thumb} alt="" className="w-10 h-10 rounded object-cover shrink-0 mt-0.5" loading="lazy" />
+                    );
+                    if (note.color) return (
+                      <div className="w-2 h-2 rounded-full shrink-0 mt-1.5" style={{ backgroundColor: note.color }} />
+                    );
+                    return null;
+                  })()}
                 </div>
               </button>
             ))}
