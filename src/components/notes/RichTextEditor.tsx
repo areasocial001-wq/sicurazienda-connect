@@ -12,6 +12,7 @@ import { TableRow } from '@tiptap/extension-table-row';
 import { TableCell } from '@tiptap/extension-table-cell';
 import { TableHeader } from '@tiptap/extension-table-header';
 import Link from '@tiptap/extension-link';
+import { TextStyle } from '@tiptap/extension-text-style';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import {
@@ -25,6 +26,7 @@ import {
   Plus, Trash2, ArrowDown, ArrowRight as ArrowRightIcon,
   AlignLeft as ImgLeft, AlignCenter as ImgCenter, AlignRight as ImgRight,
   Link as LinkIcon, Unlink, Merge, SplitSquareHorizontal,
+  Paintbrush, Smile,
 } from 'lucide-react';
 import { useEffect, useCallback, useMemo, useState } from 'react';
 import { Input } from '@/components/ui/input';
@@ -56,6 +58,24 @@ const MenuButton = ({
   </Button>
 );
 
+const CELL_COLORS = [
+  { label: 'Nessuno', value: '' },
+  { label: 'Rosso', value: '#fecaca' },
+  { label: 'Arancione', value: '#fed7aa' },
+  { label: 'Giallo', value: '#fef08a' },
+  { label: 'Verde', value: '#bbf7d0' },
+  { label: 'Blu', value: '#bfdbfe' },
+  { label: 'Viola', value: '#ddd6fe' },
+  { label: 'Rosa', value: '#fbcfe8' },
+  { label: 'Grigio', value: '#e5e7eb' },
+];
+
+const EMOJI_LIST = [
+  '😀','😂','😍','🤔','👍','👎','❤️','🔥','⭐','✅',
+  '❌','⚠️','📌','📎','📝','📅','💡','🎯','🚀','💬',
+  '👋','🙏','💪','🎉','📊','📈','📉','🔒','🔑','⏰',
+];
+
 const RichTextEditor = ({ content, onChange, placeholder, noteId }: RichTextEditorProps) => {
   const { user } = useAuth();
   const [linkUrl, setLinkUrl] = useState('');
@@ -82,8 +102,37 @@ const RichTextEditor = ({ content, onChange, placeholder, noteId }: RichTextEdit
       ImageResize,
       Table.configure({ resizable: true }),
       TableRow,
-      TableCell,
-      TableHeader,
+      TableCell.extend({
+        addAttributes() {
+          return {
+            ...this.parent?.(),
+            backgroundColor: {
+              default: null,
+              parseHTML: (element) => element.getAttribute('data-background-color') || element.style.backgroundColor || null,
+              renderHTML: (attributes) => {
+                if (!attributes.backgroundColor) return {};
+                return { 'data-background-color': attributes.backgroundColor, style: `background-color: ${attributes.backgroundColor}` };
+              },
+            },
+          };
+        },
+      }),
+      TableHeader.extend({
+        addAttributes() {
+          return {
+            ...this.parent?.(),
+            backgroundColor: {
+              default: null,
+              parseHTML: (element) => element.getAttribute('data-background-color') || element.style.backgroundColor || null,
+              renderHTML: (attributes) => {
+                if (!attributes.backgroundColor) return {};
+                return { 'data-background-color': attributes.backgroundColor, style: `background-color: ${attributes.backgroundColor}` };
+              },
+            },
+          };
+        },
+      }),
+      TextStyle,
       Link.configure({ openOnClick: false, HTMLAttributes: { class: 'text-primary underline cursor-pointer' } }),
     ],
     content,
@@ -343,6 +392,27 @@ const RichTextEditor = ({ content, onChange, placeholder, noteId }: RichTextEdit
                   <SplitSquareHorizontal className="h-3 w-3" /> Dividi cella
                 </Button>
                 <Separator className="my-1" />
+                <div className="px-1">
+                  <p className="text-[10px] text-muted-foreground mb-1">Sfondo cella</p>
+                  <div className="flex flex-wrap gap-1">
+                    {CELL_COLORS.map((c) => (
+                      <button
+                        key={c.value || 'none'}
+                        className="h-5 w-5 rounded border border-border hover:scale-110 transition-transform"
+                        style={{ background: c.value || 'transparent' }}
+                        title={c.label}
+                        onClick={() => {
+                          if (c.value) {
+                            editor.chain().focus().setCellAttribute('backgroundColor', c.value).run();
+                          } else {
+                            editor.chain().focus().setCellAttribute('backgroundColor', '').run();
+                          }
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
+                <Separator className="my-1" />
                 <Button variant="ghost" size="sm" className="w-full justify-start text-xs gap-1.5 text-destructive" onClick={() => editor.chain().focus().deleteTable().run()}>
                   <Trash2 className="h-3 w-3" /> Elimina tabella
                 </Button>
@@ -392,6 +462,28 @@ const RichTextEditor = ({ content, onChange, placeholder, noteId }: RichTextEdit
               }}>
                 <Unlink className="h-3 w-3 mr-1" /> Rimuovi
               </Button>
+            </div>
+          </PopoverContent>
+        </Popover>
+
+        {/* Emoji picker */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button type="button" variant="ghost" size="icon" className="h-7 w-7" title="Emoji">
+              <Smile className="h-3.5 w-3.5" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-[220px] p-2" align="start">
+            <div className="grid grid-cols-6 gap-1">
+              {EMOJI_LIST.map((emoji) => (
+                <button
+                  key={emoji}
+                  className="h-7 w-7 flex items-center justify-center text-base hover:bg-accent rounded transition-colors"
+                  onClick={() => editor.chain().focus().insertContent(emoji).run()}
+                >
+                  {emoji}
+                </button>
+              ))}
             </div>
           </PopoverContent>
         </Popover>
