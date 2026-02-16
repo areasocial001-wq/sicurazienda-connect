@@ -11,6 +11,7 @@ import { Table } from '@tiptap/extension-table';
 import { TableRow } from '@tiptap/extension-table-row';
 import { TableCell } from '@tiptap/extension-table-cell';
 import { TableHeader } from '@tiptap/extension-table-header';
+import Link from '@tiptap/extension-link';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import {
@@ -23,8 +24,10 @@ import {
   Quote, Code, Minus, ImageIcon, TableIcon,
   Plus, Trash2, ArrowDown, ArrowRight as ArrowRightIcon,
   AlignLeft as ImgLeft, AlignCenter as ImgCenter, AlignRight as ImgRight,
+  Link as LinkIcon, Unlink, Merge, SplitSquareHorizontal,
 } from 'lucide-react';
-import { useEffect, useCallback, useMemo } from 'react';
+import { useEffect, useCallback, useMemo, useState } from 'react';
+import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -55,6 +58,7 @@ const MenuButton = ({
 
 const RichTextEditor = ({ content, onChange, placeholder, noteId }: RichTextEditorProps) => {
   const { user } = useAuth();
+  const [linkUrl, setLinkUrl] = useState('');
 
   const uploadImage = useCallback(async (file: File): Promise<string | null> => {
     if (!user || !noteId) return null;
@@ -80,6 +84,7 @@ const RichTextEditor = ({ content, onChange, placeholder, noteId }: RichTextEdit
       TableRow,
       TableCell,
       TableHeader,
+      Link.configure({ openOnClick: false, HTMLAttributes: { class: 'text-primary underline cursor-pointer' } }),
     ],
     content,
     onUpdate: ({ editor }) => {
@@ -331,11 +336,63 @@ const RichTextEditor = ({ content, onChange, placeholder, noteId }: RichTextEdit
                   <Trash2 className="h-3 w-3" /> Rimuovi riga
                 </Button>
                 <Separator className="my-1" />
+                <Button variant="ghost" size="sm" className="w-full justify-start text-xs gap-1.5" onClick={() => editor.chain().focus().mergeCells().run()}>
+                  <Merge className="h-3 w-3" /> Unisci celle
+                </Button>
+                <Button variant="ghost" size="sm" className="w-full justify-start text-xs gap-1.5" onClick={() => editor.chain().focus().splitCell().run()}>
+                  <SplitSquareHorizontal className="h-3 w-3" /> Dividi cella
+                </Button>
+                <Separator className="my-1" />
                 <Button variant="ghost" size="sm" className="w-full justify-start text-xs gap-1.5 text-destructive" onClick={() => editor.chain().focus().deleteTable().run()}>
                   <Trash2 className="h-3 w-3" /> Elimina tabella
                 </Button>
               </>
             )}
+          </PopoverContent>
+        </Popover>
+
+        {/* Link popover */}
+        <Popover onOpenChange={(open) => {
+          if (open) {
+            const existing = editor.getAttributes('link').href || '';
+            setLinkUrl(existing);
+          }
+        }}>
+          <PopoverTrigger asChild>
+            <Button type="button" variant="ghost" size="icon" className={`h-7 w-7 ${editor.isActive('link') ? 'bg-accent text-accent-foreground' : ''}`} title="Link">
+              <LinkIcon className="h-3.5 w-3.5" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-64 p-2 space-y-2" align="start">
+            <Input
+              placeholder="https://..."
+              value={linkUrl}
+              onChange={(e) => setLinkUrl(e.target.value)}
+              className="h-7 text-xs"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  if (linkUrl) {
+                    editor.chain().focus().extendMarkRange('link').setLink({ href: linkUrl }).run();
+                  }
+                }
+              }}
+            />
+            <div className="flex gap-1">
+              <Button variant="ghost" size="sm" className="h-7 text-xs flex-1" onClick={() => {
+                if (linkUrl) {
+                  editor.chain().focus().extendMarkRange('link').setLink({ href: linkUrl }).run();
+                }
+              }}>
+                <LinkIcon className="h-3 w-3 mr-1" /> Applica
+              </Button>
+              <Button variant="ghost" size="sm" className="h-7 text-xs text-destructive" onClick={() => {
+                editor.chain().focus().extendMarkRange('link').unsetLink().run();
+                setLinkUrl('');
+              }}>
+                <Unlink className="h-3 w-3 mr-1" /> Rimuovi
+              </Button>
+            </div>
           </PopoverContent>
         </Popover>
 
