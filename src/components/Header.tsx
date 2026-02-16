@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import AuthModal from "@/components/AuthModal";
 import { NotificationBell } from "@/components/NotificationBell";
-import { User, LogOut, FileText, QrCode, BookOpen, Users } from "lucide-react";
+import { User, LogOut, FileText, QrCode, BookOpen, Users, StickyNote } from "lucide-react";
 
 const Header = () => {
   const { user, signOut } = useAuth();
@@ -69,6 +69,10 @@ const Header = () => {
                 <DropdownMenuItem onClick={() => navigate("/crm")} className="cursor-pointer">
                   <Users className="h-4 w-4 mr-2" />
                   CRM Contatti
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/notes")} className="cursor-pointer">
+                  <StickyNote className="h-4 w-4 mr-2" />
+                  Le mie Note
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => navigate("/qr-history")} className="cursor-pointer">
                   <QrCode className="h-4 w-4 mr-2" />
