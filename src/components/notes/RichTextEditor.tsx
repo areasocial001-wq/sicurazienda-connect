@@ -6,7 +6,7 @@ import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
 import TextAlign from '@tiptap/extension-text-align';
 import Placeholder from '@tiptap/extension-placeholder';
-import Image from '@tiptap/extension-image';
+import ImageResize from 'tiptap-extension-resize-image';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import {
@@ -15,7 +15,7 @@ import {
   AlignLeft, AlignCenter, AlignRight, Highlighter, Undo, Redo,
   Quote, Code, Minus, ImageIcon,
 } from 'lucide-react';
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -65,7 +65,7 @@ const RichTextEditor = ({ content, onChange, placeholder, noteId }: RichTextEdit
       TaskItem.configure({ nested: true }),
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
       Placeholder.configure({ placeholder: placeholder || 'Scrivi qui la tua nota...' }),
-      Image.configure({ inline: false, allowBase64: true }),
+      ImageResize,
     ],
     content,
     onUpdate: ({ editor }) => {
@@ -83,14 +83,12 @@ const RichTextEditor = ({ content, onChange, placeholder, noteId }: RichTextEdit
             event.preventDefault();
             const file = item.getAsFile();
             if (!file) return false;
-            // First insert as base64 for instant preview, then replace with uploaded URL
             const reader = new FileReader();
             reader.onload = async (e) => {
               const base64 = e.target?.result as string;
               view.dispatch(view.state.tr.replaceSelectionWith(
                 view.state.schema.nodes.image.create({ src: base64 })
               ));
-              // Upload in background and replace
               const url = await uploadImage(file);
               if (url) {
                 const { doc } = view.state;
@@ -156,7 +154,7 @@ const RichTextEditor = ({ content, onChange, placeholder, noteId }: RichTextEdit
       const reader = new FileReader();
       reader.onload = async (ev) => {
         const base64 = ev.target?.result as string;
-        editor.chain().focus().setImage({ src: base64 }).run();
+        (editor.chain().focus() as any).setImage({ src: base64 }).run();
         const url = await uploadImage(file);
         if (url) {
           const { doc } = editor.state;
@@ -172,6 +170,14 @@ const RichTextEditor = ({ content, onChange, placeholder, noteId }: RichTextEdit
     };
     input.click();
   }, [editor, uploadImage]);
+
+  const stats = useMemo(() => {
+    if (!editor) return { words: 0, chars: 0 };
+    const text = editor.state.doc.textContent;
+    const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+    return { words, chars: text.length };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editor, editor?.state.doc.content]);
 
   if (!editor) return null;
 
@@ -258,7 +264,13 @@ const RichTextEditor = ({ content, onChange, placeholder, noteId }: RichTextEdit
 
       {/* Editor */}
       <div className="flex-1 overflow-auto">
-        <EditorContent editor={editor} className="h-full [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-md [&_img]:my-2" />
+        <EditorContent editor={editor} className="h-full [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-md [&_img]:my-2 [&_.image-resizer]:border [&_.image-resizer]:border-primary [&_.image-resizer]:rounded" />
+      </div>
+
+      {/* Word/Char counter */}
+      <div className="flex items-center justify-end gap-3 px-3 py-1 border-t border-border bg-muted/30 text-[10px] text-muted-foreground shrink-0">
+        <span>{stats.words} parole</span>
+        <span>{stats.chars} caratteri</span>
       </div>
     </div>
   );
