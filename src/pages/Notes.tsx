@@ -32,7 +32,7 @@ const Notes = () => {
     selectedTag, setSelectedTag,
     showArchived, setShowArchived,
     showSharedWithMe, setShowSharedWithMe,
-    createNotebook, deleteNotebook,
+    createNotebook, updateNotebook, deleteNotebook,
     createNote, updateNote, deleteNote,
     fetchAttachments, uploadAttachment, deleteAttachment, getAttachmentUrl,
   } = useNotes();
@@ -283,6 +283,7 @@ const Notes = () => {
             setShowSharedWithMe={setShowSharedWithMe}
             onCreateNotebook={(name, color) => createNotebook.mutate({ name, color })}
             onDeleteNotebook={(id) => deleteNotebook.mutate(id)}
+            onUpdateNotebook={(id, data) => updateNotebook.mutate({ id, ...data })}
             noteCountByNotebook={noteCountByNotebook}
             totalNotes={allNotes.filter(n => !n.is_archived).length}
             sharedNotesCount={sharedNotes.length}

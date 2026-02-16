@@ -148,6 +148,19 @@ export function useNotes() {
     onError: () => toast.error('Errore nella creazione del quaderno'),
   });
 
+  // Update notebook
+  const updateNotebook = useMutation({
+    mutationFn: async ({ id, ...data }: { id: string; name?: string; color?: string; icon?: string }) => {
+      const { error } = await supabase.from('notebooks').update(data).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notebooks'] });
+      toast.success('Taccuino aggiornato');
+    },
+    onError: () => toast.error('Errore nell\'aggiornamento'),
+  });
+
   // Delete notebook
   const deleteNotebook = useMutation({
     mutationFn: async (id: string) => {
@@ -285,7 +298,7 @@ export function useNotes() {
     selectedTag, setSelectedTag,
     showArchived, setShowArchived,
     showSharedWithMe, setShowSharedWithMe,
-    createNotebook, deleteNotebook,
+    createNotebook, updateNotebook, deleteNotebook,
     createNote, updateNote, deleteNote,
     fetchAttachments, uploadAttachment, deleteAttachment, getAttachmentUrl,
   };
