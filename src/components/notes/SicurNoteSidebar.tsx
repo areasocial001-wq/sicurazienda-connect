@@ -1,13 +1,14 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Notebook } from "@/hooks/useNotes";
 import {
   StickyNote, Tag, Plus, Trash2, X,
   FolderPlus, Archive, ChevronDown, ChevronRight,
-  NotebookPen, Users, Copy, Check, Scissors, Pencil,
+  NotebookPen, Users, Copy, Check, Scissors, Pencil, Home, ArrowUpDown,
 } from "lucide-react";
 import NoteShareNotifications from "./NoteShareNotifications";
 
@@ -28,6 +29,8 @@ interface SicurNoteSidebarProps {
   setShowArchived: (show: boolean) => void;
   showSharedWithMe: boolean;
   setShowSharedWithMe: (show: boolean) => void;
+  showHome: boolean;
+  setShowHome: (show: boolean) => void;
   onCreateNotebook: (name: string, color?: string) => void;
   onDeleteNotebook: (id: string) => void;
   onUpdateNotebook?: (id: string, data: { name?: string; color?: string; icon?: string }) => void;
@@ -41,7 +44,7 @@ interface SicurNoteSidebarProps {
 const SicurNoteSidebar = ({
   notebooks, allTags, selectedNotebook, setSelectedNotebook,
   selectedTag, setSelectedTag, showArchived, setShowArchived,
-  showSharedWithMe, setShowSharedWithMe,
+  showSharedWithMe, setShowSharedWithMe, showHome, setShowHome,
   onCreateNotebook, onDeleteNotebook, onUpdateNotebook, noteCountByNotebook,
   totalNotes, sharedNotesCount, collapsed, onOpenNote,
 }: SicurNoteSidebarProps) => {
@@ -55,6 +58,15 @@ const SicurNoteSidebar = ({
   const [editName, setEditName] = useState("");
   const [editColor, setEditColor] = useState("");
   const [editIcon, setEditIcon] = useState("");
+  const [notebookSort, setNotebookSort] = useState<"name" | "created" | "count">("name");
+
+  const sortedNotebooks = useMemo(() => {
+    return [...notebooks].sort((a, b) => {
+      if (notebookSort === "name") return a.name.localeCompare(b.name);
+      if (notebookSort === "created") return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      return (noteCountByNotebook[b.id] || 0) - (noteCountByNotebook[a.id] || 0);
+    });
+  }, [notebooks, notebookSort, noteCountByNotebook]);
 
   const bookmarkletCode = `javascript:void(function(){var t=document.title,u=location.href,s=window.getSelection().toString().substring(0,2000);window.open('${window.location.origin}/notes?clip=1&title='+encodeURIComponent(t)+'&url='+encodeURIComponent(u)+'&text='+encodeURIComponent(s),'_blank','width=500,height=400')}())`;
 
@@ -100,11 +112,22 @@ const SicurNoteSidebar = ({
 
       <ScrollArea className="flex-1">
         <div className="p-3 space-y-1">
+          {/* Home */}
+          <button
+            onClick={() => { setShowHome(true); setSelectedNotebook(null); setSelectedTag(null); setShowArchived(false); setShowSharedWithMe(false); }}
+            className={`w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors hover:bg-white/10 ${
+              showHome ? 'bg-white/15 font-medium' : ''
+            }`}
+          >
+            <Home className="h-4 w-4 shrink-0" />
+            <span className="flex-1 text-left">Home</span>
+          </button>
+
           {/* All Notes */}
           <button
-            onClick={() => { setSelectedNotebook(null); setSelectedTag(null); setShowArchived(false); setShowSharedWithMe(false); }}
+            onClick={() => { setSelectedNotebook(null); setSelectedTag(null); setShowArchived(false); setShowSharedWithMe(false); setShowHome(false); }}
             className={`w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors hover:bg-white/10 ${
-              !selectedNotebook && !selectedTag && !showArchived && !showSharedWithMe ? 'bg-white/15 font-medium' : ''
+              !selectedNotebook && !selectedTag && !showArchived && !showSharedWithMe && !showHome ? 'bg-white/15 font-medium' : ''
             }`}
           >
             <StickyNote className="h-4 w-4 shrink-0" />
@@ -114,7 +137,7 @@ const SicurNoteSidebar = ({
 
           {/* Archive */}
           <button
-            onClick={() => { setShowArchived(!showArchived); setSelectedNotebook(null); setSelectedTag(null); setShowSharedWithMe(false); }}
+            onClick={() => { setShowArchived(!showArchived); setSelectedNotebook(null); setSelectedTag(null); setShowSharedWithMe(false); setShowHome(false); }}
             className={`w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors hover:bg-white/10 ${
               showArchived ? 'bg-white/15 font-medium' : ''
             }`}
@@ -125,7 +148,7 @@ const SicurNoteSidebar = ({
 
           {/* Shared with me */}
           <button
-            onClick={() => { setShowSharedWithMe(!showSharedWithMe); setSelectedNotebook(null); setSelectedTag(null); setShowArchived(false); }}
+            onClick={() => { setShowSharedWithMe(!showSharedWithMe); setSelectedNotebook(null); setSelectedTag(null); setShowArchived(false); setShowHome(false); }}
             className={`w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors hover:bg-white/10 ${
               showSharedWithMe ? 'bg-white/15 font-medium' : ''
             }`}
@@ -137,23 +160,37 @@ const SicurNoteSidebar = ({
 
           {/* Notebooks Section */}
           <div className="pt-3">
-            <button
-              onClick={() => setNotebooksOpen(!notebooksOpen)}
-              className="w-full flex items-center gap-1 px-3 py-1 text-xs font-semibold uppercase tracking-wider opacity-70 hover:opacity-100"
-            >
-              {notebooksOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-              Taccuini
-            </button>
+            <div className="flex items-center gap-1 px-3 py-1">
+              <button
+                onClick={() => setNotebooksOpen(!notebooksOpen)}
+                className="flex items-center gap-1 text-xs font-semibold uppercase tracking-wider opacity-70 hover:opacity-100 flex-1"
+              >
+                {notebooksOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                Taccuini
+              </button>
+              {notebooksOpen && (
+                <Select value={notebookSort} onValueChange={(v) => setNotebookSort(v as any)}>
+                  <SelectTrigger className="h-5 w-5 p-0 border-0 bg-transparent opacity-60 hover:opacity-100 [&>svg]:hidden">
+                    <ArrowUpDown className="h-3 w-3" />
+                  </SelectTrigger>
+                  <SelectContent align="end">
+                    <SelectItem value="name">Per nome</SelectItem>
+                    <SelectItem value="created">Per data creazione</SelectItem>
+                    <SelectItem value="count">Per n° note</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
             
             {notebooksOpen && (
               <div className="mt-1 space-y-0.5">
-                {notebooks.map(nb => (
+                {sortedNotebooks.map(nb => (
                   <div
                     key={nb.id}
                     className={`group flex items-center gap-2 px-3 py-1.5 rounded-md text-sm cursor-pointer transition-colors hover:bg-white/10 ${
                       selectedNotebook === nb.id ? 'bg-white/15 font-medium' : ''
                     }`}
-                    onClick={() => { setSelectedNotebook(nb.id); setSelectedTag(null); setShowArchived(false); }}
+                    onClick={() => { setSelectedNotebook(nb.id); setSelectedTag(null); setShowArchived(false); setShowHome(false); }}
                   >
                     <div
                       className="w-2.5 h-2.5 rounded-full shrink-0"
