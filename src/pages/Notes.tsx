@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Plus, NotebookPen, StickyNote, Menu, Sparkles, FileText, Scissors, Upload } from "lucide-react";
 import SicurNoteSidebar from "@/components/notes/SicurNoteSidebar";
+import SicurNoteHome from "@/components/notes/SicurNoteHome";
 import NotesList from "@/components/notes/NotesList";
 import NoteEditorPanel from "@/components/notes/NoteEditorPanel";
 import NoteSemanticSearch from "@/components/notes/NoteSemanticSearch";
@@ -47,6 +48,7 @@ const Notes = () => {
   const [showTemplates, setShowTemplates] = useState(false);
   const [showWebClipper, setShowWebClipper] = useState(false);
   const [showEnexImport, setShowEnexImport] = useState(false);
+  const [showHome, setShowHome] = useState(true);
   // Open specific note from URL param (e.g., from CRM contact detail)
   useEffect(() => {
     const noteId = searchParams.get("noteId");
@@ -151,6 +153,7 @@ const Notes = () => {
 
   const handleSelectNote = (note: Note) => {
     setActiveNote(note);
+    setShowHome(false);
     if (isMobile) setMobileView('editor');
   };
 
@@ -281,6 +284,8 @@ const Notes = () => {
             setShowArchived={setShowArchived}
             showSharedWithMe={showSharedWithMe}
             setShowSharedWithMe={setShowSharedWithMe}
+            showHome={showHome}
+            setShowHome={setShowHome}
             onCreateNotebook={(name, color) => createNotebook.mutate({ name, color })}
             onDeleteNotebook={(id) => deleteNotebook.mutate(id)}
             onUpdateNotebook={(id, data) => updateNotebook.mutate({ id, ...data })}
@@ -387,9 +392,18 @@ const Notes = () => {
           />
         </div>
 
-        {/* Editor */}
+        {/* Editor / Home */}
         <div className="flex-1 min-w-0">
-          {activeNote ? (
+          {showHome ? (
+            <SicurNoteHome
+              allNotes={allNotes}
+              notebooks={notebooks}
+              noteCountByNotebook={noteCountByNotebook}
+              onSelectNote={handleSelectNote}
+              onCreateNote={() => handleCreateNote()}
+              userName={user?.email?.split('@')[0]}
+            />
+          ) : activeNote ? (
             <NoteEditorPanel
               note={activeNote}
               notebooks={notebooks}
