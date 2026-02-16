@@ -255,6 +255,7 @@ const NoteEditorPanel = ({
           content={content}
           onChange={setContent}
           placeholder="Inizia a scrivere..."
+          noteId={note.id}
         />
       </div>
 
