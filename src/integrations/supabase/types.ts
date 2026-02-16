@@ -876,6 +876,51 @@ export type Database = {
           },
         ]
       }
+      note_comments: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          note_id: string
+          parent_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          note_id: string
+          parent_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          note_id?: string
+          parent_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "note_comments_note_id_fkey"
+            columns: ["note_id"]
+            isOneToOne: false
+            referencedRelation: "notes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "note_comments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "note_comments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       note_share_notifications: {
         Row: {
           created_at: string
@@ -948,6 +993,44 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "note_shares_note_id_fkey"
+            columns: ["note_id"]
+            isOneToOne: false
+            referencedRelation: "notes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      note_versions: {
+        Row: {
+          content: string | null
+          created_at: string
+          id: string
+          note_id: string
+          title: string
+          user_id: string
+          version_number: number
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          id?: string
+          note_id: string
+          title: string
+          user_id: string
+          version_number?: number
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          id?: string
+          note_id?: string
+          title?: string
+          user_id?: string
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "note_versions_note_id_fkey"
             columns: ["note_id"]
             isOneToOne: false
             referencedRelation: "notes"
