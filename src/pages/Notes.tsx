@@ -281,7 +281,7 @@ const Notes = () => {
             setShowArchived={setShowArchived}
             showSharedWithMe={showSharedWithMe}
             setShowSharedWithMe={setShowSharedWithMe}
-            onCreateNotebook={(name) => createNotebook.mutate({ name })}
+            onCreateNotebook={(name, color) => createNotebook.mutate({ name, color })}
             onDeleteNotebook={(id) => deleteNotebook.mutate(id)}
             noteCountByNotebook={noteCountByNotebook}
             totalNotes={allNotes.filter(n => !n.is_archived).length}
