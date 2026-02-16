@@ -36,7 +36,7 @@ const NoteShareDialog = ({ open, onOpenChange, noteId, noteTitle }: NoteShareDia
   }, [open, noteId]);
 
   const fetchShares = async () => {
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from("note_shares")
       .select("*")
       .eq("note_id", noteId)
@@ -48,17 +48,12 @@ const NoteShareDialog = ({ open, onOpenChange, noteId, noteTitle }: NoteShareDia
     if (!email.trim() || !user) return;
     setIsLoading(true);
     try {
-      // Look up user by email in profiles (via auth)
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("user_id")
-        .limit(1);
 
-      const { error } = await supabase.from("note_shares").insert({
+      const { error } = await (supabase as any).from("note_shares").insert({
         note_id: noteId,
         owner_id: user.id,
         shared_with_email: email.trim().toLowerCase(),
-        shared_with_user_id: null, // Will be resolved when user logs in
+        shared_with_user_id: null,
         permission,
       });
 
@@ -74,7 +69,7 @@ const NoteShareDialog = ({ open, onOpenChange, noteId, noteTitle }: NoteShareDia
   };
 
   const handleRemoveShare = async (shareId: string) => {
-    const { error } = await supabase.from("note_shares").delete().eq("id", shareId);
+    const { error } = await (supabase as any).from("note_shares").delete().eq("id", shareId);
     if (error) {
       toast.error("Errore nella rimozione");
     } else {
@@ -84,7 +79,7 @@ const NoteShareDialog = ({ open, onOpenChange, noteId, noteTitle }: NoteShareDia
   };
 
   const handleUpdatePermission = async (shareId: string, newPermission: string) => {
-    const { error } = await supabase
+    const { error } = await (supabase as any)
       .from("note_shares")
       .update({ permission: newPermission })
       .eq("id", shareId);

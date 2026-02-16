@@ -23,11 +23,12 @@ const Notes = () => {
   const isMobile = useIsMobile();
   const [searchParams] = useSearchParams();
   const {
-    notes, allNotes, notebooks, allTags, isLoading,
+    notes, allNotes, sharedNotes, notebooks, allTags, isLoading,
     searchQuery, setSearchQuery,
     selectedNotebook, setSelectedNotebook,
     selectedTag, setSelectedTag,
     showArchived, setShowArchived,
+    showSharedWithMe, setShowSharedWithMe,
     createNotebook, deleteNotebook,
     createNote, updateNote, deleteNote,
     fetchAttachments, uploadAttachment, deleteAttachment, getAttachmentUrl,
@@ -66,6 +67,7 @@ const Notes = () => {
 
   // Get title for notes list
   const listTitle = useMemo(() => {
+    if (showSharedWithMe) return "Condivise con me";
     if (showArchived) return "Archivio";
     if (selectedNotebook) {
       const nb = notebooks.find(n => n.id === selectedNotebook);
@@ -73,7 +75,27 @@ const Notes = () => {
     }
     if (selectedTag) return `🏷️ ${selectedTag}`;
     return "Tutte le note";
-  }, [showArchived, selectedNotebook, selectedTag, notebooks]);
+  }, [showSharedWithMe, showArchived, selectedNotebook, selectedTag, notebooks]);
+
+  // Handle bookmarklet clip params
+  useEffect(() => {
+    const clip = searchParams.get("clip");
+    if (clip === "1") {
+      const clipTitle = searchParams.get("title") || "";
+      const clipUrl = searchParams.get("url") || "";
+      const clipText = searchParams.get("text") || "";
+      if (clipTitle || clipUrl || clipText) {
+        handleWebClip({
+          title: clipTitle || `Clip: ${clipUrl}`,
+          url: clipUrl,
+          content: clipText,
+          notebook_id: null,
+        });
+        // Clean URL params
+        window.history.replaceState({}, '', '/notes');
+      }
+    }
+  }, [searchParams]);
 
   // Contact search for linking
   useEffect(() => {
@@ -243,10 +265,13 @@ const Notes = () => {
             setSelectedTag={setSelectedTag}
             showArchived={showArchived}
             setShowArchived={setShowArchived}
+            showSharedWithMe={showSharedWithMe}
+            setShowSharedWithMe={setShowSharedWithMe}
             onCreateNotebook={(name) => createNotebook.mutate({ name })}
             onDeleteNotebook={(id) => deleteNotebook.mutate(id)}
             noteCountByNotebook={noteCountByNotebook}
             totalNotes={allNotes.filter(n => !n.is_archived).length}
+            sharedNotesCount={sharedNotes.length}
           />
         )}
 
