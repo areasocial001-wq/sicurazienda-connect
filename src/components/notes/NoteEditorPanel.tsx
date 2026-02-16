@@ -11,8 +11,11 @@ import {
   Pin, PinOff, Archive, ArchiveRestore, Trash2,
   Tag, Paperclip, Download, X, Plus, Save,
   FileText, Image, Music, File, ChevronLeft, Sparkles, Share2,
+  MessageSquare, History,
 } from "lucide-react";
 import NoteShareDialog from "./NoteShareDialog";
+import NoteComments from "./NoteComments";
+import NoteVersionHistory from "./NoteVersionHistory";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
 
@@ -48,6 +51,8 @@ const NoteEditorPanel = ({
   const [showDetails, setShowDetails] = useState(false);
   const [showAI, setShowAI] = useState(false);
   const [showShare, setShowShare] = useState(false);
+  const [showComments, setShowComments] = useState(false);
+  const [showVersionHistory, setShowVersionHistory] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
@@ -161,6 +166,12 @@ const NoteEditorPanel = ({
         </Button>
         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowShare(true)} title="Condividi">
           <Share2 className="h-4 w-4" />
+        </Button>
+        <Button variant="ghost" size="icon" className={`h-7 w-7 ${showComments ? 'text-primary' : ''}`} onClick={() => setShowComments(!showComments)} title="Commenti">
+          <MessageSquare className="h-4 w-4" />
+        </Button>
+        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowVersionHistory(true)} title="Cronologia versioni">
+          <History className="h-4 w-4" />
         </Button>
         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowDetails(!showDetails)} title="Dettagli">
           <Tag className="h-4 w-4" />
@@ -277,12 +288,27 @@ const NoteEditorPanel = ({
           </div>
         </div>
       )}
+      {/* Comments */}
+      {showComments && (
+        <NoteComments noteId={note.id} noteOwnerId={note.user_id} />
+      )}
       {/* Share Dialog */}
       <NoteShareDialog
         open={showShare}
         onOpenChange={setShowShare}
         noteId={note.id}
         noteTitle={note.title}
+      />
+      {/* Version History Dialog */}
+      <NoteVersionHistory
+        noteId={note.id}
+        open={showVersionHistory}
+        onOpenChange={setShowVersionHistory}
+        onRestore={(title, content) => {
+          setTitle(title);
+          setContent(content);
+          onSave({ id: note.id, title, content });
+        }}
       />
     </div>
   );
