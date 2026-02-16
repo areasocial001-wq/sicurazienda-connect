@@ -58,6 +58,12 @@ const getPreview = (content: string) => {
   return text.length > 100 ? text.slice(0, 100) + "…" : text || "Nessun contenuto";
 };
 
+const extractFirstImage = (html: string): string | null => {
+  if (!html) return null;
+  const match = html.match(/<img[^>]+src="([^"]+)"/);
+  return match?.[1] || null;
+};
+
 const getTimeAgo = (dateStr: string) => {
   try {
     return formatDistanceToNow(new Date(dateStr), { addSuffix: true, locale: it });
@@ -393,6 +399,13 @@ const NoteCard = ({ note, onSelect, highlight }: { note: Note; onSelect: (n: Not
         </h3>
         {note.is_pinned && <Pin className="h-3 w-3 text-amber-500 shrink-0 mt-0.5" />}
       </div>
+      {(() => {
+        const thumb = extractFirstImage(note.content);
+        if (thumb) return (
+          <img src={thumb} alt="" className="w-full h-24 rounded object-cover" loading="lazy" />
+        );
+        return null;
+      })()}
       <p className="text-xs text-muted-foreground line-clamp-3">{getPreview(note.content)}</p>
       <div className="flex items-center gap-2 pt-1">
         <span className="text-[10px] text-muted-foreground">{getTimeAgo(note.updated_at)}</span>

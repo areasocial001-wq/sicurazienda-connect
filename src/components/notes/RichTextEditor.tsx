@@ -7,13 +7,22 @@ import TaskItem from '@tiptap/extension-task-item';
 import TextAlign from '@tiptap/extension-text-align';
 import Placeholder from '@tiptap/extension-placeholder';
 import ImageResize from 'tiptap-extension-resize-image';
+import { Table } from '@tiptap/extension-table';
+import { TableRow } from '@tiptap/extension-table-row';
+import { TableCell } from '@tiptap/extension-table-cell';
+import { TableHeader } from '@tiptap/extension-table-header';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import {
+  Popover, PopoverContent, PopoverTrigger,
+} from '@/components/ui/popover';
 import {
   Bold, Italic, Underline as UnderlineIcon, Strikethrough,
   List, ListOrdered, CheckSquare, Heading1, Heading2, Heading3,
   AlignLeft, AlignCenter, AlignRight, Highlighter, Undo, Redo,
-  Quote, Code, Minus, ImageIcon,
+  Quote, Code, Minus, ImageIcon, TableIcon,
+  Plus, Trash2, ArrowDown, ArrowRight as ArrowRightIcon,
+  AlignLeft as ImgLeft, AlignCenter as ImgCenter, AlignRight as ImgRight,
 } from 'lucide-react';
 import { useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
@@ -27,9 +36,9 @@ interface RichTextEditorProps {
 }
 
 const MenuButton = ({ 
-  onClick, isActive, children, title 
+  onClick, isActive, children, title, disabled 
 }: { 
-  onClick: () => void; isActive?: boolean; children: React.ReactNode; title?: string 
+  onClick: () => void; isActive?: boolean; children: React.ReactNode; title?: string; disabled?: boolean 
 }) => (
   <Button
     type="button"
@@ -38,6 +47,7 @@ const MenuButton = ({
     className={`h-7 w-7 ${isActive ? 'bg-accent text-accent-foreground' : ''}`}
     onClick={onClick}
     title={title}
+    disabled={disabled}
   >
     {children}
   </Button>
@@ -66,6 +76,10 @@ const RichTextEditor = ({ content, onChange, placeholder, noteId }: RichTextEdit
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
       Placeholder.configure({ placeholder: placeholder || 'Scrivi qui la tua nota...' }),
       ImageResize,
+      Table.configure({ resizable: true }),
+      TableRow,
+      TableCell,
+      TableHeader,
     ],
     content,
     onUpdate: ({ editor }) => {
@@ -171,6 +185,23 @@ const RichTextEditor = ({ content, onChange, placeholder, noteId }: RichTextEdit
     input.click();
   }, [editor, uploadImage]);
 
+  const setImageAlign = useCallback((align: 'left' | 'center' | 'right') => {
+    if (!editor) return;
+    const { state } = editor;
+    const { from } = state.selection;
+    // Find the image node at or near the cursor
+    state.doc.nodesBetween(from, from, (node, pos) => {
+      if (node.type.name === 'image') {
+        const style = align === 'center' ? 'margin-left: auto; margin-right: auto; display: block;'
+          : align === 'right' ? 'margin-left: auto; display: block;'
+          : 'margin-right: auto; display: block;';
+        editor.view.dispatch(
+          state.tr.setNodeMarkup(pos, undefined, { ...node.attrs, style })
+        );
+      }
+    });
+  }, [editor]);
+
   const stats = useMemo(() => {
     if (!editor) return { words: 0, chars: 0 };
     const text = editor.state.doc.textContent;
@@ -180,6 +211,8 @@ const RichTextEditor = ({ content, onChange, placeholder, noteId }: RichTextEdit
   }, [editor, editor?.state.doc.content]);
 
   if (!editor) return null;
+
+  const isInTable = editor.isActive('table');
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
@@ -245,9 +278,66 @@ const RichTextEditor = ({ content, onChange, placeholder, noteId }: RichTextEdit
         <MenuButton onClick={() => editor.chain().focus().setHorizontalRule().run()} title="Linea orizzontale">
           <Minus className="h-3.5 w-3.5" />
         </MenuButton>
-        <MenuButton onClick={handleImageButton} title="Inserisci immagine">
-          <ImageIcon className="h-3.5 w-3.5" />
-        </MenuButton>
+
+        {/* Image with alignment popover */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button type="button" variant="ghost" size="icon" className="h-7 w-7" title="Immagine">
+              <ImageIcon className="h-3.5 w-3.5" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-1.5 flex gap-1" align="start">
+            <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={handleImageButton}>
+              <Plus className="h-3 w-3" /> Inserisci
+            </Button>
+            <Separator orientation="vertical" className="h-5 mx-0.5" />
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setImageAlign('left')} title="Allinea a sinistra">
+              <ImgLeft className="h-3.5 w-3.5" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setImageAlign('center')} title="Allinea al centro">
+              <ImgCenter className="h-3.5 w-3.5" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setImageAlign('right')} title="Allinea a destra">
+              <ImgRight className="h-3.5 w-3.5" />
+            </Button>
+          </PopoverContent>
+        </Popover>
+
+        {/* Table popover */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button type="button" variant="ghost" size="icon" className={`h-7 w-7 ${isInTable ? 'bg-accent text-accent-foreground' : ''}`} title="Tabella">
+              <TableIcon className="h-3.5 w-3.5" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-2 space-y-1" align="start">
+            {!isInTable ? (
+              <Button variant="ghost" size="sm" className="w-full justify-start text-xs gap-1.5" onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}>
+                <Plus className="h-3 w-3" /> Inserisci tabella 3×3
+              </Button>
+            ) : (
+              <>
+                <Button variant="ghost" size="sm" className="w-full justify-start text-xs gap-1.5" onClick={() => editor.chain().focus().addColumnAfter().run()}>
+                  <ArrowRightIcon className="h-3 w-3" /> Aggiungi colonna
+                </Button>
+                <Button variant="ghost" size="sm" className="w-full justify-start text-xs gap-1.5" onClick={() => editor.chain().focus().addRowAfter().run()}>
+                  <ArrowDown className="h-3 w-3" /> Aggiungi riga
+                </Button>
+                <Separator className="my-1" />
+                <Button variant="ghost" size="sm" className="w-full justify-start text-xs gap-1.5" onClick={() => editor.chain().focus().deleteColumn().run()}>
+                  <Trash2 className="h-3 w-3" /> Rimuovi colonna
+                </Button>
+                <Button variant="ghost" size="sm" className="w-full justify-start text-xs gap-1.5" onClick={() => editor.chain().focus().deleteRow().run()}>
+                  <Trash2 className="h-3 w-3" /> Rimuovi riga
+                </Button>
+                <Separator className="my-1" />
+                <Button variant="ghost" size="sm" className="w-full justify-start text-xs gap-1.5 text-destructive" onClick={() => editor.chain().focus().deleteTable().run()}>
+                  <Trash2 className="h-3 w-3" /> Elimina tabella
+                </Button>
+              </>
+            )}
+          </PopoverContent>
+        </Popover>
 
         <Separator orientation="vertical" className="h-5 mx-1" />
 
@@ -264,7 +354,7 @@ const RichTextEditor = ({ content, onChange, placeholder, noteId }: RichTextEdit
 
       {/* Editor */}
       <div className="flex-1 overflow-auto">
-        <EditorContent editor={editor} className="h-full [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-md [&_img]:my-2 [&_.image-resizer]:border [&_.image-resizer]:border-primary [&_.image-resizer]:rounded" />
+        <EditorContent editor={editor} className="h-full [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-md [&_img]:my-2 [&_.image-resizer]:border [&_.image-resizer]:border-primary [&_.image-resizer]:rounded [&_table]:border-collapse [&_table]:w-full [&_table]:my-3 [&_td]:border [&_td]:border-border [&_td]:px-2 [&_td]:py-1.5 [&_td]:min-w-[60px] [&_th]:border [&_th]:border-border [&_th]:px-2 [&_th]:py-1.5 [&_th]:bg-muted/50 [&_th]:font-semibold [&_th]:text-left" />
       </div>
 
       {/* Word/Char counter */}
