@@ -151,6 +151,17 @@ const Notes = () => {
     if (isMobile) setMobileView('editor');
   };
 
+  const handleOpenNoteById = (noteId: string) => {
+    const found = allNotes.find(n => n.id === noteId) || sharedNotes.find(n => n.id === noteId);
+    if (found) {
+      setActiveNote(found);
+      if (!showSharedWithMe && !allNotes.find(n => n.id === noteId)) {
+        setShowSharedWithMe(true);
+      }
+      if (isMobile) setMobileView('editor');
+    }
+  };
+
   const handleWebClip = async (data: { title: string; url: string; content: string; notebook_id: string | null }) => {
     const result = await createNote.mutateAsync({
       title: data.title,
@@ -272,6 +283,7 @@ const Notes = () => {
             noteCountByNotebook={noteCountByNotebook}
             totalNotes={allNotes.filter(n => !n.is_archived).length}
             sharedNotesCount={sharedNotes.length}
+            onOpenNote={handleOpenNoteById}
           />
         )}
 

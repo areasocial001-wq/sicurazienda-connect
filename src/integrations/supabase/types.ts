@@ -876,6 +876,47 @@ export type Database = {
           },
         ]
       }
+      note_share_notifications: {
+        Row: {
+          created_at: string
+          id: string
+          is_read: boolean
+          note_id: string
+          note_title: string | null
+          shared_by_name: string | null
+          shared_by_user_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          note_id: string
+          note_title?: string | null
+          shared_by_name?: string | null
+          shared_by_user_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          note_id?: string
+          note_title?: string | null
+          shared_by_name?: string | null
+          shared_by_user_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "note_share_notifications_note_id_fkey"
+            columns: ["note_id"]
+            isOneToOne: false
+            referencedRelation: "notes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       note_shares: {
         Row: {
           created_at: string
@@ -1226,6 +1267,7 @@ export type Database = {
         }
         Returns: string
       }
+      resolve_my_note_shares: { Args: never; Returns: undefined }
     }
     Enums: {
       app_role:
