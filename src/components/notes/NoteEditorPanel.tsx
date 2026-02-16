@@ -5,11 +5,12 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import RichTextEditor from "./RichTextEditor";
+import NoteAIPanel from "./NoteAIPanel";
 import { toast } from "sonner";
 import {
   Pin, PinOff, Archive, ArchiveRestore, Trash2,
   Tag, Paperclip, Download, X, Plus, Save,
-  FileText, Image, Music, File, ChevronLeft,
+  FileText, Image, Music, File, ChevronLeft, Sparkles,
 } from "lucide-react";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
@@ -44,6 +45,7 @@ const NoteEditorPanel = ({
   const [attachments, setAttachments] = useState<NoteAttachment[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
+  const [showAI, setShowAI] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
@@ -150,7 +152,10 @@ const NoteEditorPanel = ({
           disabled={isUploading}
           title="Allega file"
         >
-          <Paperclip className="h-4 w-4" />
+         <Paperclip className="h-4 w-4" />
+        </Button>
+        <Button variant="ghost" size="icon" className={`h-7 w-7 ${showAI ? 'text-primary' : ''}`} onClick={() => setShowAI(!showAI)} title="Assistente AI">
+          <Sparkles className="h-4 w-4" />
         </Button>
         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowDetails(!showDetails)} title="Dettagli">
           <Tag className="h-4 w-4" />
@@ -234,6 +239,16 @@ const NoteEditorPanel = ({
           placeholder="Inizia a scrivere..."
         />
       </div>
+
+      {/* AI Panel */}
+      {showAI && (
+        <NoteAIPanel
+          note={note}
+          onInsertText={(text) => {
+            setContent(prev => prev + `<p>${text.replace(/\n/g, '</p><p>')}</p>`);
+          }}
+        />
+      )}
 
       {/* Attachments bar */}
       {attachments.length > 0 && (

@@ -5,7 +5,7 @@ import { it } from 'date-fns/locale';
 import { 
   ArrowLeft, Building, Mail, Phone, User, Calendar, 
   Tag, Loader2, Edit, MessageSquare, Brain, Sparkles,
-  MapPin, Globe, FileText, Clock, TrendingUp, ListTodo, Briefcase
+  MapPin, Globe, FileText, Clock, TrendingUp, ListTodo, Briefcase, NotebookPen
 } from 'lucide-react';
 import Header from '@/components/Header';
 import BottomNav from '@/components/BottomNav';
@@ -15,6 +15,7 @@ import { ContactActivities } from '@/components/ContactActivities';
 import { ContactContracts } from '@/components/ContactContracts';
 import { ContactLocationsEmployees } from '@/components/ContactLocationsEmployees';
 import { AIContactPanel } from '@/components/AIContactPanel';
+import ContactNotes from '@/components/notes/ContactNotes';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -297,6 +298,10 @@ export default function CRMContactDetail() {
               Commesse
             </TabsTrigger>
             <TabsTrigger value="documents">Documenti</TabsTrigger>
+            <TabsTrigger value="notes" className="flex items-center gap-1">
+              <NotebookPen className="h-4 w-4" />
+              Note
+            </TabsTrigger>
             <TabsTrigger value="interactions">Interazioni</TabsTrigger>
           </TabsList>
 
@@ -503,6 +508,11 @@ export default function CRMContactDetail() {
               clientUserId={(contact as any).client_user_id}
               onLinkClient={(isAdmin || isAreaAziendale) ? () => { setActiveTab('info'); fetchContact(); } : undefined}
             />
+          </TabsContent>
+
+          {/* Notes Tab */}
+          <TabsContent value="notes" className="space-y-4">
+            <ContactNotes contactId={contact.id} />
           </TabsContent>
 
           {/* Interactions Tab */}
