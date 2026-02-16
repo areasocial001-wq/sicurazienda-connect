@@ -401,6 +401,18 @@ const Notes = () => {
               noteCountByNotebook={noteCountByNotebook}
               onSelectNote={handleSelectNote}
               onCreateNote={() => handleCreateNote()}
+              onCreateNoteFromScratch={async (content) => {
+                const result = await createNote.mutateAsync({
+                  title: "Da Scratch Pad",
+                  content: `<p>${content.replace(/\n/g, '</p><p>')}</p>`,
+                  notebook_id: selectedNotebook,
+                });
+                if (result) {
+                  const newNote = { ...result, tags: result.tags || [], contact: null } as Note;
+                  setActiveNote(newNote);
+                  setShowHome(false);
+                }
+              }}
               userName={user?.email?.split('@')[0]}
             />
           ) : activeNote ? (

@@ -1,23 +1,25 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { Note, Notebook } from "@/hooks/useNotes";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Plus, NotebookPen, Pin, Clock, StickyNote,
   Settings2, GripVertical, Eye, EyeOff, PenLine,
+  Activity, FileText, Edit, Share2, ArrowRight,
 } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, isAfter, subDays } from "date-fns";
 import { it } from "date-fns/locale";
 import {
   Popover, PopoverContent, PopoverTrigger,
 } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
+import { toast } from "sonner";
 
 /* ── Types ─────────────────────────────────────── */
 
-type WidgetId = "scratchpad" | "recent" | "pinned" | "notebooks";
+type WidgetId = "scratchpad" | "recent" | "pinned" | "notebooks" | "activity";
 
 interface WidgetConfig {
   id: WidgetId;
@@ -27,6 +29,7 @@ interface WidgetConfig {
 
 const DEFAULT_WIDGETS: WidgetConfig[] = [
   { id: "scratchpad", label: "Scratch Pad", visible: true },
+  { id: "activity", label: "Attività recenti", visible: true },
   { id: "recent", label: "Note recenti", visible: true },
   { id: "pinned", label: "Note fissate", visible: true },
   { id: "notebooks", label: "Taccuini", visible: true },
@@ -43,6 +46,7 @@ interface SicurNoteHomeProps {
   noteCountByNotebook: Record<string, number>;
   onSelectNote: (note: Note) => void;
   onCreateNote: () => void;
+  onCreateNoteFromScratch?: (content: string) => void;
   userName?: string;
 }
 
@@ -62,17 +66,34 @@ const getTimeAgo = (dateStr: string) => {
   }
 };
 
+/* ── Activity item type ────────────────────────── */
+
+interface ActivityItem {
+  id: string;
+  type: "created" | "modified" | "shared";
+  note: Note;
+  date: Date;
+}
+
 /* ── Component ─────────────────────────────────── */
 
 const SicurNoteHome = ({
   allNotes, notebooks, noteCountByNotebook,
-  onSelectNote, onCreateNote, userName,
+  onSelectNote, onCreateNote, onCreateNoteFromScratch, userName,
 }: SicurNoteHomeProps) => {
-  /* Widget config (persisted in localStorage) */
+  /* Widget config */
   const [widgets, setWidgets] = useState<WidgetConfig[]>(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY_WIDGETS);
-      if (stored) return JSON.parse(stored) as WidgetConfig[];
+      if (stored) {
+        const parsed = JSON.parse(stored) as WidgetConfig[];
+        // Ensure new widget ids exist
+        const ids = parsed.map(w => w.id);
+        DEFAULT_WIDGETS.forEach(dw => {
+          if (!ids.includes(dw.id)) parsed.push(dw);
+        });
+        return parsed;
+      }
     } catch { /* ignore */ }
     return DEFAULT_WIDGETS;
   });
@@ -99,7 +120,7 @@ const SicurNoteHome = ({
     });
   };
 
-  /* Scratch pad (persisted in localStorage) */
+  /* Scratch pad */
   const [scratchContent, setScratchContent] = useState(() => {
     try { return localStorage.getItem(STORAGE_KEY_SCRATCH) || ""; } catch { return ""; }
   });
@@ -108,6 +129,19 @@ const SicurNoteHome = ({
     const t = setTimeout(() => localStorage.setItem(STORAGE_KEY_SCRATCH, scratchContent), 400);
     return () => clearTimeout(t);
   }, [scratchContent]);
+
+  const handleConvertScratchToNote = () => {
+    if (!scratchContent.trim()) {
+      toast.error("Lo Scratch Pad è vuoto");
+      return;
+    }
+    if (onCreateNoteFromScratch) {
+      onCreateNoteFromScratch(scratchContent);
+      setScratchContent("");
+      localStorage.setItem(STORAGE_KEY_SCRATCH, "");
+      toast.success("Nota creata dallo Scratch Pad");
+    }
+  };
 
   /* Data */
   const recentNotes = useMemo(() =>
@@ -122,14 +156,41 @@ const SicurNoteHome = ({
 
   const totalActive = allNotes.filter(n => !n.is_archived).length;
 
+  /* Recent activity */
+  const recentActivity = useMemo(() => {
+    const sevenDaysAgo = subDays(new Date(), 7);
+    const items: ActivityItem[] = [];
+
+    allNotes.forEach(note => {
+      const createdAt = new Date(note.created_at);
+      const updatedAt = new Date(note.updated_at);
+
+      if (isAfter(createdAt, sevenDaysAgo)) {
+        items.push({ id: `c-${note.id}`, type: "created", note, date: createdAt });
+      }
+      if (isAfter(updatedAt, sevenDaysAgo) && updatedAt.getTime() - createdAt.getTime() > 60000) {
+        items.push({ id: `m-${note.id}`, type: "modified", note, date: updatedAt });
+      }
+    });
+
+    return items.sort((a, b) => b.date.getTime() - a.date.getTime()).slice(0, 8);
+  }, [allNotes]);
+
   /* ── Widget renderers ────────────────────────── */
 
   const renderScratchPad = () => (
     <section key="scratchpad">
-      <h2 className="text-lg font-semibold flex items-center gap-2 mb-3">
-        <PenLine className="h-4 w-4 text-muted-foreground" />
-        Scratch Pad
-      </h2>
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-lg font-semibold flex items-center gap-2">
+          <PenLine className="h-4 w-4 text-muted-foreground" />
+          Scratch Pad
+        </h2>
+        {scratchContent.trim() && (
+          <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={handleConvertScratchToNote}>
+            <ArrowRight className="h-3 w-3" /> Converti in nota
+          </Button>
+        )}
+      </div>
       <Card>
         <CardContent className="p-0">
           <Textarea
@@ -142,6 +203,46 @@ const SicurNoteHome = ({
       </Card>
     </section>
   );
+
+  const renderActivity = () => {
+    if (recentActivity.length === 0) return null;
+    const iconMap = {
+      created: <FileText className="h-3.5 w-3.5 text-emerald-500" />,
+      modified: <Edit className="h-3.5 w-3.5 text-blue-500" />,
+      shared: <Share2 className="h-3.5 w-3.5 text-violet-500" />,
+    };
+    const labelMap = { created: "Creata", modified: "Modificata", shared: "Condivisa" };
+
+    return (
+      <section key="activity">
+        <h2 className="text-lg font-semibold flex items-center gap-2 mb-3">
+          <Activity className="h-4 w-4 text-muted-foreground" />
+          Attività recenti
+        </h2>
+        <Card>
+          <CardContent className="p-0 divide-y divide-border">
+            {recentActivity.map(item => (
+              <button
+                key={item.id}
+                className="flex items-center gap-3 w-full px-4 py-2.5 text-left hover:bg-muted/50 transition-colors"
+                onClick={() => onSelectNote(item.note)}
+              >
+                {iconMap[item.type]}
+                <div className="flex-1 min-w-0">
+                  <span className="text-sm font-medium truncate block">
+                    {item.note.title || "Senza titolo"}
+                  </span>
+                  <span className="text-[11px] text-muted-foreground">
+                    {labelMap[item.type]} · {getTimeAgo(item.date.toISOString())}
+                  </span>
+                </div>
+              </button>
+            ))}
+          </CardContent>
+        </Card>
+      </section>
+    );
+  };
 
   const renderRecent = () => (
     <section key="recent">
@@ -218,6 +319,7 @@ const SicurNoteHome = ({
 
   const widgetRenderers: Record<WidgetId, () => React.ReactNode> = {
     scratchpad: renderScratchPad,
+    activity: renderActivity,
     recent: renderRecent,
     pinned: renderPinned,
     notebooks: renderNotebooks,
@@ -234,7 +336,6 @@ const SicurNoteHome = ({
               {userName ? `Home di ${userName}` : "La tua Home"}
             </h1>
           </div>
-          {/* Customize widgets */}
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="outline" size="sm" className="gap-1.5">
@@ -250,7 +351,6 @@ const SicurNoteHome = ({
                       className="text-muted-foreground hover:text-foreground disabled:opacity-20"
                       onClick={() => moveWidget(idx, -1)}
                       disabled={idx === 0}
-                      aria-label="Sposta su"
                     >
                       <GripVertical className="h-3 w-3 rotate-180" />
                     </button>
@@ -258,51 +358,31 @@ const SicurNoteHome = ({
                       className="text-muted-foreground hover:text-foreground disabled:opacity-20"
                       onClick={() => moveWidget(idx, 1)}
                       disabled={idx === widgets.length - 1}
-                      aria-label="Sposta giù"
                     >
                       <GripVertical className="h-3 w-3" />
                     </button>
                   </div>
-                  <Checkbox
-                    checked={w.visible}
-                    onCheckedChange={() => toggleWidget(w.id)}
-                    id={`widget-${w.id}`}
-                  />
-                  <label htmlFor={`widget-${w.id}`} className="text-sm flex-1 cursor-pointer">
-                    {w.label}
-                  </label>
-                  {w.visible ? (
-                    <Eye className="h-3.5 w-3.5 text-muted-foreground" />
-                  ) : (
-                    <EyeOff className="h-3.5 w-3.5 text-muted-foreground" />
-                  )}
+                  <Checkbox checked={w.visible} onCheckedChange={() => toggleWidget(w.id)} id={`widget-${w.id}`} />
+                  <label htmlFor={`widget-${w.id}`} className="text-sm flex-1 cursor-pointer">{w.label}</label>
+                  {w.visible ? <Eye className="h-3.5 w-3.5 text-muted-foreground" /> : <EyeOff className="h-3.5 w-3.5 text-muted-foreground" />}
                 </div>
               ))}
             </PopoverContent>
           </Popover>
         </div>
 
-        {/* Widgets in order */}
         {widgets.filter(w => w.visible).map(w => widgetRenderers[w.id]())}
       </div>
     </ScrollArea>
   );
 };
 
-/* ── Note Card sub-component ───────────────────── */
+/* ── Note Card ─────────────────────────────────── */
 
-const NoteCard = ({
-  note, onSelect, highlight,
-}: {
-  note: Note;
-  onSelect: (n: Note) => void;
-  highlight?: boolean;
-}) => (
+const NoteCard = ({ note, onSelect, highlight }: { note: Note; onSelect: (n: Note) => void; highlight?: boolean }) => (
   <Card
     className={`cursor-pointer hover:shadow-md transition-shadow group ${
-      highlight
-        ? "border-amber-200/50 dark:border-amber-800/30"
-        : "border-border hover:border-primary/30"
+      highlight ? "border-amber-200/50 dark:border-amber-800/30" : "border-border hover:border-primary/30"
     }`}
     onClick={() => onSelect(note)}
   >
@@ -313,23 +393,15 @@ const NoteCard = ({
         </h3>
         {note.is_pinned && <Pin className="h-3 w-3 text-amber-500 shrink-0 mt-0.5" />}
       </div>
-      <p className="text-xs text-muted-foreground line-clamp-3">
-        {getPreview(note.content)}
-      </p>
+      <p className="text-xs text-muted-foreground line-clamp-3">{getPreview(note.content)}</p>
       <div className="flex items-center gap-2 pt-1">
-        <span className="text-[10px] text-muted-foreground">
-          {getTimeAgo(note.updated_at)}
-        </span>
+        <span className="text-[10px] text-muted-foreground">{getTimeAgo(note.updated_at)}</span>
         {note.tags.length > 0 && (
           <div className="flex gap-1">
             {note.tags.slice(0, 2).map(tag => (
-              <span key={tag} className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
-                {tag}
-              </span>
+              <span key={tag} className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{tag}</span>
             ))}
-            {note.tags.length > 2 && (
-              <span className="text-[10px] text-muted-foreground">+{note.tags.length - 2}</span>
-            )}
+            {note.tags.length > 2 && <span className="text-[10px] text-muted-foreground">+{note.tags.length - 2}</span>}
           </div>
         )}
       </div>
