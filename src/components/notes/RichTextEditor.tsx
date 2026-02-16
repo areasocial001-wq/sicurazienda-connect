@@ -12,8 +12,9 @@ import { TableRow } from '@tiptap/extension-table-row';
 import { TableCell } from '@tiptap/extension-table-cell';
 import { TableHeader } from '@tiptap/extension-table-header';
 import Link from '@tiptap/extension-link';
-import { TextStyle } from '@tiptap/extension-text-style';
+import { TextStyle, FontSize } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import {
@@ -84,6 +85,20 @@ const TEXT_COLORS = [
   { label: 'Grigio', value: '#6b7280' },
 ];
 
+const FONT_SIZES = [
+  { label: 'Default', value: '' },
+  { label: '10px', value: '10px' },
+  { label: '12px', value: '12px' },
+  { label: '14px', value: '14px' },
+  { label: '16px', value: '16px' },
+  { label: '18px', value: '18px' },
+  { label: '20px', value: '20px' },
+  { label: '24px', value: '24px' },
+  { label: '28px', value: '28px' },
+  { label: '32px', value: '32px' },
+  { label: '36px', value: '36px' },
+];
+
 const EMOJI_LIST = [
   '😀','😂','😍','🤔','👍','👎','❤️','🔥','⭐','✅',
   '❌','⚠️','📌','📎','📝','📅','💡','🎯','🚀','💬',
@@ -147,6 +162,7 @@ const RichTextEditor = ({ content, onChange, placeholder, noteId }: RichTextEdit
         },
       }),
       TextStyle,
+      FontSize,
       Color,
       Link.configure({ openOnClick: false, HTMLAttributes: { class: 'text-primary underline cursor-pointer' } }),
     ],
@@ -354,6 +370,29 @@ const RichTextEditor = ({ content, onChange, placeholder, noteId }: RichTextEdit
             </div>
           </PopoverContent>
         </Popover>
+
+        {/* Font size selector */}
+        <Select
+          value={editor.getAttributes('textStyle').fontSize || 'default'}
+          onValueChange={(val) => {
+            if (val && val !== 'default') {
+              editor.chain().focus().setFontSize(val).run();
+            } else {
+              editor.chain().focus().unsetFontSize().run();
+            }
+          }}
+        >
+          <SelectTrigger className="h-7 w-[72px] text-[10px] px-1.5">
+            <SelectValue placeholder="Size" />
+          </SelectTrigger>
+          <SelectContent>
+            {FONT_SIZES.map((s) => (
+              <SelectItem key={s.value || 'default'} value={s.value || 'default'} className="text-xs">
+                {s.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
         <Separator orientation="vertical" className="h-5 mx-1" />
 
@@ -600,7 +639,7 @@ const RichTextEditor = ({ content, onChange, placeholder, noteId }: RichTextEdit
 
       {/* Editor */}
       <div className="flex-1 overflow-auto">
-        <EditorContent editor={editor} className="h-full [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-md [&_img]:my-2 [&_.image-resizer]:border [&_.image-resizer]:border-primary [&_.image-resizer]:rounded [&_table]:border-collapse [&_table]:w-full [&_table]:my-3 [&_td]:border [&_td]:border-border [&_td]:px-2 [&_td]:py-1.5 [&_td]:min-w-[60px] [&_th]:border [&_th]:border-border [&_th]:px-2 [&_th]:py-1.5 [&_th]:bg-muted/50 [&_th]:font-semibold [&_th]:text-left" />
+        <EditorContent editor={editor} className="h-full [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-md [&_img]:my-2 [&_.image-resizer]:border [&_.image-resizer]:border-primary [&_.image-resizer]:rounded [&_table]:border-collapse [&_table]:w-full [&_table]:my-3 [&_table]:table-fixed [&_td]:border [&_td]:border-border [&_td]:px-2 [&_td]:py-1.5 [&_td]:min-w-[60px] [&_td]:relative [&_th]:border [&_th]:border-border [&_th]:px-2 [&_th]:py-1.5 [&_th]:bg-muted/50 [&_th]:font-semibold [&_th]:text-left [&_th]:relative [&_.column-resize-handle]:absolute [&_.column-resize-handle]:right-[-2px] [&_.column-resize-handle]:top-0 [&_.column-resize-handle]:bottom-0 [&_.column-resize-handle]:w-[4px] [&_.column-resize-handle]:bg-primary/50 [&_.column-resize-handle]:cursor-col-resize [&_.column-resize-handle]:z-20 [&_.tableWrapper]:overflow-x-auto [&_.resize-cursor]:cursor-col-resize" />
       </div>
 
       {/* Word/Char counter */}
