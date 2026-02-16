@@ -9,6 +9,7 @@ import {
   FolderPlus, Archive, Search, ChevronDown, ChevronRight,
   NotebookPen, Users, Link2, Copy, Check, Scissors,
 } from "lucide-react";
+import NoteShareNotifications from "./NoteShareNotifications";
 
 interface SicurNoteSidebarProps {
   notebooks: Notebook[];
@@ -27,6 +28,7 @@ interface SicurNoteSidebarProps {
   totalNotes: number;
   sharedNotesCount: number;
   collapsed?: boolean;
+  onOpenNote?: (noteId: string) => void;
 }
 
 const SicurNoteSidebar = ({
@@ -34,7 +36,7 @@ const SicurNoteSidebar = ({
   selectedTag, setSelectedTag, showArchived, setShowArchived,
   showSharedWithMe, setShowSharedWithMe,
   onCreateNotebook, onDeleteNotebook, noteCountByNotebook,
-  totalNotes, sharedNotesCount, collapsed,
+  totalNotes, sharedNotesCount, collapsed, onOpenNote,
 }: SicurNoteSidebarProps) => {
   const [showNewNotebook, setShowNewNotebook] = useState(false);
   const [newNotebookName, setNewNotebookName] = useState("");
@@ -65,7 +67,8 @@ const SicurNoteSidebar = ({
       <div className="px-4 py-4 border-b border-white/10">
         <div className="flex items-center gap-2">
           <NotebookPen className="h-6 w-6 text-emerald-400" />
-          <span className="text-lg font-bold tracking-tight">SicurNote</span>
+          <span className="text-lg font-bold tracking-tight flex-1">SicurNote</span>
+          <NoteShareNotifications onOpenNote={onOpenNote} />
         </div>
       </div>
 
