@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import Header from "@/components/Header";
 import BottomNav from "@/components/BottomNav";
 import { useNotes, Note } from "@/hooks/useNotes";
@@ -9,14 +10,17 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, NotebookPen, StickyNote, Menu } from "lucide-react";
+import { Plus, NotebookPen, StickyNote, Menu, Sparkles, FileText } from "lucide-react";
 import SicurNoteSidebar from "@/components/notes/SicurNoteSidebar";
 import NotesList from "@/components/notes/NotesList";
 import NoteEditorPanel from "@/components/notes/NoteEditorPanel";
+import NoteSemanticSearch from "@/components/notes/NoteSemanticSearch";
+import { NOTE_TEMPLATES } from "@/components/notes/noteTemplates";
 
 const Notes = () => {
   const { user } = useAuth();
   const isMobile = useIsMobile();
+  const [searchParams] = useSearchParams();
   const {
     notes, allNotes, notebooks, allTags, isLoading,
     searchQuery, setSearchQuery,
@@ -34,6 +38,20 @@ const Notes = () => {
   const [contactSearch, setContactSearch] = useState("");
   const [contacts, setContacts] = useState<{ id: string; name: string; company: string | null }[]>([]);
   const [showContactPicker, setShowContactPicker] = useState(false);
+  const [showSemanticSearch, setShowSemanticSearch] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
+
+  // Open specific note from URL param (e.g., from CRM contact detail)
+  useEffect(() => {
+    const noteId = searchParams.get("noteId");
+    if (noteId && allNotes.length > 0) {
+      const found = allNotes.find(n => n.id === noteId);
+      if (found) {
+        setActiveNote(found);
+        if (isMobile) setMobileView('editor');
+      }
+    }
+  }, [searchParams, allNotes]);
 
   // Note count by notebook
   const noteCountByNotebook = useMemo(() => {
@@ -79,6 +97,22 @@ const Notes = () => {
       const newNote = { ...result, tags: result.tags || [], contact: null } as Note;
       setActiveNote(newNote);
       if (isMobile) setMobileView('editor');
+    }
+  };
+
+  const handleCreateFromTemplate = async (templateId: string) => {
+    const template = NOTE_TEMPLATES.find(t => t.id === templateId);
+    if (!template) return;
+    const result = await createNote.mutateAsync({
+      title: template.title,
+      content: template.content,
+      notebook_id: selectedNotebook,
+    });
+    if (result) {
+      const newNote = { ...result, tags: result.tags || [], contact: null } as Note;
+      setActiveNote(newNote);
+      if (isMobile) setMobileView('editor');
+      setShowTemplates(false);
     }
   };
 
@@ -227,7 +261,48 @@ const Notes = () => {
                 </div>
               </DialogContent>
             </Dialog>
+            <Dialog open={showTemplates} onOpenChange={setShowTemplates}>
+              <DialogTrigger asChild>
+                <Button variant="ghost" size="sm" className="text-xs h-7">
+                  <FileText className="h-3 w-3 mr-1" /> Template
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md">
+                <DialogHeader><DialogTitle>Crea da Template</DialogTitle></DialogHeader>
+                <div className="space-y-2">
+                  {NOTE_TEMPLATES.map(t => (
+                    <button
+                      key={t.id}
+                      onClick={() => handleCreateFromTemplate(t.id)}
+                      className="w-full text-left p-3 rounded-md border border-border hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-lg">{t.icon}</span>
+                        <span className="text-sm font-medium">{t.name}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">{t.description}</p>
+                    </button>
+                  ))}
+                </div>
+              </DialogContent>
+            </Dialog>
+            <Button
+              variant="ghost" size="sm"
+              className={`text-xs h-7 ${showSemanticSearch ? 'text-primary' : ''}`}
+              onClick={() => setShowSemanticSearch(!showSemanticSearch)}
+            >
+              <Sparkles className="h-3 w-3 mr-1" /> AI Search
+            </Button>
           </div>
+          {showSemanticSearch && (
+            <div className="p-2 border-b border-border bg-muted/20">
+              <NoteSemanticSearch
+                notes={allNotes}
+                onSelectNote={handleSelectNote}
+                onClose={() => setShowSemanticSearch(false)}
+              />
+            </div>
+          )}
           <NotesList
             notes={notes}
             activeNoteId={activeNote?.id || null}
