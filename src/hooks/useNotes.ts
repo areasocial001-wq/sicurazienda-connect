@@ -48,6 +48,7 @@ export function useNotes() {
   const [selectedNotebook, setSelectedNotebook] = useState<string | null>(null);
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
+  const [showSharedWithMe, setShowSharedWithMe] = useState(false);
 
   // Fetch notebooks
   const { data: notebooks = [], isLoading: notebooksLoading } = useQuery({
@@ -81,6 +82,39 @@ export function useNotes() {
         tags: n.tags || [],
         contact: n.crm_contacts || null,
       })) as Note[];
+    },
+    enabled: !!user,
+  });
+
+  // Fetch shared notes
+  const { data: sharedNotes = [], isLoading: sharedLoading } = useQuery({
+    queryKey: ['shared-notes', user?.id],
+    queryFn: async () => {
+      // Get note IDs shared with me
+      const { data: shares, error: sharesError } = await (supabase as any)
+        .from('note_shares')
+        .select('note_id, permission')
+        .eq('shared_with_user_id', user!.id);
+      if (sharesError) throw sharesError;
+      if (!shares || shares.length === 0) return [];
+
+      const noteIds = shares.map(s => s.note_id);
+      const permMap: Record<string, string> = {};
+      shares.forEach(s => { permMap[s.note_id] = s.permission; });
+
+      const { data, error } = await supabase
+        .from('notes')
+        .select('*, crm_contacts(name, company)')
+        .in('id', noteIds)
+        .order('updated_at', { ascending: false });
+      if (error) throw error;
+      return (data || []).map((n: any) => ({
+        ...n,
+        tags: n.tags || [],
+        contact: n.crm_contacts || null,
+        _shared: true,
+        _permission: permMap[n.id] || 'read',
+      })) as (Note & { _shared?: boolean; _permission?: string })[];
     },
     enabled: !!user,
   });
@@ -224,9 +258,11 @@ export function useNotes() {
   }, []);
 
   // Filtered notes
-  const filteredNotes = notes.filter(note => {
-    if (selectedNotebook && note.notebook_id !== selectedNotebook) return false;
-    if (selectedTag && !note.tags.includes(selectedTag)) return false;
+  const filteredNotes = (showSharedWithMe ? sharedNotes : notes).filter(note => {
+    if (!showSharedWithMe) {
+      if (selectedNotebook && note.notebook_id !== selectedNotebook) return false;
+      if (selectedTag && !note.tags.includes(selectedTag)) return false;
+    }
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       return note.title.toLowerCase().includes(q) || note.content.toLowerCase().includes(q);
@@ -240,13 +276,15 @@ export function useNotes() {
   return {
     notes: filteredNotes,
     allNotes: notes,
+    sharedNotes,
     notebooks,
     allTags,
-    isLoading: notesLoading || notebooksLoading,
+    isLoading: notesLoading || notebooksLoading || sharedLoading,
     searchQuery, setSearchQuery,
     selectedNotebook, setSelectedNotebook,
     selectedTag, setSelectedTag,
     showArchived, setShowArchived,
+    showSharedWithMe, setShowSharedWithMe,
     createNotebook, deleteNotebook,
     createNote, updateNote, deleteNote,
     fetchAttachments, uploadAttachment, deleteAttachment, getAttachmentUrl,
