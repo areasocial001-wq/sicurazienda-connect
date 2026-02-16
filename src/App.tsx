@@ -21,6 +21,7 @@ import ContactRequest from "./pages/ContactRequest";
 import Profile from "./pages/Profile";
 import AppDocumentation from "./pages/AppDocumentation";
 import Assistente from "./pages/Assistente";
+import Notes from "./pages/Notes";
 import CRM from "./pages/CRM";
 import CRMContactDetail from "./pages/CRMContactDetail";
 import CRMAnalytics from "./pages/CRMAnalytics";
@@ -66,6 +67,7 @@ const App = () => (
           <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
           <Route path="/documentazione" element={<ProtectedRoute><AppDocumentation /></ProtectedRoute>} />
           <Route path="/assistente" element={<ProtectedRoute><Assistente /></ProtectedRoute>} />
+          <Route path="/notes" element={<ProtectedRoute><Notes /></ProtectedRoute>} />
           <Route path="/crm" element={<ProtectedRoute><CRM /></ProtectedRoute>} />
           <Route path="/crm/contact/:id" element={<ProtectedRoute><CRMContactDetail /></ProtectedRoute>} />
           <Route path="/crm/analytics" element={<ProtectedRoute><CRMAnalytics /></ProtectedRoute>} />
