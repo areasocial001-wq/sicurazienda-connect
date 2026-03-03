@@ -111,6 +111,35 @@ const NoteEditorPanel = ({
     }
   };
 
+  const handleCameraCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files?.length) return;
+    setIsUploading(true);
+    try {
+      for (const file of Array.from(files)) {
+        if (file.size > 20 * 1024 * 1024) {
+          toast.error(`${file.name} supera il limite di 20MB`);
+          continue;
+        }
+        // Upload as attachment
+        const att = await onUploadAttachment(note.id, file);
+        // Get signed URL and insert inline
+        if (att?.file_path) {
+          const url = await getAttachmentUrl(att.file_path);
+          setContent(prev => prev + `<img src="${url}" alt="${file.name}" />`);
+        }
+      }
+      const updated = await fetchAttachments(note.id);
+      setAttachments(updated);
+      toast.success("Foto inserita nella nota");
+    } catch {
+      toast.error("Errore nel caricamento della foto");
+    } finally {
+      setIsUploading(false);
+      if (cameraInputRef.current) cameraInputRef.current.value = "";
+    }
+  };
+
   const handleDeleteAttachment = async (att: NoteAttachment) => {
     try {
       await onDeleteAttachment(att);
@@ -199,7 +228,7 @@ const NoteEditorPanel = ({
           <Trash2 className="h-4 w-4" />
         </Button>
         <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleFileUpload} accept="image/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.txt" />
-        <input ref={cameraInputRef} type="file" capture="environment" className="hidden" onChange={handleFileUpload} accept="image/*" />
+        <input ref={cameraInputRef} type="file" capture="environment" className="hidden" onChange={handleCameraCapture} accept="image/*" />
       </div>
 
       {/* Details panel (collapsible) */}
