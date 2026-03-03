@@ -170,13 +170,13 @@ const NoteEditorPanel = ({
   return (
     <div className="flex flex-col h-full bg-background">
       {/* Top bar */}
-      <div className="flex items-center gap-2 px-4 py-2 border-b border-border shrink-0">
+      <div className="flex items-center gap-1 px-3 py-2 border-b border-border shrink-0 overflow-x-auto scrollbar-none whitespace-nowrap">
         {showBackButton && onClose && (
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { doSave(); onClose(); }}>
             <ChevronLeft className="h-5 w-5" />
           </Button>
         )}
-        <div className="flex-1" />
+        <div className="shrink" />
         
         {/* Quick actions */}
         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onSave({ id: note.id, is_pinned: !note.is_pinned })} title={note.is_pinned ? "Rimuovi pin" : "Fissa"}>
