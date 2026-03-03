@@ -11,7 +11,7 @@ import {
   Pin, PinOff, Archive, ArchiveRestore, Trash2,
   Tag, Paperclip, Download, X, Plus, Save,
   FileText, Image, Music, File, ChevronLeft, Sparkles, Share2,
-  MessageSquare, History, FileDown,
+  MessageSquare, History, FileDown, Camera,
 } from "lucide-react";
 import NoteShareDialog from "./NoteShareDialog";
 import NoteComments from "./NoteComments";
@@ -55,6 +55,7 @@ const NoteEditorPanel = ({
   const [showComments, setShowComments] = useState(false);
   const [showVersionHistory, setShowVersionHistory] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
   // Reset state when note changes
@@ -106,6 +107,7 @@ const NoteEditorPanel = ({
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
+      if (cameraInputRef.current) cameraInputRef.current.value = "";
     }
   };
 
@@ -162,6 +164,14 @@ const NoteEditorPanel = ({
         >
          <Paperclip className="h-4 w-4" />
         </Button>
+        <Button
+          variant="ghost" size="icon" className="h-7 w-7"
+          onClick={() => cameraInputRef.current?.click()}
+          disabled={isUploading}
+          title="Scatta foto"
+        >
+          <Camera className="h-4 w-4" />
+        </Button>
         <Button variant="ghost" size="icon" className={`h-7 w-7 ${showAI ? 'text-primary' : ''}`} onClick={() => setShowAI(!showAI)} title="Assistente AI">
           <Sparkles className="h-4 w-4" />
         </Button>
@@ -189,6 +199,7 @@ const NoteEditorPanel = ({
           <Trash2 className="h-4 w-4" />
         </Button>
         <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleFileUpload} accept="image/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.txt" />
+        <input ref={cameraInputRef} type="file" capture="environment" className="hidden" onChange={handleFileUpload} accept="image/*" />
       </div>
 
       {/* Details panel (collapsible) */}
