@@ -13,6 +13,7 @@ import { TableCell } from '@tiptap/extension-table-cell';
 import { TableHeader } from '@tiptap/extension-table-header';
 import Link from '@tiptap/extension-link';
 import { TextStyle, FontSize } from '@tiptap/extension-text-style';
+import FontFamily from '@tiptap/extension-font-family';
 import { Color } from '@tiptap/extension-color';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
@@ -99,6 +100,19 @@ const FONT_SIZES = [
   { label: '36px', value: '36px' },
 ];
 
+const FONT_FAMILIES = [
+  { label: 'Default', value: '' },
+  { label: 'Sans Serif', value: 'Arial, Helvetica, sans-serif' },
+  { label: 'Serif', value: 'Georgia, Times New Roman, serif' },
+  { label: 'Monospace', value: 'Courier New, monospace' },
+  { label: 'Verdana', value: 'Verdana, Geneva, sans-serif' },
+  { label: 'Trebuchet', value: 'Trebuchet MS, sans-serif' },
+  { label: 'Garamond', value: 'Garamond, serif' },
+  { label: 'Palatino', value: 'Palatino Linotype, serif' },
+  { label: 'Tahoma', value: 'Tahoma, Geneva, sans-serif' },
+  { label: 'Comic Sans', value: 'Comic Sans MS, cursive' },
+];
+
 const EMOJI_LIST = [
   '😀','😂','😍','🤔','👍','👎','❤️','🔥','⭐','✅',
   '❌','⚠️','📌','📎','📝','📅','💡','🎯','🚀','💬',
@@ -163,6 +177,7 @@ const RichTextEditor = ({ content, onChange, placeholder, noteId }: RichTextEdit
       }),
       TextStyle,
       FontSize,
+      FontFamily,
       Color,
       Link.configure({ openOnClick: false, HTMLAttributes: { class: 'text-primary underline cursor-pointer' } }),
     ],
@@ -389,6 +404,29 @@ const RichTextEditor = ({ content, onChange, placeholder, noteId }: RichTextEdit
             {FONT_SIZES.map((s) => (
               <SelectItem key={s.value || 'default'} value={s.value || 'default'} className="text-xs">
                 {s.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {/* Font family selector */}
+        <Select
+          value={editor.getAttributes('textStyle').fontFamily || 'default'}
+          onValueChange={(val) => {
+            if (val && val !== 'default') {
+              editor.chain().focus().setFontFamily(val).run();
+            } else {
+              editor.chain().focus().unsetFontFamily().run();
+            }
+          }}
+        >
+          <SelectTrigger className="h-7 w-[90px] text-[10px] px-1.5">
+            <SelectValue placeholder="Font" />
+          </SelectTrigger>
+          <SelectContent>
+            {FONT_FAMILIES.map((f) => (
+              <SelectItem key={f.value || 'default'} value={f.value || 'default'} className="text-xs" style={{ fontFamily: f.value || 'inherit' }}>
+                {f.label}
               </SelectItem>
             ))}
           </SelectContent>
