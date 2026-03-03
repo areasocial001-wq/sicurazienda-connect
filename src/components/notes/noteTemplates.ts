@@ -151,4 +151,127 @@ export const NOTE_TEMPLATES: NoteTemplate[] = [
 <h3>📅 Prossimi Passi</h3>
 <p>[Follow-up previsto, prossimo meeting]</p>`,
   },
+  {
+    id: "audit_sicurezza",
+    name: "Scheda Audit Sicurezza",
+    icon: "🛡️",
+    description: "Scheda di rilevazione per audit di sicurezza sul lavoro con checklist e non conformità",
+    title: "Audit Sicurezza - [Azienda] - [Data]",
+    content: `<h2>🛡️ SCHEDA RILEVAZIONE AUDIT SICUREZZA</h2>
+<hr>
+<h3>📋 Dati Generali</h3>
+<table>
+  <tbody>
+    <tr><td><strong>Data Audit:</strong></td><td>[Inserire data]</td></tr>
+    <tr><td><strong>Azienda:</strong></td><td>[Ragione sociale]</td></tr>
+    <tr><td><strong>Sede / Unità Locale:</strong></td><td>[Indirizzo sede]</td></tr>
+    <tr><td><strong>RSPP:</strong></td><td>[Nome RSPP]</td></tr>
+    <tr><td><strong>Medico Competente:</strong></td><td>[Nome MC]</td></tr>
+    <tr><td><strong>RLS:</strong></td><td>[Nome RLS]</td></tr>
+    <tr><td><strong>Auditor:</strong></td><td>[Nome auditor]</td></tr>
+    <tr><td><strong>Tipo Audit:</strong></td><td>[Interno / Esterno / Sorveglianza]</td></tr>
+  </tbody>
+</table>
+<hr>
+<h3>📑 Documentazione Verificata</h3>
+<ul data-type="taskList">
+  <li data-type="taskItem" data-checked="false"><label><input type="checkbox"></label><div>DVR (Documento Valutazione Rischi) aggiornato</div></li>
+  <li data-type="taskItem" data-checked="false"><label><input type="checkbox"></label><div>DUVRI (se applicabile)</div></li>
+  <li data-type="taskItem" data-checked="false"><label><input type="checkbox"></label><div>Piano di Emergenza ed Evacuazione</div></li>
+  <li data-type="taskItem" data-checked="false"><label><input type="checkbox"></label><div>Registro infortuni</div></li>
+  <li data-type="taskItem" data-checked="false"><label><input type="checkbox"></label><div>Verbali riunioni periodiche</div></li>
+  <li data-type="taskItem" data-checked="false"><label><input type="checkbox"></label><div>Nomine (RSPP, MC, Addetti emergenze, Preposti)</div></li>
+  <li data-type="taskItem" data-checked="false"><label><input type="checkbox"></label><div>Attestati formazione lavoratori</div></li>
+  <li data-type="taskItem" data-checked="false"><label><input type="checkbox"></label><div>Protocollo sanitario e idoneità sanitarie</div></li>
+  <li data-type="taskItem" data-checked="false"><label><input type="checkbox"></label><div>Libretti/certificazioni impianti e attrezzature</div></li>
+  <li data-type="taskItem" data-checked="false"><label><input type="checkbox"></label><div>Schede dati sicurezza (SDS) sostanze chimiche</div></li>
+</ul>
+<hr>
+<h3>🔍 Aree di Verifica</h3>
+<h4>1. Ambienti di Lavoro</h4>
+<table>
+  <thead>
+    <tr><th>Elemento</th><th>Conforme</th><th>Non Conforme</th><th>Note</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Vie di fuga e uscite di emergenza</td><td>☐</td><td>☐</td><td></td></tr>
+    <tr><td>Illuminazione adeguata</td><td>☐</td><td>☐</td><td></td></tr>
+    <tr><td>Pavimentazione e ordine</td><td>☐</td><td>☐</td><td></td></tr>
+    <tr><td>Segnaletica di sicurezza</td><td>☐</td><td>☐</td><td></td></tr>
+    <tr><td>Aerazione e microclima</td><td>☐</td><td>☐</td><td></td></tr>
+    <tr><td>Servizi igienici</td><td>☐</td><td>☐</td><td></td></tr>
+  </tbody>
+</table>
+<h4>2. Attrezzature e Macchine</h4>
+<table>
+  <thead>
+    <tr><th>Elemento</th><th>Conforme</th><th>Non Conforme</th><th>Note</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Marcatura CE e conformità</td><td>☐</td><td>☐</td><td></td></tr>
+    <tr><td>Dispositivi di protezione</td><td>☐</td><td>☐</td><td></td></tr>
+    <tr><td>Manutenzione programmata</td><td>☐</td><td>☐</td><td></td></tr>
+    <tr><td>Libretto d'uso e istruzioni</td><td>☐</td><td>☐</td><td></td></tr>
+  </tbody>
+</table>
+<h4>3. DPI (Dispositivi Protezione Individuale)</h4>
+<table>
+  <thead>
+    <tr><th>Elemento</th><th>Conforme</th><th>Non Conforme</th><th>Note</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>DPI disponibili e adeguati</td><td>☐</td><td>☐</td><td></td></tr>
+    <tr><td>Stato di conservazione</td><td>☐</td><td>☐</td><td></td></tr>
+    <tr><td>Utilizzo corretto da parte dei lavoratori</td><td>☐</td><td>☐</td><td></td></tr>
+    <tr><td>Registro consegna DPI</td><td>☐</td><td>☐</td><td></td></tr>
+  </tbody>
+</table>
+<h4>4. Antincendio ed Emergenze</h4>
+<table>
+  <thead>
+    <tr><th>Elemento</th><th>Conforme</th><th>Non Conforme</th><th>Note</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Estintori (presenza, revisione, accessibilità)</td><td>☐</td><td>☐</td><td></td></tr>
+    <tr><td>Idranti (se presenti)</td><td>☐</td><td>☐</td><td></td></tr>
+    <tr><td>Rivelatori fumo/incendio</td><td>☐</td><td>☐</td><td></td></tr>
+    <tr><td>Illuminazione di emergenza</td><td>☐</td><td>☐</td><td></td></tr>
+    <tr><td>Cassetta pronto soccorso</td><td>☐</td><td>☐</td><td></td></tr>
+    <tr><td>Prove evacuazione effettuate</td><td>☐</td><td>☐</td><td></td></tr>
+  </tbody>
+</table>
+<hr>
+<h3>⚠️ Non Conformità Rilevate</h3>
+<table>
+  <thead>
+    <tr><th>N.</th><th>Descrizione NC</th><th>Gravità</th><th>Azione Correttiva</th><th>Responsabile</th><th>Scadenza</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>1</td><td>[Descrizione]</td><td>[Alta/Media/Bassa]</td><td>[Azione prevista]</td><td>[Nome]</td><td>[Data]</td></tr>
+    <tr><td>2</td><td>[Descrizione]</td><td>[Alta/Media/Bassa]</td><td>[Azione prevista]</td><td>[Nome]</td><td>[Data]</td></tr>
+    <tr><td>3</td><td>[Descrizione]</td><td>[Alta/Media/Bassa]</td><td>[Azione prevista]</td><td>[Nome]</td><td>[Data]</td></tr>
+  </tbody>
+</table>
+<hr>
+<h3>✅ Azioni Correttive da Intraprendere</h3>
+<ul data-type="taskList">
+  <li data-type="taskItem" data-checked="false"><label><input type="checkbox"></label><div>[Azione 1] - Responsabile: [Nome] - Scadenza: [Data]</div></li>
+  <li data-type="taskItem" data-checked="false"><label><input type="checkbox"></label><div>[Azione 2] - Responsabile: [Nome] - Scadenza: [Data]</div></li>
+  <li data-type="taskItem" data-checked="false"><label><input type="checkbox"></label><div>[Azione 3] - Responsabile: [Nome] - Scadenza: [Data]</div></li>
+</ul>
+<hr>
+<h3>📝 Osservazioni e Raccomandazioni</h3>
+<p>[Inserire osservazioni generali emerse durante l'audit]</p>
+<hr>
+<h3>✍️ Firme</h3>
+<table>
+  <tbody>
+    <tr><td><strong>Auditor:</strong></td><td>____________________</td><td><strong>Data:</strong></td><td>[Data]</td></tr>
+    <tr><td><strong>RSPP:</strong></td><td>____________________</td><td><strong>Data:</strong></td><td>[Data]</td></tr>
+    <tr><td><strong>Datore di Lavoro:</strong></td><td>____________________</td><td><strong>Data:</strong></td><td>[Data]</td></tr>
+  </tbody>
+</table>
+<hr>
+<p><em>Prossimo audit previsto: [Data]</em></p>`,
+  },
 ];
