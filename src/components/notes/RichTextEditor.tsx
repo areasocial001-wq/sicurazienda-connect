@@ -317,7 +317,7 @@ const RichTextEditor = ({ content, onChange, placeholder, noteId }: RichTextEdit
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
       {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-0.5 px-2 py-1.5 border-b border-border bg-muted/30 shrink-0">
+      <div className="flex items-center gap-0.5 px-2 py-1.5 border-b border-border bg-muted/30 shrink-0 overflow-x-auto scrollbar-none whitespace-nowrap">
         <MenuButton onClick={() => editor.chain().focus().undo().run()} title="Annulla">
           <Undo className="h-3.5 w-3.5" />
         </MenuButton>
