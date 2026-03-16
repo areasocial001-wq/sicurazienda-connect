@@ -332,7 +332,22 @@ const CourseDetail = ({ course, onBack }: Props) => {
 
             {/* PRESENZE TAB */}
             <TabsContent value="presenze">
-              <h3 className="font-semibold mb-3">Registro Presenze</h3>
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="font-semibold">Registro Presenze</h3>
+                <AttendancePDFButton
+                  courseName={course.name}
+                  editionCode={selectedEdition.edition_code || ''}
+                  startDate={selectedEdition.start_date || undefined}
+                  endDate={selectedEdition.end_date || undefined}
+                  location={selectedEdition.location || undefined}
+                  instructorName={selectedEdition.instructor_name || undefined}
+                  enrollments={enrollments}
+                  lessons={lessons}
+                  attendanceMap={attendanceMap}
+                  durationHours={course.duration_hours}
+                  renewalMonths={course.renewal_months}
+                />
+              </div>
               {lessons.length === 0 || enrollments.length === 0 ? (
                 <p className="text-sm text-muted-foreground py-4 text-center">
                   Aggiungi lezioni e iscritti per gestire le presenze
