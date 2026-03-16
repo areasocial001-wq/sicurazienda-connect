@@ -68,3 +68,6 @@ verify_jwt = false
 
 [functions.send-credentials-email]
 verify_jwt = false
+
+[functions.send-certificate-email]
+verify_jwt = false
