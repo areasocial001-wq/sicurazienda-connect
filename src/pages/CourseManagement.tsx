@@ -18,6 +18,7 @@ import CourseDetail from "@/components/courses/CourseDetail";
 import CourseCalendarView from "@/components/courses/CourseCalendarView";
 import CourseExpiryTracker from "@/components/courses/CourseExpiryTracker";
 import CourseImport from "@/components/courses/CourseImport";
+import CourseBrandingSettings from "@/components/courses/CourseBrandingSettings";
 
 const COURSE_TYPES = [
   { value: "sicurezza", label: "Sicurezza", color: "bg-red-100 text-red-800" },
@@ -82,7 +83,8 @@ const CourseManagement = () => {
               <p className="text-sm text-muted-foreground">Pianifica, gestisci e monitora i corsi di formazione</p>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
+            <CourseBrandingSettings />
             <Button variant="outline" onClick={() => setShowImport(true)} className="gap-2">
               <Search className="h-4 w-4" /> Importa Excel
             </Button>
