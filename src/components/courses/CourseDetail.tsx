@@ -23,7 +23,8 @@ import {
   User, BookOpen, Clock, CheckCircle2, FileText, GraduationCap, Award
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { AttendancePDFButton, CertificatePDFButton } from "./CoursePDFGenerator";
+import { AttendancePDFButton } from "./CoursePDFGenerator";
+import CertificateTemplateDialog from "./CertificateTemplates";
 
 interface Props {
   course: Course;
@@ -57,6 +58,7 @@ const CourseDetail = ({ course, onBack }: Props) => {
   const [showAddEnrollment, setShowAddEnrollment] = useState(false);
   const [showAddLesson, setShowAddLesson] = useState(false);
   const [showEditCourse, setShowEditCourse] = useState(false);
+  const [certificateEnrollment, setCertificateEnrollment] = useState<CourseEnrollment | null>(null);
 
   // Available employees for enrollment
   const [availableEmployees, setAvailableEmployees] = useState<any[]>([]);
@@ -162,19 +164,24 @@ const CourseDetail = ({ course, onBack }: Props) => {
   };
 
   // Certificate
-  const handleIssueCertificate = async (enrollmentId: string) => {
+  const handleIssueCertificate = async (enrollment: CourseEnrollment) => {
     const today = new Date().toISOString().split('T')[0];
     const expiryDate = course.renewal_months
       ? new Date(Date.now() + course.renewal_months * 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
       : null;
-    await updateEnrollment(enrollmentId, {
+    await updateEnrollment(enrollment.id, {
       certificate_issued: true,
       certificate_date: today,
       certificate_expiry: expiryDate,
       status: 'completato',
     } as any);
     toast({ title: "Attestato emesso" });
-    if (selectedEdition) loadEditionDetails(selectedEdition);
+    if (selectedEdition) {
+      await loadEditionDetails(selectedEdition);
+      // Open template dialog for newly issued certificate
+      const updatedEnrollment = { ...enrollment, certificate_issued: true, certificate_date: today, certificate_expiry: expiryDate, status: 'completato' };
+      setCertificateEnrollment(updatedEnrollment);
+    }
   };
 
   const formatDate = (d: string) => new Date(d).toLocaleDateString('it-IT');
@@ -267,7 +274,7 @@ const CourseDetail = ({ course, onBack }: Props) => {
                                 )}
                               </div>
                             ) : (
-                              <Button size="sm" variant="outline" onClick={() => handleIssueCertificate(enr.id)}>
+                              <Button size="sm" variant="outline" onClick={() => handleIssueCertificate(enr)}>
                                 <FileText className="h-3 w-3 mr-1" /> Emetti
                               </Button>
                             )}
@@ -275,20 +282,9 @@ const CourseDetail = ({ course, onBack }: Props) => {
                           <TableCell>
                             <div className="flex gap-1">
                               {enr.certificate_issued && (
-                                <CertificatePDFButton
-                                  courseName={course.name}
-                                  editionCode={selectedEdition.edition_code || ''}
-                                  startDate={selectedEdition.start_date || undefined}
-                                  endDate={selectedEdition.end_date || undefined}
-                                  location={selectedEdition.location || undefined}
-                                  instructorName={selectedEdition.instructor_name || undefined}
-                                  enrollments={enrollments}
-                                  lessons={lessons}
-                                  attendanceMap={attendanceMap}
-                                  durationHours={course.duration_hours}
-                                  renewalMonths={course.renewal_months}
-                                  enrollment={enr}
-                                />
+                                <Button size="sm" variant="outline" className="gap-1" onClick={() => setCertificateEnrollment(enr)}>
+                                  <Award className="h-4 w-4" /> Attestato
+                                </Button>
                               )}
                               <Button size="icon" variant="ghost" onClick={async () => {
                                 if (confirm('Rimuovere iscrizione?')) {
@@ -456,6 +452,26 @@ const CourseDetail = ({ course, onBack }: Props) => {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Certificate Template Dialog */}
+        {certificateEnrollment && (
+          <CertificateTemplateDialog
+            open={!!certificateEnrollment}
+            onOpenChange={(open) => { if (!open) setCertificateEnrollment(null); }}
+            courseName={course.name}
+            editionCode={selectedEdition.edition_code || ''}
+            startDate={selectedEdition.start_date || undefined}
+            endDate={selectedEdition.end_date || undefined}
+            location={selectedEdition.location || undefined}
+            instructorName={selectedEdition.instructor_name || undefined}
+            durationHours={course.duration_hours}
+            renewalMonths={course.renewal_months}
+            enrollment={certificateEnrollment}
+            enrollments={enrollments}
+            lessons={lessons}
+            attendanceMap={attendanceMap}
+          />
+        )}
       </div>
     );
   }
