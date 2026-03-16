@@ -332,7 +332,7 @@ const CourseDetail = ({ course, onBack }: Props) => {
                           {lesson.topic && <p className="text-xs text-muted-foreground mt-1">{lesson.topic}</p>}
                           {lesson.instructor_name && <p className="text-xs text-muted-foreground">Docente: {lesson.instructor_name}</p>}
                         </div>
-                        <Button size="icon" variant="ghost" onClick={async () => {
+                            </div>
                           if (confirm('Eliminare lezione?')) {
                             await deleteLesson(lesson.id);
                             loadEditionDetails(selectedEdition);
