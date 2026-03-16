@@ -51,6 +51,7 @@ export default function CRMCalendar() {
   const [contacts, setContacts] = useState<any[]>([]);
   const [documents, setDocuments] = useState<any[]>([]);
   const [draggedEvent, setDraggedEvent] = useState<CalendarEvent | null>(null);
+  const [courseEditions, setCourseEditions] = useState<any[]>([]);
 
   const fetchData = useCallback(async () => {
     if (!user) return;
