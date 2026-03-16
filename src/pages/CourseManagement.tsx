@@ -83,7 +83,8 @@ const CourseManagement = () => {
               <p className="text-sm text-muted-foreground">Pianifica, gestisci e monitora i corsi di formazione</p>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
+            <CourseBrandingSettings />
             <Button variant="outline" onClick={() => setShowImport(true)} className="gap-2">
               <Search className="h-4 w-4" /> Importa Excel
             </Button>
