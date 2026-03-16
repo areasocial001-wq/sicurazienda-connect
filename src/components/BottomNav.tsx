@@ -1,4 +1,4 @@
-import { Home, UserPlus, Users, FileText, FolderOpen, Contact } from "lucide-react";
+import { Home, UserPlus, Users, FileText, FolderOpen, Contact, GraduationCap } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -8,7 +8,7 @@ const BottomNav = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
-  const { isAdmin, isAreaAziendale, loading: roleLoading } = useUserRole();
+  const { isAdmin, isAreaAziendale, isGestioneCorsi, loading: roleLoading } = useUserRole();
 
   // Determine which CRM/document route to show based on role
   const getCRMNavItem = () => {
@@ -31,6 +31,8 @@ const BottomNav = () => {
     { path: "/new-client", label: "Nuovo Cliente", icon: UserPlus },
     { path: "/existing-client", label: "Già Cliente", icon: Users },
     getCRMNavItem(),
+    // Show Corsi link for gestione_corsi, admin, and all business area users
+    ...((isAdmin || isAreaAziendale) ? [{ path: "/corsi", label: "Corsi", icon: GraduationCap }] : []),
   ];
 
   return (

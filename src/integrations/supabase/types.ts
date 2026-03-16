@@ -86,6 +86,284 @@ export type Database = {
         }
         Relationships: []
       }
+      course_attendance: {
+        Row: {
+          created_at: string
+          enrollment_id: string
+          entry_time: string | null
+          exit_time: string | null
+          id: string
+          lesson_id: string
+          notes: string | null
+          present: boolean | null
+        }
+        Insert: {
+          created_at?: string
+          enrollment_id: string
+          entry_time?: string | null
+          exit_time?: string | null
+          id?: string
+          lesson_id: string
+          notes?: string | null
+          present?: boolean | null
+        }
+        Update: {
+          created_at?: string
+          enrollment_id?: string
+          entry_time?: string | null
+          exit_time?: string | null
+          id?: string
+          lesson_id?: string
+          notes?: string | null
+          present?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_attendance_enrollment_id_fkey"
+            columns: ["enrollment_id"]
+            isOneToOne: false
+            referencedRelation: "course_enrollments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "course_attendance_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "course_lessons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      course_editions: {
+        Row: {
+          classroom: string | null
+          course_id: string
+          created_at: string
+          edition_code: string | null
+          end_date: string | null
+          id: string
+          instructor_email: string | null
+          instructor_name: string | null
+          location: string | null
+          notes: string | null
+          start_date: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          classroom?: string | null
+          course_id: string
+          created_at?: string
+          edition_code?: string | null
+          end_date?: string | null
+          id?: string
+          instructor_email?: string | null
+          instructor_name?: string | null
+          location?: string | null
+          notes?: string | null
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          classroom?: string | null
+          course_id?: string
+          created_at?: string
+          edition_code?: string | null
+          end_date?: string | null
+          id?: string
+          instructor_email?: string | null
+          instructor_name?: string | null
+          location?: string | null
+          notes?: string | null
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_editions_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      course_enrollments: {
+        Row: {
+          certificate_date: string | null
+          certificate_expiry: string | null
+          certificate_issued: boolean | null
+          contact_id: string | null
+          created_at: string
+          edition_id: string
+          employee_id: string | null
+          enrollment_date: string | null
+          id: string
+          notes: string | null
+          result: string | null
+          score: number | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          certificate_date?: string | null
+          certificate_expiry?: string | null
+          certificate_issued?: boolean | null
+          contact_id?: string | null
+          created_at?: string
+          edition_id: string
+          employee_id?: string | null
+          enrollment_date?: string | null
+          id?: string
+          notes?: string | null
+          result?: string | null
+          score?: number | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          certificate_date?: string | null
+          certificate_expiry?: string | null
+          certificate_issued?: boolean | null
+          contact_id?: string | null
+          created_at?: string
+          edition_id?: string
+          employee_id?: string | null
+          enrollment_date?: string | null
+          id?: string
+          notes?: string | null
+          result?: string | null
+          score?: number | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_enrollments_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "course_enrollments_edition_id_fkey"
+            columns: ["edition_id"]
+            isOneToOne: false
+            referencedRelation: "course_editions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "course_enrollments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "crm_employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      course_lessons: {
+        Row: {
+          created_at: string
+          edition_id: string
+          end_time: string | null
+          id: string
+          instructor_name: string | null
+          lesson_date: string
+          notes: string | null
+          start_time: string | null
+          topic: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          edition_id: string
+          end_time?: string | null
+          id?: string
+          instructor_name?: string | null
+          lesson_date: string
+          notes?: string | null
+          start_time?: string | null
+          topic?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          edition_id?: string
+          end_time?: string | null
+          id?: string
+          instructor_name?: string | null
+          lesson_date?: string
+          notes?: string | null
+          start_time?: string | null
+          topic?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_lessons_edition_id_fkey"
+            columns: ["edition_id"]
+            isOneToOne: false
+            referencedRelation: "course_editions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      courses: {
+        Row: {
+          category: string | null
+          course_type: string
+          created_at: string
+          description: string | null
+          duration_hours: number | null
+          id: string
+          is_mandatory: boolean | null
+          max_participants: number | null
+          name: string
+          notes: string | null
+          renewal_months: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          course_type?: string
+          created_at?: string
+          description?: string | null
+          duration_hours?: number | null
+          id?: string
+          is_mandatory?: boolean | null
+          max_participants?: number | null
+          name: string
+          notes?: string | null
+          renewal_months?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          course_type?: string
+          created_at?: string
+          description?: string | null
+          duration_hours?: number | null
+          id?: string
+          is_mandatory?: boolean | null
+          max_participants?: number | null
+          name?: string
+          notes?: string | null
+          renewal_months?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       crm_activities: {
         Row: {
           actual_cost: number | null
