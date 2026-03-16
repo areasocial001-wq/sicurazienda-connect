@@ -82,9 +82,14 @@ const CourseManagement = () => {
               <p className="text-sm text-muted-foreground">Pianifica, gestisci e monitora i corsi di formazione</p>
             </div>
           </div>
-          <Button onClick={() => setShowAddCourse(true)} className="gap-2">
-            <Plus className="h-4 w-4" /> Nuovo Corso
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setShowImport(true)} className="gap-2">
+              <Search className="h-4 w-4" /> Importa Excel
+            </Button>
+            <Button onClick={() => setShowAddCourse(true)} className="gap-2">
+              <Plus className="h-4 w-4" /> Nuovo Corso
+            </Button>
+          </div>
         </div>
 
         {/* Stats */}
