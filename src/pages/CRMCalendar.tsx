@@ -156,8 +156,34 @@ export default function CRMCalendar() {
       });
     });
 
+    // Add course editions
+    courseEditions.forEach(ed => {
+      if (ed.start_date) {
+        const courseName = (ed.course as any)?.name || 'Corso';
+        allEvents.push({
+          id: `course-${ed.id}`,
+          title: `📚 ${courseName}${ed.edition_code ? ` (${ed.edition_code})` : ''}`,
+          date: new Date(ed.start_date),
+          type: 'course_edition',
+          description: `${ed.location || ''} ${ed.status === 'in_corso' ? '• In corso' : '• Pianificata'}`.trim(),
+          draggable: false,
+        });
+      }
+      if (ed.end_date && ed.end_date !== ed.start_date) {
+        const courseName = (ed.course as any)?.name || 'Corso';
+        allEvents.push({
+          id: `course-end-${ed.id}`,
+          title: `📚 Fine: ${courseName}`,
+          date: new Date(ed.end_date),
+          type: 'course_edition',
+          description: 'Fine corso',
+          draggable: false,
+        });
+      }
+    });
+
     return allEvents;
-  }, [contacts, documents, reminders, googleEvents]);
+  }, [contacts, documents, reminders, googleEvents, courseEditions]);
 
   // Get events for selected date
   const selectedDateEvents = useMemo(() => {
