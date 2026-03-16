@@ -274,7 +274,7 @@ const CourseDetail = ({ course, onBack }: Props) => {
                                 )}
                               </div>
                             ) : (
-                              <Button size="sm" variant="outline" onClick={() => handleIssueCertificate(enr.id)}>
+                              <Button size="sm" variant="outline" onClick={() => handleIssueCertificate(enr)}>
                                 <FileText className="h-3 w-3 mr-1" /> Emetti
                               </Button>
                             )}
@@ -282,20 +282,9 @@ const CourseDetail = ({ course, onBack }: Props) => {
                           <TableCell>
                             <div className="flex gap-1">
                               {enr.certificate_issued && (
-                                <CertificatePDFButton
-                                  courseName={course.name}
-                                  editionCode={selectedEdition.edition_code || ''}
-                                  startDate={selectedEdition.start_date || undefined}
-                                  endDate={selectedEdition.end_date || undefined}
-                                  location={selectedEdition.location || undefined}
-                                  instructorName={selectedEdition.instructor_name || undefined}
-                                  enrollments={enrollments}
-                                  lessons={lessons}
-                                  attendanceMap={attendanceMap}
-                                  durationHours={course.duration_hours}
-                                  renewalMonths={course.renewal_months}
-                                  enrollment={enr}
-                                />
+                                <Button size="sm" variant="outline" className="gap-1" onClick={() => setCertificateEnrollment(enr)}>
+                                  <Award className="h-4 w-4" /> Attestato
+                                </Button>
                               )}
                               <Button size="icon" variant="ghost" onClick={async () => {
                                 if (confirm('Rimuovere iscrizione?')) {
