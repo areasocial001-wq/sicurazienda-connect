@@ -134,6 +134,57 @@ export type Database = {
           },
         ]
       }
+      course_branding_settings: {
+        Row: {
+          company_address: string | null
+          company_email: string | null
+          company_fiscal_code: string | null
+          company_name: string | null
+          company_pec: string | null
+          company_phone: string | null
+          company_vat: string | null
+          company_website: string | null
+          created_at: string
+          footer_text: string | null
+          id: string
+          logo_path: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          company_address?: string | null
+          company_email?: string | null
+          company_fiscal_code?: string | null
+          company_name?: string | null
+          company_pec?: string | null
+          company_phone?: string | null
+          company_vat?: string | null
+          company_website?: string | null
+          created_at?: string
+          footer_text?: string | null
+          id?: string
+          logo_path?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          company_address?: string | null
+          company_email?: string | null
+          company_fiscal_code?: string | null
+          company_name?: string | null
+          company_pec?: string | null
+          company_phone?: string | null
+          company_vat?: string | null
+          company_website?: string | null
+          created_at?: string
+          footer_text?: string | null
+          id?: string
+          logo_path?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       course_editions: {
         Row: {
           classroom: string | null
