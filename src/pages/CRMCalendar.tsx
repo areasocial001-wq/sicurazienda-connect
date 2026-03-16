@@ -454,6 +454,7 @@ export default function CRMCalendar() {
                                   {event.type === 'document_expiry' && 'Scadenza Doc'}
                                   {event.type === 'course_expiry' && 'Scadenza Corso'}
                                   {event.type === 'reminder' && 'Promemoria'}
+                                  {event.type === 'course_edition' && 'Corso'}
                                   {event.type === 'google_calendar' && 'Google Calendar'}
                                 </Badge>
                                 {event.draggable && (
