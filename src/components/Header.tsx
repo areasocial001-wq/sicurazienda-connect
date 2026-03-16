@@ -74,6 +74,10 @@ const Header = () => {
                   <NotebookPen className="h-4 w-4 mr-2" />
                   SicurNote
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/corsi")} className="cursor-pointer">
+                  <GraduationCap className="h-4 w-4 mr-2" />
+                  Gestione Corsi
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => navigate("/qr-history")} className="cursor-pointer">
                   <QrCode className="h-4 w-4 mr-2" />
                   Cronologia QR

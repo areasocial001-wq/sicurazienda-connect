@@ -78,6 +78,7 @@ const App = () => (
           <Route path="/crm/employee-deadlines" element={<ProtectedRoute><CRMEmployeeDeadlines /></ProtectedRoute>} />
           <Route path="/crm/orphaned" element={<ProtectedRoute><CRMOrphanedItems /></ProtectedRoute>} />
           <Route path="/crm/departments" element={<ProtectedRoute><DepartmentDashboard /></ProtectedRoute>} />
+          <Route path="/corsi" element={<ProtectedRoute><CourseManagement /></ProtectedRoute>} />
           
           {/* Admin routes - require admin role */}
           <Route path="/admin" element={<ProtectedRoute requireAdmin><AdminDashboard /></ProtectedRoute>} />
