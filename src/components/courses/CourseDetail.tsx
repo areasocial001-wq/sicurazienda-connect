@@ -289,7 +289,7 @@ const CourseDetail = ({ course, onBack }: Props) => {
                                   renewalMonths={course.renewal_months}
                                   enrollment={enr}
                                 />
-                              }
+                              )}
                               <Button size="icon" variant="ghost" onClick={async () => {
                                 if (confirm('Rimuovere iscrizione?')) {
                                   await deleteEnrollment(enr.id);
