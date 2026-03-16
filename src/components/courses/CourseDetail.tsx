@@ -333,7 +333,6 @@ const CourseDetail = ({ course, onBack }: Props) => {
                           {lesson.topic && <p className="text-xs text-muted-foreground mt-1">{lesson.topic}</p>}
                           {lesson.instructor_name && <p className="text-xs text-muted-foreground">Docente: {lesson.instructor_name}</p>}
                         </div>
-                        </div>
                         <Button size="icon" variant="ghost" onClick={async () => {
                           if (confirm('Eliminare lezione?')) {
                             await deleteLesson(lesson.id);
@@ -342,6 +341,7 @@ const CourseDetail = ({ course, onBack }: Props) => {
                         }}>
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
+                      </CardContent>
                     </Card>
                   ))}
                 </div>
