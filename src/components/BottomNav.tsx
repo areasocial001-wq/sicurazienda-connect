@@ -31,6 +31,8 @@ const BottomNav = () => {
     { path: "/new-client", label: "Nuovo Cliente", icon: UserPlus },
     { path: "/existing-client", label: "Già Cliente", icon: Users },
     getCRMNavItem(),
+    // Show Corsi link for gestione_corsi, admin, and all business area users
+    ...((isAdmin || isAreaAziendale) ? [{ path: "/corsi", label: "Corsi", icon: GraduationCap }] : []),
   ];
 
   return (
