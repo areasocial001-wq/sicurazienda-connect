@@ -28,7 +28,7 @@ interface CalendarEvent {
   id: string;
   title: string;
   date: Date;
-  type: 'followup' | 'document_expiry' | 'course_expiry' | 'reminder' | 'google_calendar';
+  type: 'followup' | 'document_expiry' | 'course_expiry' | 'reminder' | 'google_calendar' | 'course_edition';
   contactName?: string;
   contactId?: string;
   documentId?: string;
