@@ -358,7 +358,7 @@ const AppDocumentation = () => {
       y = 20;
 
       // DESIGN SYSTEM
-      addTitle("15. Design System");
+      addTitle("16. Design System");
       addSubtitle("Colori Brand");
       addBullet("Primary (Giallo): HSL 45 100% 50%");
       addBullet("Secondary (Rosso): HSL 0 84% 55%");
@@ -371,17 +371,19 @@ const AppDocumentation = () => {
       addSpace(10);
 
       // NAVIGAZIONE
-      addTitle("16. Navigazione");
+      addTitle("17. Navigazione");
       addBullet("Header: Logo, campanella notifiche, menu dropdown, login");
       addBullet("Bottom Nav: Home, Nuovo Cliente, Documenti, Profilo");
       addBullet("FloatingChat: Chat assistente sempre disponibile");
       addSpace(10);
 
       // EXPORT
-      addTitle("17. Funzionalita Export");
+      addTitle("18. Funzionalita Export");
       addBullet("Export statistiche QR in CSV");
       addBullet("Export report QR completo in PDF");
       addBullet("Export cronologia QR in CSV");
+      addBullet("Registro presenze corsi in PDF");
+      addBullet("Attestati personalizzati in PDF");
       addBullet("Download documentazione app in PDF");
 
       // FOOTER
