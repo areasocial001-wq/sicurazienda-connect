@@ -204,6 +204,8 @@ export default function CRMCalendar() {
         return 'bg-orange-500/20 text-orange-700 border-orange-500/30';
       case 'course_expiry':
         return 'bg-purple-500/20 text-purple-700 border-purple-500/30';
+      case 'course_edition':
+        return 'bg-indigo-500/20 text-indigo-700 border-indigo-500/30';
       case 'reminder':
         return 'bg-yellow-500/20 text-yellow-700 border-yellow-500/30';
       case 'google_calendar':
@@ -221,6 +223,8 @@ export default function CRMCalendar() {
         return <FileText className="h-4 w-4" />;
       case 'course_expiry':
         return <AlertTriangle className="h-4 w-4" />;
+      case 'course_edition':
+        return <CalendarIcon className="h-4 w-4" />;
       case 'reminder':
         return <Clock className="h-4 w-4" />;
       case 'google_calendar':
