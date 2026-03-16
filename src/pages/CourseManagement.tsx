@@ -42,6 +42,7 @@ const CourseManagement = () => {
   const [showAddCourse, setShowAddCourse] = useState(false);
   const [activeTab, setActiveTab] = useState("catalogo");
   const [typeFilter, setTypeFilter] = useState<string | null>(null);
+  const [showImport, setShowImport] = useState(false);
 
   useEffect(() => {
     if (user) {
