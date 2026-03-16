@@ -289,15 +289,16 @@ const CourseDetail = ({ course, onBack }: Props) => {
                                   renewalMonths={course.renewal_months}
                                   enrollment={enr}
                                 />
-                              )
-                            <Button size="icon" variant="ghost" onClick={async () => {
-                              if (confirm('Rimuovere iscrizione?')) {
-                                await deleteEnrollment(enr.id);
-                                loadEditionDetails(selectedEdition);
                               }
-                            }}>
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
+                              <Button size="icon" variant="ghost" onClick={async () => {
+                                if (confirm('Rimuovere iscrizione?')) {
+                                  await deleteEnrollment(enr.id);
+                                  loadEditionDetails(selectedEdition);
+                                }
+                              }}>
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
