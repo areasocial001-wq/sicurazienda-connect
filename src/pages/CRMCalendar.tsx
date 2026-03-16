@@ -60,7 +60,6 @@ export default function CRMCalendar() {
       const { data: contactsData } = await supabase
         .from('crm_contacts')
         .select('id, name, next_followup_at')
-        .eq('user_id', user.id)
         .not('next_followup_at', 'is', null);
 
       // Fetch documents with expiry dates
@@ -70,8 +69,15 @@ export default function CRMCalendar() {
         .eq('user_id', user.id)
         .not('expiry_date', 'is', null);
 
+      // Fetch course editions with dates
+      const { data: editionsData } = await supabase
+        .from('course_editions')
+        .select('id, edition_code, start_date, end_date, location, status, course:courses(name)')
+        .in('status', ['pianificata', 'in_corso']);
+
       setContacts(contactsData || []);
       setDocuments(docsData || []);
+      setCourseEditions(editionsData || []);
     } catch (error) {
       console.error('Error fetching calendar data:', error);
     } finally {
