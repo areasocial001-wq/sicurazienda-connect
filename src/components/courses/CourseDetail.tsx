@@ -273,6 +273,23 @@ const CourseDetail = ({ course, onBack }: Props) => {
                             )}
                           </TableCell>
                           <TableCell>
+                            <div className="flex gap-1">
+                              {enr.certificate_issued && (
+                                <CertificatePDFButton
+                                  courseName={course.name}
+                                  editionCode={selectedEdition.edition_code || ''}
+                                  startDate={selectedEdition.start_date || undefined}
+                                  endDate={selectedEdition.end_date || undefined}
+                                  location={selectedEdition.location || undefined}
+                                  instructorName={selectedEdition.instructor_name || undefined}
+                                  enrollments={enrollments}
+                                  lessons={lessons}
+                                  attendanceMap={attendanceMap}
+                                  durationHours={course.duration_hours}
+                                  renewalMonths={course.renewal_months}
+                                  enrollment={enr}
+                                />
+                              )
                             <Button size="icon" variant="ghost" onClick={async () => {
                               if (confirm('Rimuovere iscrizione?')) {
                                 await deleteEnrollment(enr.id);
