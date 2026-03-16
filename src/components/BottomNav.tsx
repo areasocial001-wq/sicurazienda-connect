@@ -1,4 +1,4 @@
-import { Home, UserPlus, Users, FileText, FolderOpen, Contact } from "lucide-react";
+import { Home, UserPlus, Users, FileText, FolderOpen, Contact, GraduationCap } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useUserRole } from "@/hooks/useUserRole";
