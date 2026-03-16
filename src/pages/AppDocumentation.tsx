@@ -276,9 +276,10 @@ const AppDocumentation = () => {
       addSpace(10);
 
       // PROMEMORIA
-      addTitle("11. Sistema Promemoria");
+      addTitle("12. Sistema Promemoria");
       addBullet("Campanella notifiche nell'header");
       addBullet("Promemoria scadenze documenti");
+      addBullet("Promemoria scadenze attestati corsi");
       addBullet("Notifiche scansioni QR");
       addBullet("Statistiche promemoria");
       addBullet("Mark as read/completed");
@@ -293,7 +294,7 @@ const AppDocumentation = () => {
       y = 20;
 
       // DATABASE
-      addTitle("12. Database (Supabase)");
+      addTitle("13. Database (Supabase)");
       addText("Tabelle:");
       addBullet("profiles - Dati utente (nome, azienda)");
       addBullet("documents - Documenti caricati con scadenze");
@@ -306,14 +307,20 @@ const AppDocumentation = () => {
       addBullet("crm_contacts - Contatti CRM");
       addBullet("crm_interactions - Interazioni CRM");
       addBullet("reminders - Promemoria e notifiche");
+      addBullet("courses - Catalogo corsi di formazione");
+      addBullet("course_editions - Edizioni programmate dei corsi");
+      addBullet("course_lessons - Lezioni per ogni edizione");
+      addBullet("course_enrollments - Iscrizioni e certificati");
+      addBullet("course_attendance - Presenze per lezione");
+      addBullet("course_branding_settings - Branding aziendale per PDF");
       addBullet("message_templates - Template messaggi");
       addBullet("google_calendar_tokens - Token Google Calendar");
       addSpace(10);
 
       // EDGE FUNCTIONS
-      addTitle("13. Edge Functions");
+      addTitle("14. Edge Functions");
       addBullet("ai-chat - Chat intelligente con AI");
-      addBullet("check-expiries - Controllo scadenze documenti");
+      addBullet("check-expiries - Controllo scadenze documenti e attestati");
       addBullet("check-upcoming-events - Eventi in arrivo");
       addBullet("crm-agent - Agente AI per CRM");
       addBullet("document-agent - Estrazione dati documenti");
@@ -323,12 +330,13 @@ const AppDocumentation = () => {
       addBullet("google-calendar-sync - Sincronizzazione calendario");
       addBullet("record-qr-scan - Registrazione scansioni con geolocalizzazione IP");
       addBullet("send-contact-email - Invio email contatti");
+      addBullet("send-certificate-email - Invio attestati via email");
       addBullet("send-qr-email - Invio email QR code");
       addBullet("notify-qr-download - Notifiche download QR");
       addSpace(10);
 
       // TECNOLOGIE
-      addTitle("14. Stack Tecnologico");
+      addTitle("15. Stack Tecnologico");
       addBullet("Frontend: React 18 + TypeScript + Vite");
       addBullet("Styling: Tailwind CSS + shadcn/ui");
       addBullet("Backend: Supabase (Auth, DB, Storage, Edge Functions, Realtime)");
@@ -336,7 +344,8 @@ const AppDocumentation = () => {
       addBullet("Email: Resend API");
       addBullet("QR Code: qrcode.react");
       addBullet("Grafici: Recharts");
-      addBullet("PDF: jsPDF");
+      addBullet("PDF: jsPDF + stampa browser");
+      addBullet("Excel: xlsx (importazione massiva)");
       addBullet("Routing: React Router 6");
       addBullet("State: TanStack Query");
       addBullet("Date: date-fns");
