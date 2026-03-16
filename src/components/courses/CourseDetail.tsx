@@ -164,19 +164,24 @@ const CourseDetail = ({ course, onBack }: Props) => {
   };
 
   // Certificate
-  const handleIssueCertificate = async (enrollmentId: string) => {
+  const handleIssueCertificate = async (enrollment: CourseEnrollment) => {
     const today = new Date().toISOString().split('T')[0];
     const expiryDate = course.renewal_months
       ? new Date(Date.now() + course.renewal_months * 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
       : null;
-    await updateEnrollment(enrollmentId, {
+    await updateEnrollment(enrollment.id, {
       certificate_issued: true,
       certificate_date: today,
       certificate_expiry: expiryDate,
       status: 'completato',
     } as any);
     toast({ title: "Attestato emesso" });
-    if (selectedEdition) loadEditionDetails(selectedEdition);
+    if (selectedEdition) {
+      await loadEditionDetails(selectedEdition);
+      // Open template dialog for newly issued certificate
+      const updatedEnrollment = { ...enrollment, certificate_issued: true, certificate_date: today, certificate_expiry: expiryDate, status: 'completato' };
+      setCertificateEnrollment(updatedEnrollment);
+    }
   };
 
   const formatDate = (d: string) => new Date(d).toLocaleDateString('it-IT');
