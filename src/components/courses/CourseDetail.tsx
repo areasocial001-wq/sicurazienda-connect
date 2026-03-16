@@ -58,6 +58,7 @@ const CourseDetail = ({ course, onBack }: Props) => {
   const [showAddEnrollment, setShowAddEnrollment] = useState(false);
   const [showAddLesson, setShowAddLesson] = useState(false);
   const [showEditCourse, setShowEditCourse] = useState(false);
+  const [certificateEnrollment, setCertificateEnrollment] = useState<CourseEnrollment | null>(null);
 
   // Available employees for enrollment
   const [availableEmployees, setAvailableEmployees] = useState<any[]>([]);
