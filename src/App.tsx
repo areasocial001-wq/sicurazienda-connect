@@ -31,6 +31,7 @@ import CRMDashboard from "./pages/CRMDashboard";
 import CRMEmployeeDeadlines from "./pages/CRMEmployeeDeadlines";
 import CRMOrphanedItems from "./pages/CRMOrphanedItems";
 import DepartmentDashboard from "./pages/DepartmentDashboard";
+import CourseManagement from "./pages/CourseManagement";
 import NotFound from "./pages/NotFound";
 import AuthConfirm from "./pages/AuthConfirm";
 import ResetPassword from "./pages/ResetPassword";
