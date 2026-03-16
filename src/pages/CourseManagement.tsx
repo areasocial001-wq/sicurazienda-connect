@@ -17,6 +17,7 @@ import AddCourseDialog from "@/components/courses/AddCourseDialog";
 import CourseDetail from "@/components/courses/CourseDetail";
 import CourseCalendarView from "@/components/courses/CourseCalendarView";
 import CourseExpiryTracker from "@/components/courses/CourseExpiryTracker";
+import CourseImport from "@/components/courses/CourseImport";
 
 const COURSE_TYPES = [
   { value: "sicurezza", label: "Sicurezza", color: "bg-red-100 text-red-800" },
