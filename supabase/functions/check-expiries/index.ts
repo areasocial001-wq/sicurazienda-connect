@@ -46,7 +46,6 @@ serve(async (req) => {
       const expiryDate = new Date(doc.expiry_date);
       const daysUntilExpiry = Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
-      // Check if reminder already exists
       const { data: existingReminder } = await supabase
         .from('reminders')
         .select('id')
@@ -92,7 +91,6 @@ serve(async (req) => {
       console.log(`Found ${expiringQRCodes?.length || 0} QR codes expiring soon`);
 
       for (const qr of expiringQRCodes || []) {
-        // Check if reminder already exists
         const { data: existingReminder } = await supabase
           .from('reminders')
           .select('id')
@@ -132,7 +130,6 @@ serve(async (req) => {
       console.log(`Found ${contactsNeedingFollowup?.length || 0} contacts needing followup`);
 
       for (const contact of contactsNeedingFollowup || []) {
-        // Check if reminder already exists
         const { data: existingReminder } = await supabase
           .from('reminders')
           .select('id')
@@ -180,7 +177,6 @@ serve(async (req) => {
       console.log(`Found ${expiringActivities?.length || 0} employee activities expiring soon`);
 
       for (const activity of expiringActivities || []) {
-        // Check if reminder already exists
         const { data: existingReminder } = await supabase
           .from('reminders')
           .select('id')
@@ -218,6 +214,63 @@ serve(async (req) => {
       }
     }
 
+    // Check for course certificate expiries in the next 30 days
+    const { data: expiringCertificates, error: certError } = await supabase
+      .from('course_enrollments')
+      .select(`
+        id,
+        certificate_expiry,
+        user_id,
+        employee:crm_employees(first_name, last_name),
+        contact:crm_contacts(name, company),
+        edition:course_editions(course:courses(name))
+      `)
+      .eq('certificate_issued', true)
+      .not('certificate_expiry', 'is', null)
+      .lte('certificate_expiry', thirtyDaysFromNow.toISOString().split('T')[0])
+      .gte('certificate_expiry', now.toISOString().split('T')[0]);
+
+    if (certError) {
+      console.error('Error fetching expiring certificates:', certError);
+    } else {
+      console.log(`Found ${expiringCertificates?.length || 0} course certificates expiring soon`);
+
+      for (const cert of expiringCertificates || []) {
+        const { data: existingReminder } = await supabase
+          .from('reminders')
+          .select('id')
+          .eq('reference_id', cert.id)
+          .eq('reference_type', 'course_certificate')
+          .eq('is_completed', false)
+          .maybeSingle();
+
+        if (!existingReminder) {
+          const expiryDate = new Date(cert.certificate_expiry);
+          const daysUntilExpiry = Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+          const isUrgent = daysUntilExpiry <= 7;
+
+          const employee = cert.employee as any;
+          const empName = employee ? `${employee.first_name} ${employee.last_name}` : 'Dipendente';
+          const courseName = (cert.edition as any)?.course?.name || 'Corso';
+          const company = (cert.contact as any)?.name || (cert.contact as any)?.company || '';
+
+          remindersToCreate.push({
+            user_id: cert.user_id,
+            title: isUrgent
+              ? `⚠️ URGENTE: Attestato "${courseName}" - ${empName} scade tra ${daysUntilExpiry}g`
+              : `🎓 Attestato "${courseName}" - ${empName} scade tra ${daysUntilExpiry}g`,
+            description: `L'attestato di ${empName}${company ? ` (${company})` : ''} per il corso "${courseName}" scade il ${expiryDate.toLocaleDateString('it-IT')}. ${
+              isUrgent ? 'Pianifica il rinnovo immediatamente.' : 'Ricorda di pianificare il rinnovo.'
+            }`,
+            type: 'course_expiry',
+            reference_id: cert.id,
+            reference_type: 'course_certificate',
+            due_date: cert.certificate_expiry,
+          });
+        }
+      }
+    }
+
     // Check for upcoming Google Calendar events
     let calendarRemindersCreated = 0;
     const { data: calendarTokens } = await supabase
@@ -227,7 +280,6 @@ serve(async (req) => {
     if (calendarTokens && calendarTokens.length > 0) {
       console.log(`Checking calendar events for ${calendarTokens.length} users...`);
       
-      // Call the check-upcoming-events function
       try {
         const response = await fetch(
           `${supabaseUrl}/functions/v1/check-upcoming-events`,
@@ -280,6 +332,7 @@ serve(async (req) => {
         success: true,
         documentsChecked: expiringDocuments?.length || 0,
         contactsChecked: contactsNeedingFollowup?.length || 0,
+        certificatesChecked: expiringCertificates?.length || 0,
         remindersCreated: remindersToCreate.length,
         calendarRemindersCreated,
       }),

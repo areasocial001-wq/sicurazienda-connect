@@ -17,6 +17,7 @@ import AddCourseDialog from "@/components/courses/AddCourseDialog";
 import CourseDetail from "@/components/courses/CourseDetail";
 import CourseCalendarView from "@/components/courses/CourseCalendarView";
 import CourseExpiryTracker from "@/components/courses/CourseExpiryTracker";
+import CourseImport from "@/components/courses/CourseImport";
 
 const COURSE_TYPES = [
   { value: "sicurezza", label: "Sicurezza", color: "bg-red-100 text-red-800" },
@@ -41,6 +42,7 @@ const CourseManagement = () => {
   const [showAddCourse, setShowAddCourse] = useState(false);
   const [activeTab, setActiveTab] = useState("catalogo");
   const [typeFilter, setTypeFilter] = useState<string | null>(null);
+  const [showImport, setShowImport] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -80,9 +82,14 @@ const CourseManagement = () => {
               <p className="text-sm text-muted-foreground">Pianifica, gestisci e monitora i corsi di formazione</p>
             </div>
           </div>
-          <Button onClick={() => setShowAddCourse(true)} className="gap-2">
-            <Plus className="h-4 w-4" /> Nuovo Corso
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setShowImport(true)} className="gap-2">
+              <Search className="h-4 w-4" /> Importa Excel
+            </Button>
+            <Button onClick={() => setShowAddCourse(true)} className="gap-2">
+              <Plus className="h-4 w-4" /> Nuovo Corso
+            </Button>
+          </div>
         </div>
 
         {/* Stats */}
@@ -261,6 +268,11 @@ const CourseManagement = () => {
         open={showAddCourse}
         onOpenChange={setShowAddCourse}
         courseTypes={COURSE_TYPES}
+      />
+      <CourseImport
+        open={showImport}
+        onOpenChange={setShowImport}
+        onComplete={() => { fetchCourses(); fetchEditions(); }}
       />
     </div>
   );

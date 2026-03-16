@@ -20,9 +20,10 @@ import {
 } from "@/components/ui/table";
 import {
   ChevronLeft, Plus, Pencil, Trash2, Users, Calendar, MapPin,
-  User, BookOpen, Clock, CheckCircle2, FileText, GraduationCap
+  User, BookOpen, Clock, CheckCircle2, FileText, GraduationCap, Award
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { AttendancePDFButton, CertificatePDFButton } from "./CoursePDFGenerator";
 
 interface Props {
   course: Course;
@@ -272,14 +273,32 @@ const CourseDetail = ({ course, onBack }: Props) => {
                             )}
                           </TableCell>
                           <TableCell>
-                            <Button size="icon" variant="ghost" onClick={async () => {
-                              if (confirm('Rimuovere iscrizione?')) {
-                                await deleteEnrollment(enr.id);
-                                loadEditionDetails(selectedEdition);
-                              }
-                            }}>
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
+                            <div className="flex gap-1">
+                              {enr.certificate_issued && (
+                                <CertificatePDFButton
+                                  courseName={course.name}
+                                  editionCode={selectedEdition.edition_code || ''}
+                                  startDate={selectedEdition.start_date || undefined}
+                                  endDate={selectedEdition.end_date || undefined}
+                                  location={selectedEdition.location || undefined}
+                                  instructorName={selectedEdition.instructor_name || undefined}
+                                  enrollments={enrollments}
+                                  lessons={lessons}
+                                  attendanceMap={attendanceMap}
+                                  durationHours={course.duration_hours}
+                                  renewalMonths={course.renewal_months}
+                                  enrollment={enr}
+                                />
+                              )}
+                              <Button size="icon" variant="ghost" onClick={async () => {
+                                if (confirm('Rimuovere iscrizione?')) {
+                                  await deleteEnrollment(enr.id);
+                                  loadEditionDetails(selectedEdition);
+                                }
+                              }}>
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -331,7 +350,22 @@ const CourseDetail = ({ course, onBack }: Props) => {
 
             {/* PRESENZE TAB */}
             <TabsContent value="presenze">
-              <h3 className="font-semibold mb-3">Registro Presenze</h3>
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="font-semibold">Registro Presenze</h3>
+                <AttendancePDFButton
+                  courseName={course.name}
+                  editionCode={selectedEdition.edition_code || ''}
+                  startDate={selectedEdition.start_date || undefined}
+                  endDate={selectedEdition.end_date || undefined}
+                  location={selectedEdition.location || undefined}
+                  instructorName={selectedEdition.instructor_name || undefined}
+                  enrollments={enrollments}
+                  lessons={lessons}
+                  attendanceMap={attendanceMap}
+                  durationHours={course.duration_hours}
+                  renewalMonths={course.renewal_months}
+                />
+              </div>
               {lessons.length === 0 || enrollments.length === 0 ? (
                 <p className="text-sm text-muted-foreground py-4 text-center">
                   Aggiungi lezioni e iscritti per gestire le presenze

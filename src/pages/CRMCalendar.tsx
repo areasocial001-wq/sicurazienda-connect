@@ -28,7 +28,7 @@ interface CalendarEvent {
   id: string;
   title: string;
   date: Date;
-  type: 'followup' | 'document_expiry' | 'course_expiry' | 'reminder' | 'google_calendar';
+  type: 'followup' | 'document_expiry' | 'course_expiry' | 'reminder' | 'google_calendar' | 'course_edition';
   contactName?: string;
   contactId?: string;
   documentId?: string;
@@ -51,6 +51,7 @@ export default function CRMCalendar() {
   const [contacts, setContacts] = useState<any[]>([]);
   const [documents, setDocuments] = useState<any[]>([]);
   const [draggedEvent, setDraggedEvent] = useState<CalendarEvent | null>(null);
+  const [courseEditions, setCourseEditions] = useState<any[]>([]);
 
   const fetchData = useCallback(async () => {
     if (!user) return;
@@ -60,7 +61,6 @@ export default function CRMCalendar() {
       const { data: contactsData } = await supabase
         .from('crm_contacts')
         .select('id, name, next_followup_at')
-        .eq('user_id', user.id)
         .not('next_followup_at', 'is', null);
 
       // Fetch documents with expiry dates
@@ -70,8 +70,15 @@ export default function CRMCalendar() {
         .eq('user_id', user.id)
         .not('expiry_date', 'is', null);
 
+      // Fetch course editions with dates
+      const { data: editionsData } = await supabase
+        .from('course_editions')
+        .select('id, edition_code, start_date, end_date, location, status, course:courses(name)')
+        .in('status', ['pianificata', 'in_corso']);
+
       setContacts(contactsData || []);
       setDocuments(docsData || []);
+      setCourseEditions(editionsData || []);
     } catch (error) {
       console.error('Error fetching calendar data:', error);
     } finally {
@@ -149,8 +156,34 @@ export default function CRMCalendar() {
       });
     });
 
+    // Add course editions
+    courseEditions.forEach(ed => {
+      if (ed.start_date) {
+        const courseName = (ed.course as any)?.name || 'Corso';
+        allEvents.push({
+          id: `course-${ed.id}`,
+          title: `📚 ${courseName}${ed.edition_code ? ` (${ed.edition_code})` : ''}`,
+          date: new Date(ed.start_date),
+          type: 'course_edition',
+          description: `${ed.location || ''} ${ed.status === 'in_corso' ? '• In corso' : '• Pianificata'}`.trim(),
+          draggable: false,
+        });
+      }
+      if (ed.end_date && ed.end_date !== ed.start_date) {
+        const courseName = (ed.course as any)?.name || 'Corso';
+        allEvents.push({
+          id: `course-end-${ed.id}`,
+          title: `📚 Fine: ${courseName}`,
+          date: new Date(ed.end_date),
+          type: 'course_edition',
+          description: 'Fine corso',
+          draggable: false,
+        });
+      }
+    });
+
     return allEvents;
-  }, [contacts, documents, reminders, googleEvents]);
+  }, [contacts, documents, reminders, googleEvents, courseEditions]);
 
   // Get events for selected date
   const selectedDateEvents = useMemo(() => {
@@ -171,6 +204,8 @@ export default function CRMCalendar() {
         return 'bg-orange-500/20 text-orange-700 border-orange-500/30';
       case 'course_expiry':
         return 'bg-purple-500/20 text-purple-700 border-purple-500/30';
+      case 'course_edition':
+        return 'bg-indigo-500/20 text-indigo-700 border-indigo-500/30';
       case 'reminder':
         return 'bg-yellow-500/20 text-yellow-700 border-yellow-500/30';
       case 'google_calendar':
@@ -188,6 +223,8 @@ export default function CRMCalendar() {
         return <FileText className="h-4 w-4" />;
       case 'course_expiry':
         return <AlertTriangle className="h-4 w-4" />;
+      case 'course_edition':
+        return <CalendarIcon className="h-4 w-4" />;
       case 'reminder':
         return <Clock className="h-4 w-4" />;
       case 'google_calendar':
@@ -417,6 +454,7 @@ export default function CRMCalendar() {
                                   {event.type === 'document_expiry' && 'Scadenza Doc'}
                                   {event.type === 'course_expiry' && 'Scadenza Corso'}
                                   {event.type === 'reminder' && 'Promemoria'}
+                                  {event.type === 'course_edition' && 'Corso'}
                                   {event.type === 'google_calendar' && 'Google Calendar'}
                                 </Badge>
                                 {event.draggable && (
@@ -456,6 +494,10 @@ export default function CRMCalendar() {
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full bg-purple-500" />
                     <span className="text-sm text-muted-foreground">Scadenza Corso</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-indigo-500" />
+                    <span className="text-sm text-muted-foreground">Corsi</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full bg-yellow-500" />
