@@ -216,8 +216,59 @@ const AppDocumentation = () => {
       addBullet("Suggerimenti follow-up automatici");
       addSpace(10);
 
+      // GESTIONE CORSI
+      addTitle("10. Gestione Corsi (/corsi)");
+      addText("Modulo completo per la gestione della formazione in aula, integrato con il CRM.");
+      addSpace(3);
+      addSubtitle("Catalogo Corsi");
+      addBullet("Creazione corsi con tipo (Sicurezza, Primo Soccorso, Antincendio, RLS, Preposti, Dirigenti, Attrezzature)");
+      addBullet("Durata, numero massimo partecipanti, obbligatorieta");
+      addBullet("Periodo di rinnovo in mesi per gestione scadenze");
+      addBullet("Ricerca e filtro per tipologia");
+      addSpace(3);
+      addSubtitle("Edizioni e Lezioni");
+      addBullet("Programmazione edizioni con date, aula, sede e docente");
+      addBullet("Codice edizione e stati: pianificata, in corso, completata, annullata");
+      addBullet("Gestione lezioni con data, orario, argomento e docente");
+      addBullet("Sincronizzazione automatica nel Calendario CRM");
+      addSpace(3);
+      addSubtitle("Iscrizioni e Presenze");
+      addBullet("Iscrizione dipendenti dall'anagrafica CRM");
+      addBullet("Matrice presenze interattiva per lezione");
+      addBullet("Registrazione orari di ingresso e uscita");
+      addBullet("Esito e punteggio per ogni iscritto");
+      addSpace(3);
+      addSubtitle("Attestati e Certificati");
+      addBullet("Emissione attestati con data e scadenza automatica");
+      addBullet("3 template disponibili: Classico, Moderno, Minimalista");
+      addBullet("Anteprima in tempo reale del template scelto");
+      addBullet("Personalizzazione con logo e dati aziendali (branding)");
+      addBullet("Invio automatico attestato via email al dipendente o azienda");
+      addSpace(3);
+      addSubtitle("Registro Presenze PDF");
+      addBullet("Generazione registro presenze in formato PDF stampabile");
+      addBullet("Layout landscape con griglia lezioni/partecipanti");
+      addBullet("Intestazione personalizzata con branding aziendale");
+      addSpace(3);
+      addSubtitle("Importazione Massiva");
+      addBullet("Importazione catalogo corsi da file Excel");
+      addBullet("Importazione iscrizioni e certificati da Excel");
+      addBullet("Matching automatico con dipendenti e aziende CRM");
+      addSpace(3);
+      addSubtitle("Scadenzario");
+      addBullet("Monitoraggio scadenze attestati in tempo reale");
+      addBullet("Notifiche automatiche 30 e 7 giorni prima della scadenza");
+      addBullet("Integrazione con il sistema promemoria della piattaforma");
+      addSpace(3);
+      addSubtitle("Branding Aziendale");
+      addBullet("Upload logo aziendale per attestati e registri");
+      addBullet("Configurazione dati aziendali: ragione sociale, P.IVA, C.F., indirizzo");
+      addBullet("Dati di contatto: email, PEC, telefono, sito web");
+      addBullet("Testo personalizzato per il footer dei documenti");
+      addSpace(10);
+
       // ASSISTENTE AI
-      addTitle("10. Assistente AI (/assistente)");
+      addTitle("11. Assistente AI (/assistente)");
       addBullet("Chat intelligente per supporto");
       addBullet("Analisi documenti con AI");
       addBullet("Estrazione dati automatica");
@@ -225,9 +276,10 @@ const AppDocumentation = () => {
       addSpace(10);
 
       // PROMEMORIA
-      addTitle("11. Sistema Promemoria");
+      addTitle("12. Sistema Promemoria");
       addBullet("Campanella notifiche nell'header");
       addBullet("Promemoria scadenze documenti");
+      addBullet("Promemoria scadenze attestati corsi");
       addBullet("Notifiche scansioni QR");
       addBullet("Statistiche promemoria");
       addBullet("Mark as read/completed");
@@ -242,7 +294,7 @@ const AppDocumentation = () => {
       y = 20;
 
       // DATABASE
-      addTitle("12. Database (Supabase)");
+      addTitle("13. Database (Supabase)");
       addText("Tabelle:");
       addBullet("profiles - Dati utente (nome, azienda)");
       addBullet("documents - Documenti caricati con scadenze");
@@ -255,14 +307,20 @@ const AppDocumentation = () => {
       addBullet("crm_contacts - Contatti CRM");
       addBullet("crm_interactions - Interazioni CRM");
       addBullet("reminders - Promemoria e notifiche");
+      addBullet("courses - Catalogo corsi di formazione");
+      addBullet("course_editions - Edizioni programmate dei corsi");
+      addBullet("course_lessons - Lezioni per ogni edizione");
+      addBullet("course_enrollments - Iscrizioni e certificati");
+      addBullet("course_attendance - Presenze per lezione");
+      addBullet("course_branding_settings - Branding aziendale per PDF");
       addBullet("message_templates - Template messaggi");
       addBullet("google_calendar_tokens - Token Google Calendar");
       addSpace(10);
 
       // EDGE FUNCTIONS
-      addTitle("13. Edge Functions");
+      addTitle("14. Edge Functions");
       addBullet("ai-chat - Chat intelligente con AI");
-      addBullet("check-expiries - Controllo scadenze documenti");
+      addBullet("check-expiries - Controllo scadenze documenti e attestati");
       addBullet("check-upcoming-events - Eventi in arrivo");
       addBullet("crm-agent - Agente AI per CRM");
       addBullet("document-agent - Estrazione dati documenti");
@@ -272,12 +330,13 @@ const AppDocumentation = () => {
       addBullet("google-calendar-sync - Sincronizzazione calendario");
       addBullet("record-qr-scan - Registrazione scansioni con geolocalizzazione IP");
       addBullet("send-contact-email - Invio email contatti");
+      addBullet("send-certificate-email - Invio attestati via email");
       addBullet("send-qr-email - Invio email QR code");
       addBullet("notify-qr-download - Notifiche download QR");
       addSpace(10);
 
       // TECNOLOGIE
-      addTitle("14. Stack Tecnologico");
+      addTitle("15. Stack Tecnologico");
       addBullet("Frontend: React 18 + TypeScript + Vite");
       addBullet("Styling: Tailwind CSS + shadcn/ui");
       addBullet("Backend: Supabase (Auth, DB, Storage, Edge Functions, Realtime)");
@@ -285,7 +344,8 @@ const AppDocumentation = () => {
       addBullet("Email: Resend API");
       addBullet("QR Code: qrcode.react");
       addBullet("Grafici: Recharts");
-      addBullet("PDF: jsPDF");
+      addBullet("PDF: jsPDF + stampa browser");
+      addBullet("Excel: xlsx (importazione massiva)");
       addBullet("Routing: React Router 6");
       addBullet("State: TanStack Query");
       addBullet("Date: date-fns");
@@ -298,7 +358,7 @@ const AppDocumentation = () => {
       y = 20;
 
       // DESIGN SYSTEM
-      addTitle("15. Design System");
+      addTitle("16. Design System");
       addSubtitle("Colori Brand");
       addBullet("Primary (Giallo): HSL 45 100% 50%");
       addBullet("Secondary (Rosso): HSL 0 84% 55%");
@@ -311,17 +371,19 @@ const AppDocumentation = () => {
       addSpace(10);
 
       // NAVIGAZIONE
-      addTitle("16. Navigazione");
+      addTitle("17. Navigazione");
       addBullet("Header: Logo, campanella notifiche, menu dropdown, login");
       addBullet("Bottom Nav: Home, Nuovo Cliente, Documenti, Profilo");
       addBullet("FloatingChat: Chat assistente sempre disponibile");
       addSpace(10);
 
       // EXPORT
-      addTitle("17. Funzionalita Export");
+      addTitle("18. Funzionalita Export");
       addBullet("Export statistiche QR in CSV");
       addBullet("Export report QR completo in PDF");
       addBullet("Export cronologia QR in CSV");
+      addBullet("Registro presenze corsi in PDF");
+      addBullet("Attestati personalizzati in PDF");
       addBullet("Download documentazione app in PDF");
 
       // FOOTER
