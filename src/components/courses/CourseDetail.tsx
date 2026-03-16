@@ -452,6 +452,26 @@ const CourseDetail = ({ course, onBack }: Props) => {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Certificate Template Dialog */}
+        {certificateEnrollment && (
+          <CertificateTemplateDialog
+            open={!!certificateEnrollment}
+            onOpenChange={(open) => { if (!open) setCertificateEnrollment(null); }}
+            courseName={course.name}
+            editionCode={selectedEdition.edition_code || ''}
+            startDate={selectedEdition.start_date || undefined}
+            endDate={selectedEdition.end_date || undefined}
+            location={selectedEdition.location || undefined}
+            instructorName={selectedEdition.instructor_name || undefined}
+            durationHours={course.duration_hours}
+            renewalMonths={course.renewal_months}
+            enrollment={certificateEnrollment}
+            enrollments={enrollments}
+            lessons={lessons}
+            attendanceMap={attendanceMap}
+          />
+        )}
       </div>
     );
   }
