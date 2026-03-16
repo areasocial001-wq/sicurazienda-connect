@@ -23,7 +23,8 @@ import {
   User, BookOpen, Clock, CheckCircle2, FileText, GraduationCap, Award
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { AttendancePDFButton, CertificatePDFButton } from "./CoursePDFGenerator";
+import { AttendancePDFButton } from "./CoursePDFGenerator";
+import CertificateTemplateDialog from "./CertificateTemplates";
 
 interface Props {
   course: Course;
