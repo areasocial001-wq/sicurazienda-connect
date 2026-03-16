@@ -20,9 +20,10 @@ import {
 } from "@/components/ui/table";
 import {
   ChevronLeft, Plus, Pencil, Trash2, Users, Calendar, MapPin,
-  User, BookOpen, Clock, CheckCircle2, FileText, GraduationCap
+  User, BookOpen, Clock, CheckCircle2, FileText, GraduationCap, Award
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { AttendancePDFButton, CertificatePDFButton } from "./CoursePDFGenerator";
 
 interface Props {
   course: Course;
