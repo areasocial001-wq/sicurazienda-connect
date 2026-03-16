@@ -269,6 +269,11 @@ const CourseManagement = () => {
         onOpenChange={setShowAddCourse}
         courseTypes={COURSE_TYPES}
       />
+      <CourseImport
+        open={showImport}
+        onOpenChange={setShowImport}
+        onComplete={() => { fetchCourses(); fetchEditions(); }}
+      />
     </div>
   );
 };
