@@ -8,7 +8,7 @@ const BottomNav = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
-  const { isAdmin, isAreaAziendale, loading: roleLoading } = useUserRole();
+  const { isAdmin, isAreaAziendale, isGestioneCorsi, loading: roleLoading } = useUserRole();
 
   // Determine which CRM/document route to show based on role
   const getCRMNavItem = () => {
