@@ -409,10 +409,21 @@ const NoteEditorPanel = ({
       {isUploading && uploadProgress.total > 0 && (
         <div className="px-4 py-2 border-b border-border bg-muted/30 shrink-0 space-y-1">
           <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span className="truncate max-w-[70%]">
+            <span className="truncate max-w-[60%]">
               ⬆️ {uploadProgress.fileName || 'Caricamento...'}
             </span>
-            <span className="font-medium">{uploadProgress.current}/{uploadProgress.total}</span>
+            <div className="flex items-center gap-2">
+              <span className="font-medium">{uploadProgress.current}/{uploadProgress.total}</span>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-5 w-5 text-destructive hover:text-destructive"
+                onClick={() => { uploadCancelledRef.current = true; }}
+                title="Annulla upload"
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
           </div>
           <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
             <div
