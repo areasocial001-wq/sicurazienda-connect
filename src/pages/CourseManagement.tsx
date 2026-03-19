@@ -18,6 +18,7 @@ import CourseDetail from "@/components/courses/CourseDetail";
 import CourseCalendarView from "@/components/courses/CourseCalendarView";
 import CourseExpiryTracker from "@/components/courses/CourseExpiryTracker";
 import CourseImport from "@/components/courses/CourseImport";
+import CourseHistoryImport from "@/components/courses/CourseHistoryImport";
 import CourseBrandingSettings from "@/components/courses/CourseBrandingSettings";
 
 const COURSE_TYPES = [
