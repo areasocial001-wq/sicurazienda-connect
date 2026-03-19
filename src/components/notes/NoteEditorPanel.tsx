@@ -58,6 +58,7 @@ const NoteEditorPanel = ({
   const [showComments, setShowComments] = useState(false);
   const [showVersionHistory, setShowVersionHistory] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [zipPreview, setZipPreview] = useState<{ url: string; name: string } | null>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
   const uploadCancelledRef = useRef(false);
