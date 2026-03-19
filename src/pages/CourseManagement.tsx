@@ -45,6 +45,7 @@ const CourseManagement = () => {
   const [activeTab, setActiveTab] = useState("catalogo");
   const [typeFilter, setTypeFilter] = useState<string | null>(null);
   const [showImport, setShowImport] = useState(false);
+  const [showHistoryImport, setShowHistoryImport] = useState(false);
 
   useEffect(() => {
     if (user) {
