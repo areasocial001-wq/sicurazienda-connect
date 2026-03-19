@@ -59,6 +59,7 @@ const NoteEditorPanel = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const uploadCancelledRef = useRef(false);
 
   // Reset state when note changes
   useEffect(() => {
