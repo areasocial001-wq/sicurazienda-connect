@@ -135,7 +135,7 @@ const CourseHistoryImport = ({ open, onOpenChange, onComplete }: Props) => {
     reader.onload = (ev) => {
       const wb = XLSX.read(ev.target?.result, { type: 'binary' });
       const ws = wb.Sheets[wb.SheetNames[0]];
-      const rows: any[] = XLSX.utils.sheet_to_json(ws, { defval: '', range: 3 });
+      const rows: any[] = XLSX.utils.sheet_to_json(ws, { defval: '', range: 4 });
       const parsed: ParsedFormazione[] = rows.map(r => ({
         nome_corso: String(r['Nome corso'] || '').trim(),
         codice: String(r['Codice/Piano'] || '').trim(),
@@ -162,7 +162,7 @@ const CourseHistoryImport = ({ open, onOpenChange, onComplete }: Props) => {
     reader.onload = (ev) => {
       const wb = XLSX.read(ev.target?.result, { type: 'binary' });
       const ws = wb.Sheets[wb.SheetNames[0]];
-      const rows: any[] = XLSX.utils.sheet_to_json(ws, { defval: '' });
+      const rows: any[] = XLSX.utils.sheet_to_json(ws, { defval: '', range: 1 });
       const parsed: ParsedCorsista[] = rows.map(r => {
         const periodo = String(r['Periodo Corso'] || '');
         const { dal, al } = parsePeriodo(periodo);
