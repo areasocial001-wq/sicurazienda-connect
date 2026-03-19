@@ -11,13 +11,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   GraduationCap, Plus, Search, Calendar, Users, Clock,
   BookOpen, AlertTriangle, CheckCircle2, ChevronRight,
-  BarChart3, Filter
+  BarChart3, Filter, History
 } from "lucide-react";
 import AddCourseDialog from "@/components/courses/AddCourseDialog";
 import CourseDetail from "@/components/courses/CourseDetail";
 import CourseCalendarView from "@/components/courses/CourseCalendarView";
 import CourseExpiryTracker from "@/components/courses/CourseExpiryTracker";
 import CourseImport from "@/components/courses/CourseImport";
+import CourseHistoryImport from "@/components/courses/CourseHistoryImport";
 import CourseBrandingSettings from "@/components/courses/CourseBrandingSettings";
 
 const COURSE_TYPES = [
@@ -44,6 +45,7 @@ const CourseManagement = () => {
   const [activeTab, setActiveTab] = useState("catalogo");
   const [typeFilter, setTypeFilter] = useState<string | null>(null);
   const [showImport, setShowImport] = useState(false);
+  const [showHistoryImport, setShowHistoryImport] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -85,6 +87,9 @@ const CourseManagement = () => {
           </div>
           <div className="flex gap-2 flex-wrap">
             <CourseBrandingSettings />
+            <Button variant="outline" onClick={() => setShowHistoryImport(true)} className="gap-2">
+              <History className="h-4 w-4" /> Importa Storico
+            </Button>
             <Button variant="outline" onClick={() => setShowImport(true)} className="gap-2">
               <Search className="h-4 w-4" /> Importa Excel
             </Button>
@@ -274,6 +279,11 @@ const CourseManagement = () => {
       <CourseImport
         open={showImport}
         onOpenChange={setShowImport}
+        onComplete={() => { fetchCourses(); fetchEditions(); }}
+      />
+      <CourseHistoryImport
+        open={showHistoryImport}
+        onOpenChange={setShowHistoryImport}
         onComplete={() => { fetchCourses(); fetchEditions(); }}
       />
     </div>
