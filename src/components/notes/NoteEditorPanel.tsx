@@ -120,13 +120,7 @@ const NoteEditorPanel = ({
     setIsUploading(true);
     try {
       for (const file of Array.from(files)) {
-        if (file.size > 20 * 1024 * 1024) {
-          toast.error(`${file.name} supera il limite di 20MB`);
-          continue;
-        }
-        // Upload as attachment
         const att = await onUploadAttachment(note.id, file);
-        // Get signed URL and insert inline
         if (att?.file_path) {
           const url = await getAttachmentUrl(att.file_path);
           setContent(prev => prev + `<img src="${url}" alt="${file.name}" />`);
@@ -140,6 +134,70 @@ const NoteEditorPanel = ({
     } finally {
       setIsUploading(false);
       if (cameraInputRef.current) cameraInputRef.current.value = "";
+    }
+  };
+
+  // Drag & drop
+  const [isDragOver, setIsDragOver] = useState(false);
+
+  const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+  };
+
+  const handleDrop = async (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+
+    const items = e.dataTransfer.items;
+    const droppedFiles: File[] = [];
+
+    if (items) {
+      // Collect all files including from folders via webkitGetAsEntry
+      const entries: FileSystemEntry[] = [];
+      for (let i = 0; i < items.length; i++) {
+        const entry = items[i].webkitGetAsEntry?.();
+        if (entry) entries.push(entry);
+      }
+
+      const readEntry = (entry: FileSystemEntry): Promise<File[]> => {
+        return new Promise((resolve) => {
+          if (entry.isFile) {
+            (entry as FileSystemFileEntry).file((f) => resolve([f]), () => resolve([]));
+          } else if (entry.isDirectory) {
+            const reader = (entry as FileSystemDirectoryEntry).createReader();
+            reader.readEntries(async (dirEntries) => {
+              const allFiles: File[] = [];
+              for (const de of dirEntries) {
+                const files = await readEntry(de);
+                allFiles.push(...files);
+              }
+              resolve(allFiles);
+            }, () => resolve([]));
+          } else {
+            resolve([]);
+          }
+        });
+      };
+
+      for (const entry of entries) {
+        const files = await readEntry(entry);
+        droppedFiles.push(...files);
+      }
+    } else if (e.dataTransfer.files.length) {
+      droppedFiles.push(...Array.from(e.dataTransfer.files));
+    }
+
+    if (droppedFiles.length > 0) {
+      await uploadFiles(droppedFiles);
     }
   };
 
