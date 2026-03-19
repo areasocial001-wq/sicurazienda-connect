@@ -398,6 +398,24 @@ const NoteEditorPanel = ({
         />
       </div>
 
+      {/* Upload progress */}
+      {isUploading && uploadProgress.total > 0 && (
+        <div className="px-4 py-2 border-b border-border bg-muted/30 shrink-0 space-y-1">
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span className="truncate max-w-[70%]">
+              ⬆️ {uploadProgress.fileName || 'Caricamento...'}
+            </span>
+            <span className="font-medium">{uploadProgress.current}/{uploadProgress.total}</span>
+          </div>
+          <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+            <div
+              className="h-full bg-primary rounded-full transition-all duration-300 ease-out"
+              style={{ width: `${(uploadProgress.current / uploadProgress.total) * 100}%` }}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Rich Text Editor */}
       <div className="flex-1 overflow-hidden flex flex-col min-h-0">
         <RichTextEditor
