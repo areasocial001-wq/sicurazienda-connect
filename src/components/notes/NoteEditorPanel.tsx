@@ -153,52 +153,80 @@ const NoteEditorPanel = ({
     setIsDragOver(false);
   };
 
+  // Recursively collect files from a directory entry, preserving relative paths
+  const collectEntryFiles = (entry: FileSystemEntry, basePath: string): Promise<{ file: File; path: string }[]> => {
+    return new Promise((resolve) => {
+      if (entry.isFile) {
+        (entry as FileSystemFileEntry).file(
+          (f) => resolve([{ file: f, path: basePath + f.name }]),
+          () => resolve([])
+        );
+      } else if (entry.isDirectory) {
+        const reader = (entry as FileSystemDirectoryEntry).createReader();
+        const allEntries: FileSystemEntry[] = [];
+        const readBatch = () => {
+          reader.readEntries(async (batch) => {
+            if (batch.length === 0) {
+              const results: { file: File; path: string }[] = [];
+              for (const de of allEntries) {
+                const files = await collectEntryFiles(de, basePath + entry.name + "/");
+                results.push(...files);
+              }
+              resolve(results);
+            } else {
+              allEntries.push(...batch);
+              readBatch();
+            }
+          }, () => resolve([]));
+        };
+        readBatch();
+      } else {
+        resolve([]);
+      }
+    });
+  };
+
   const handleDrop = async (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragOver(false);
 
     const items = e.dataTransfer.items;
-    const droppedFiles: File[] = [];
+    const filesToUpload: File[] = [];
 
     if (items) {
-      // Collect all files including from folders via webkitGetAsEntry
       const entries: FileSystemEntry[] = [];
       for (let i = 0; i < items.length; i++) {
         const entry = items[i].webkitGetAsEntry?.();
         if (entry) entries.push(entry);
       }
 
-      const readEntry = (entry: FileSystemEntry): Promise<File[]> => {
-        return new Promise((resolve) => {
-          if (entry.isFile) {
-            (entry as FileSystemFileEntry).file((f) => resolve([f]), () => resolve([]));
-          } else if (entry.isDirectory) {
-            const reader = (entry as FileSystemDirectoryEntry).createReader();
-            reader.readEntries(async (dirEntries) => {
-              const allFiles: File[] = [];
-              for (const de of dirEntries) {
-                const files = await readEntry(de);
-                allFiles.push(...files);
-              }
-              resolve(allFiles);
-            }, () => resolve([]));
-          } else {
-            resolve([]);
-          }
-        });
-      };
-
       for (const entry of entries) {
-        const files = await readEntry(entry);
-        droppedFiles.push(...files);
+        if (entry.isDirectory) {
+          // Zip the entire folder and upload as a single .zip file
+          setIsUploading(true);
+          toast.info(`Compressione cartella "${entry.name}"...`);
+          const collected = await collectEntryFiles(entry, "");
+          const zip = new JSZip();
+          for (const { file, path } of collected) {
+            zip.file(path, file);
+          }
+          const blob = await zip.generateAsync({ type: "blob" });
+          const zipFile = new File([blob], `${entry.name}.zip`, { type: "application/zip" });
+          filesToUpload.push(zipFile);
+        } else if (entry.isFile) {
+          const file = await new Promise<File | null>((resolve) => {
+            (entry as FileSystemFileEntry).file((f) => resolve(f), () => resolve(null));
+          });
+          if (file) filesToUpload.push(file);
+        }
       }
     } else if (e.dataTransfer.files.length) {
-      droppedFiles.push(...Array.from(e.dataTransfer.files));
+      filesToUpload.push(...Array.from(e.dataTransfer.files));
     }
 
-    if (droppedFiles.length > 0) {
-      await uploadFiles(droppedFiles);
+    if (filesToUpload.length > 0) {
+      await uploadFiles(filesToUpload);
     }
   };
 
