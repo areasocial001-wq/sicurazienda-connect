@@ -212,7 +212,7 @@ const NoteEditorPanel = ({
             zip.file(path, file);
           }
           const blob = await zip.generateAsync({ type: "blob" });
-          const zipFile = new File([blob], `${entry.name}.zip`, { type: "application/zip" });
+          const zipFile = new globalThis.File([blob], `${entry.name}.zip`, { type: "application/zip" });
           filesToUpload.push(zipFile);
         } else if (entry.isFile) {
           const file = await new Promise<File | null>((resolve) => {
