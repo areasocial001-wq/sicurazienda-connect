@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, DragEvent } from "react";
 import { Note, NoteAttachment, Notebook } from "@/hooks/useNotes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -87,21 +87,18 @@ const NoteEditorPanel = ({
     return () => { if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current); };
   }, [title, content, notebookId, tags, color, doSave]);
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files?.length) return;
+  const uploadFiles = async (files: File[]) => {
+    if (!files.length) return;
     setIsUploading(true);
     try {
-      for (const file of Array.from(files)) {
-        if (file.size > 20 * 1024 * 1024) {
-          toast.error(`${file.name} supera il limite di 20MB`);
-          continue;
-        }
+      let count = 0;
+      for (const file of files) {
         await onUploadAttachment(note.id, file);
+        count++;
       }
       const updated = await fetchAttachments(note.id);
       setAttachments(updated);
-      toast.success("File allegato");
+      toast.success(`${count} file allegat${count === 1 ? 'o' : 'i'}`);
     } catch {
       toast.error("Errore nel caricamento");
     } finally {
@@ -111,19 +108,19 @@ const NoteEditorPanel = ({
     }
   };
 
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files?.length) return;
+    await uploadFiles(Array.from(files));
+  };
+
   const handleCameraCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files?.length) return;
     setIsUploading(true);
     try {
       for (const file of Array.from(files)) {
-        if (file.size > 20 * 1024 * 1024) {
-          toast.error(`${file.name} supera il limite di 20MB`);
-          continue;
-        }
-        // Upload as attachment
         const att = await onUploadAttachment(note.id, file);
-        // Get signed URL and insert inline
         if (att?.file_path) {
           const url = await getAttachmentUrl(att.file_path);
           setContent(prev => prev + `<img src="${url}" alt="${file.name}" />`);
@@ -137,6 +134,70 @@ const NoteEditorPanel = ({
     } finally {
       setIsUploading(false);
       if (cameraInputRef.current) cameraInputRef.current.value = "";
+    }
+  };
+
+  // Drag & drop
+  const [isDragOver, setIsDragOver] = useState(false);
+
+  const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+  };
+
+  const handleDrop = async (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+
+    const items = e.dataTransfer.items;
+    const droppedFiles: File[] = [];
+
+    if (items) {
+      // Collect all files including from folders via webkitGetAsEntry
+      const entries: FileSystemEntry[] = [];
+      for (let i = 0; i < items.length; i++) {
+        const entry = items[i].webkitGetAsEntry?.();
+        if (entry) entries.push(entry);
+      }
+
+      const readEntry = (entry: FileSystemEntry): Promise<File[]> => {
+        return new Promise((resolve) => {
+          if (entry.isFile) {
+            (entry as FileSystemFileEntry).file((f) => resolve([f]), () => resolve([]));
+          } else if (entry.isDirectory) {
+            const reader = (entry as FileSystemDirectoryEntry).createReader();
+            reader.readEntries(async (dirEntries) => {
+              const allFiles: File[] = [];
+              for (const de of dirEntries) {
+                const files = await readEntry(de);
+                allFiles.push(...files);
+              }
+              resolve(allFiles);
+            }, () => resolve([]));
+          } else {
+            resolve([]);
+          }
+        });
+      };
+
+      for (const entry of entries) {
+        const files = await readEntry(entry);
+        droppedFiles.push(...files);
+      }
+    } else if (e.dataTransfer.files.length) {
+      droppedFiles.push(...Array.from(e.dataTransfer.files));
+    }
+
+    if (droppedFiles.length > 0) {
+      await uploadFiles(droppedFiles);
     }
   };
 
@@ -168,7 +229,21 @@ const NoteEditorPanel = ({
   };
 
   return (
-    <div className="flex flex-col h-full bg-background">
+    <div
+      className={`flex flex-col h-full bg-background relative ${isDragOver ? 'ring-2 ring-primary ring-inset' : ''}`}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      {isDragOver && (
+        <div className="absolute inset-0 z-50 bg-primary/10 backdrop-blur-sm flex items-center justify-center pointer-events-none">
+          <div className="bg-background border-2 border-dashed border-primary rounded-xl p-8 text-center shadow-lg">
+            <Paperclip className="h-10 w-10 mx-auto mb-2 text-primary" />
+            <p className="text-lg font-semibold text-primary">Rilascia i file qui</p>
+            <p className="text-sm text-muted-foreground">File e cartelle verranno allegati alla nota</p>
+          </div>
+        </div>
+      )}
       {/* Top bar */}
       <div className="flex items-center gap-1 px-3 py-2 border-b border-border shrink-0 overflow-x-auto scrollbar-none whitespace-nowrap">
         {showBackButton && onClose && (
@@ -227,7 +302,7 @@ const NoteEditorPanel = ({
         >
           <Trash2 className="h-4 w-4" />
         </Button>
-        <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleFileUpload} accept="image/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.txt" />
+        <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleFileUpload} />
         <input ref={cameraInputRef} type="file" capture="environment" className="hidden" onChange={handleCameraCapture} accept="image/*" />
       </div>
 
