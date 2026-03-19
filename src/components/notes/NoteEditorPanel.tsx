@@ -510,6 +510,15 @@ const NoteEditorPanel = ({
           onSave({ id: note.id, title, content });
         }}
       />
+      {/* Zip Preview */}
+      {zipPreview && (
+        <ZipPreviewDialog
+          open={!!zipPreview}
+          onOpenChange={(v) => { if (!v) setZipPreview(null); }}
+          fileName={zipPreview.name}
+          zipUrl={zipPreview.url}
+        />
+      )}
     </div>
   );
 };
