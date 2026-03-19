@@ -87,21 +87,18 @@ const NoteEditorPanel = ({
     return () => { if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current); };
   }, [title, content, notebookId, tags, color, doSave]);
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files?.length) return;
+  const uploadFiles = async (files: File[]) => {
+    if (!files.length) return;
     setIsUploading(true);
     try {
-      for (const file of Array.from(files)) {
-        if (file.size > 20 * 1024 * 1024) {
-          toast.error(`${file.name} supera il limite di 20MB`);
-          continue;
-        }
+      let count = 0;
+      for (const file of files) {
         await onUploadAttachment(note.id, file);
+        count++;
       }
       const updated = await fetchAttachments(note.id);
       setAttachments(updated);
-      toast.success("File allegato");
+      toast.success(`${count} file allegat${count === 1 ? 'o' : 'i'}`);
     } catch {
       toast.error("Errore nel caricamento");
     } finally {
@@ -109,6 +106,12 @@ const NoteEditorPanel = ({
       if (fileInputRef.current) fileInputRef.current.value = "";
       if (cameraInputRef.current) cameraInputRef.current.value = "";
     }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files?.length) return;
+    await uploadFiles(Array.from(files));
   };
 
   const handleCameraCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
