@@ -302,7 +302,7 @@ const NoteEditorPanel = ({
         >
           <Trash2 className="h-4 w-4" />
         </Button>
-        <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleFileUpload} accept="image/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.txt" />
+        <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleFileUpload} />
         <input ref={cameraInputRef} type="file" capture="environment" className="hidden" onChange={handleCameraCapture} accept="image/*" />
       </div>
 
