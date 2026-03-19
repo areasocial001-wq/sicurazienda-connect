@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   GraduationCap, Plus, Search, Calendar, Users, Clock,
   BookOpen, AlertTriangle, CheckCircle2, ChevronRight,
-  BarChart3, Filter
+  BarChart3, Filter, History
 } from "lucide-react";
 import AddCourseDialog from "@/components/courses/AddCourseDialog";
 import CourseDetail from "@/components/courses/CourseDetail";
