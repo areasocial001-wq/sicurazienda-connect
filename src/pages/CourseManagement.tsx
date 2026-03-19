@@ -87,6 +87,9 @@ const CourseManagement = () => {
           </div>
           <div className="flex gap-2 flex-wrap">
             <CourseBrandingSettings />
+            <Button variant="outline" onClick={() => setShowHistoryImport(true)} className="gap-2">
+              <History className="h-4 w-4" /> Importa Storico
+            </Button>
             <Button variant="outline" onClick={() => setShowImport(true)} className="gap-2">
               <Search className="h-4 w-4" /> Importa Excel
             </Button>
