@@ -50,6 +50,7 @@ const NoteEditorPanel = ({
   const [color, setColor] = useState(note.color);
   const [attachments, setAttachments] = useState<NoteAttachment[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0, fileName: '' });
   const [showDetails, setShowDetails] = useState(false);
   const [showAI, setShowAI] = useState(false);
   const [showShare, setShowShare] = useState(false);
