@@ -229,7 +229,21 @@ const NoteEditorPanel = ({
   };
 
   return (
-    <div className="flex flex-col h-full bg-background">
+    <div
+      className={`flex flex-col h-full bg-background relative ${isDragOver ? 'ring-2 ring-primary ring-inset' : ''}`}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      {isDragOver && (
+        <div className="absolute inset-0 z-50 bg-primary/10 backdrop-blur-sm flex items-center justify-center pointer-events-none">
+          <div className="bg-background border-2 border-dashed border-primary rounded-xl p-8 text-center shadow-lg">
+            <Paperclip className="h-10 w-10 mx-auto mb-2 text-primary" />
+            <p className="text-lg font-semibold text-primary">Rilascia i file qui</p>
+            <p className="text-sm text-muted-foreground">File e cartelle verranno allegati alla nota</p>
+          </div>
+        </div>
+      )}
       {/* Top bar */}
       <div className="flex items-center gap-1 px-3 py-2 border-b border-border shrink-0 overflow-x-auto scrollbar-none whitespace-nowrap">
         {showBackButton && onClose && (
