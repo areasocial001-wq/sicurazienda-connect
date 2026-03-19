@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, DragEvent } from "react";
+import JSZip from "jszip";
 import { Note, NoteAttachment, Notebook } from "@/hooks/useNotes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
