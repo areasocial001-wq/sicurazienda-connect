@@ -18,6 +18,7 @@ import NoteShareDialog from "./NoteShareDialog";
 import NoteComments from "./NoteComments";
 import NoteVersionHistory from "./NoteVersionHistory";
 import NoteExport from "./NoteExport";
+import ZipPreviewDialog from "./ZipPreviewDialog";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
 
