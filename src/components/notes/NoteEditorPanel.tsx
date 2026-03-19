@@ -92,12 +92,15 @@ const NoteEditorPanel = ({
   const uploadFiles = async (files: File[]) => {
     if (!files.length) return;
     setIsUploading(true);
+    setUploadProgress({ current: 0, total: files.length, fileName: '' });
     try {
       let count = 0;
       for (const file of files) {
+        setUploadProgress({ current: count + 1, total: files.length, fileName: file.name });
         await onUploadAttachment(note.id, file);
         count++;
       }
+      setUploadProgress({ current: count, total: files.length, fileName: '' });
       const updated = await fetchAttachments(note.id);
       setAttachments(updated);
       toast.success(`${count} file allegat${count === 1 ? 'o' : 'i'}`);
@@ -105,6 +108,7 @@ const NoteEditorPanel = ({
       toast.error("Errore nel caricamento");
     } finally {
       setIsUploading(false);
+      setUploadProgress({ current: 0, total: 0, fileName: '' });
       if (fileInputRef.current) fileInputRef.current.value = "";
       if (cameraInputRef.current) cameraInputRef.current.value = "";
     }
