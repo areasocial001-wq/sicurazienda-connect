@@ -52,14 +52,22 @@ const ZipPreviewDialog = ({ open, onOpenChange, fileName, zipUrl }: ZipPreviewDi
       const blob = await res.blob();
       const zip = await JSZip.loadAsync(blob);
       const items: ZipEntry[] = [];
+      const sizePromises: Promise<void>[] = [];
       zip.forEach((path, entry) => {
+        const idx = items.length;
         items.push({
           name: entry.name.split("/").filter(Boolean).pop() || entry.name,
-          size: entry._data?.uncompressedSize || 0,
+          size: 0,
           isDir: entry.dir,
           path: entry.name,
         });
+        if (!entry.dir) {
+          sizePromises.push(
+            entry.async("arraybuffer").then(buf => { items[idx].size = buf.byteLength; })
+          );
+        }
       });
+      await Promise.all(sizePromises);
       items.sort((a, b) => {
         if (a.isDir !== b.isDir) return a.isDir ? -1 : 1;
         return a.path.localeCompare(b.path);

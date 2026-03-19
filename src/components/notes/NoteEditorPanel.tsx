@@ -464,7 +464,17 @@ const NoteEditorPanel = ({
             {attachments.map(att => (
               <div key={att.id} className="flex items-center gap-1 px-2 py-1 bg-background rounded border border-border text-xs">
                 {getFileIcon(att.file_type)}
-                <span className="truncate max-w-[100px]">{att.file_name}</span>
+                <span
+                  className={`truncate max-w-[100px] ${att.file_name.endsWith('.zip') ? 'cursor-pointer hover:underline' : ''}`}
+                  onClick={async () => {
+                    if (att.file_name.endsWith('.zip')) {
+                      const url = await getAttachmentUrl(att.file_path);
+                      setZipPreview({ url, name: att.file_name });
+                    }
+                  }}
+                >
+                  {att.file_name}
+                </span>
                 <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => handleDownload(att)}>
                   <Download className="h-3 w-3" />
                 </Button>
