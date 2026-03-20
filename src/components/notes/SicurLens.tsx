@@ -1,0 +1,317 @@
+import { useState, useRef, useCallback, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  QrCode, ScanLine, FileText, Eye, Languages, Search,
+  Camera, Upload, Loader2, Copy, Check, X, ImagePlus,
+} from "lucide-react";
+import ReactMarkdown from "react-markdown";
+
+interface SicurLensProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onInsertText: (text: string) => void;
+}
+
+type LensMode = "ocr" | "recognize" | "translate" | "search";
+
+const MODE_CONFIG: Record<LensMode, { label: string; icon: React.ReactNode; description: string }> = {
+  ocr: { label: "Estrai testo", icon: <FileText className="h-4 w-4" />, description: "OCR — estrai testo da foto/documenti" },
+  recognize: { label: "Riconosci", icon: <Eye className="h-4 w-4" />, description: "Identifica oggetti e attrezzature" },
+  translate: { label: "Traduci", icon: <Languages className="h-4 w-4" />, description: "Estrai e traduci testo in italiano" },
+  search: { label: "Info", icon: <Search className="h-4 w-4" />, description: "Cerca informazioni su ciò che vedi" },
+};
+
+const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
+  const [activeTab, setActiveTab] = useState<"qr" | "lens">("qr");
+  const [lensMode, setLensMode] = useState<LensMode>("ocr");
+  const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [result, setResult] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [qrResult, setQrResult] = useState<string | null>(null);
+  const [isScanning, setIsScanning] = useState(false);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const scannerRef = useRef<any>(null);
+
+  // Cleanup on close
+  useEffect(() => {
+    if (!open) {
+      stopQrScanner();
+      setCapturedImage(null);
+      setResult(null);
+      setQrResult(null);
+    }
+  }, [open]);
+
+  // ── QR Scanner ──────────────────────────────────
+  const startQrScanner = useCallback(async () => {
+    try {
+      const { Html5Qrcode } = await import("html5-qrcode");
+      setIsScanning(true);
+      setQrResult(null);
+
+      const scanner = new Html5Qrcode("qr-reader");
+      scannerRef.current = scanner;
+
+      await scanner.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        (decodedText) => {
+          setQrResult(decodedText);
+          scanner.stop().catch(console.error);
+          setIsScanning(false);
+        },
+        () => { /* ignore scan failures */ }
+      );
+    } catch (err) {
+      console.error("QR scanner error:", err);
+      toast.error("Impossibile avviare la fotocamera");
+      setIsScanning(false);
+    }
+  }, []);
+
+  const stopQrScanner = useCallback(() => {
+    if (scannerRef.current) {
+      scannerRef.current.stop().catch(() => {});
+      scannerRef.current = null;
+    }
+    setIsScanning(false);
+  }, []);
+
+  // ── Image capture ──────────────────────────────
+  const handleImageCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      setCapturedImage(reader.result as string);
+      setResult(null);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
+  // ── AI Analysis ────────────────────────────────
+  const analyzeImage = async () => {
+    if (!capturedImage) return;
+    setIsAnalyzing(true);
+    setResult(null);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("vision-ai", {
+        body: { image_base64: capturedImage, mode: lensMode },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      setResult(data.result);
+    } catch (err: any) {
+      console.error("Vision AI error:", err);
+      toast.error(err.message || "Errore nell'analisi dell'immagine");
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const handleCopyResult = () => {
+    if (!result) return;
+    navigator.clipboard.writeText(result);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleInsertResult = () => {
+    if (!result) return;
+    // Convert markdown-ish result to basic HTML
+    const html = result
+      .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+      .replace(/\n/g, "<br/>");
+    onInsertText(html);
+    toast.success("Testo inserito nella nota");
+    onOpenChange(false);
+  };
+
+  const handleInsertQrResult = () => {
+    if (!qrResult) return;
+    const isUrl = /^https?:\/\//i.test(qrResult);
+    const html = isUrl
+      ? `<p>🔗 QR Code: <a href="${qrResult}" target="_blank">${qrResult}</a></p>`
+      : `<p>📱 QR Code: ${qrResult}</p>`;
+    onInsertText(html);
+    toast.success("Risultato QR inserito nella nota");
+    onOpenChange(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg max-h-[85vh] flex flex-col p-0 gap-0">
+        <DialogHeader className="px-4 pt-4 pb-2">
+          <DialogTitle className="flex items-center gap-2 text-lg">
+            <ScanLine className="h-5 w-5 text-primary" />
+            SicurLens
+          </DialogTitle>
+        </DialogHeader>
+
+        <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v as any); if (v !== "qr") stopQrScanner(); }} className="flex-1 flex flex-col min-h-0">
+          <TabsList className="mx-4 grid grid-cols-2">
+            <TabsTrigger value="qr" className="gap-1.5">
+              <QrCode className="h-3.5 w-3.5" /> QR Scanner
+            </TabsTrigger>
+            <TabsTrigger value="lens" className="gap-1.5">
+              <Eye className="h-3.5 w-3.5" /> Lens AI
+            </TabsTrigger>
+          </TabsList>
+
+          {/* ── QR Tab ───────────────────────────── */}
+          <TabsContent value="qr" className="flex-1 flex flex-col min-h-0 px-4 pb-4">
+            <div className="flex-1 flex flex-col items-center gap-3">
+              <div
+                id="qr-reader"
+                className="w-full max-w-[300px] aspect-square bg-muted rounded-lg overflow-hidden relative"
+              >
+                {!isScanning && !qrResult && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground">
+                    <QrCode className="h-12 w-12 mb-2 opacity-30" />
+                    <p className="text-sm">Premi "Scansiona" per iniziare</p>
+                  </div>
+                )}
+              </div>
+
+              {qrResult ? (
+                <div className="w-full space-y-2">
+                  <div className="p-3 bg-muted rounded-lg">
+                    <p className="text-xs text-muted-foreground mb-1">Risultato:</p>
+                    <p className="text-sm font-medium break-all">{qrResult}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    {/^https?:\/\//i.test(qrResult) && (
+                      <Button size="sm" variant="outline" className="flex-1" onClick={() => window.open(qrResult, "_blank")}>
+                        Apri link
+                      </Button>
+                    )}
+                    <Button size="sm" className="flex-1" onClick={handleInsertQrResult}>
+                      Inserisci nella nota
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => { setQrResult(null); startQrScanner(); }}>
+                      Nuova scansione
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  {isScanning ? (
+                    <Button variant="destructive" size="sm" onClick={stopQrScanner}>
+                      <X className="h-3.5 w-3.5 mr-1" /> Ferma
+                    </Button>
+                  ) : (
+                    <Button size="sm" onClick={startQrScanner}>
+                      <Camera className="h-3.5 w-3.5 mr-1" /> Scansiona
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
+          </TabsContent>
+
+          {/* ── Lens Tab ──────────────────────────── */}
+          <TabsContent value="lens" className="flex-1 flex flex-col min-h-0 px-4 pb-4 gap-3">
+            {/* Mode selector */}
+            <div className="grid grid-cols-4 gap-1.5">
+              {(Object.entries(MODE_CONFIG) as [LensMode, typeof MODE_CONFIG["ocr"]][]).map(([key, cfg]) => (
+                <button
+                  key={key}
+                  onClick={() => { setLensMode(key); setResult(null); }}
+                  className={`flex flex-col items-center gap-1 p-2 rounded-lg text-xs transition-colors ${
+                    lensMode === key
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted hover:bg-muted/80 text-muted-foreground"
+                  }`}
+                >
+                  {cfg.icon}
+                  <span className="font-medium">{cfg.label}</span>
+                </button>
+              ))}
+            </div>
+
+            <p className="text-xs text-muted-foreground text-center">
+              {MODE_CONFIG[lensMode].description}
+            </p>
+
+            {/* Image area */}
+            {capturedImage ? (
+              <div className="relative w-full">
+                <img
+                  src={capturedImage}
+                  alt="Cattura"
+                  className="w-full max-h-48 object-contain rounded-lg bg-muted"
+                />
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className="absolute top-1 right-1 h-6 w-6"
+                  onClick={() => { setCapturedImage(null); setResult(null); }}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+            ) : (
+              <div className="flex gap-2 justify-center">
+                <Button variant="outline" size="sm" onClick={() => cameraInputRef.current?.click()}>
+                  <Camera className="h-3.5 w-3.5 mr-1" /> Scatta foto
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+                  <Upload className="h-3.5 w-3.5 mr-1" /> Carica immagine
+                </Button>
+              </div>
+            )}
+
+            {/* Analyze button */}
+            {capturedImage && !result && (
+              <Button onClick={analyzeImage} disabled={isAnalyzing} className="w-full">
+                {isAnalyzing ? (
+                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Analisi in corso...</>
+                ) : (
+                  <><ScanLine className="h-4 w-4 mr-2" /> Analizza</>
+                )}
+              </Button>
+            )}
+
+            {/* Result */}
+            {result && (
+              <div className="flex-1 min-h-0 flex flex-col gap-2">
+                <ScrollArea className="flex-1 max-h-48 border rounded-lg p-3">
+                  <div className="prose prose-sm max-w-none dark:prose-invert text-sm">
+                    <ReactMarkdown>{result}</ReactMarkdown>
+                  </div>
+                </ScrollArea>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" className="flex-1" onClick={handleCopyResult}>
+                    {copied ? <Check className="h-3.5 w-3.5 mr-1" /> : <Copy className="h-3.5 w-3.5 mr-1" />}
+                    {copied ? "Copiato" : "Copia"}
+                  </Button>
+                  <Button size="sm" className="flex-1" onClick={handleInsertResult}>
+                    <ImagePlus className="h-3.5 w-3.5 mr-1" /> Inserisci nella nota
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageCapture} />
+            <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleImageCapture} />
+          </TabsContent>
+        </Tabs>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+export default SicurLens;

@@ -12,8 +12,9 @@ import {
   Pin, PinOff, Archive, ArchiveRestore, Trash2,
   Tag, Paperclip, Download, X, Plus, Save,
   FileText, Image, Music, File, ChevronLeft, Sparkles, Share2,
-  MessageSquare, History, FileDown, Camera,
+  MessageSquare, History, FileDown, Camera, ScanLine,
 } from "lucide-react";
+import SicurLens from "./SicurLens";
 import NoteShareDialog from "./NoteShareDialog";
 import NoteComments from "./NoteComments";
 import NoteVersionHistory from "./NoteVersionHistory";
@@ -57,6 +58,7 @@ const NoteEditorPanel = ({
   const [showShare, setShowShare] = useState(false);
   const [showComments, setShowComments] = useState(false);
   const [showVersionHistory, setShowVersionHistory] = useState(false);
+  const [showLens, setShowLens] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [zipPreview, setZipPreview] = useState<{ url: string; name: string } | null>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -322,6 +324,9 @@ const NoteEditorPanel = ({
         <Button variant="ghost" size="icon" className={`h-7 w-7 ${showAI ? 'text-primary' : ''}`} onClick={() => setShowAI(!showAI)} title="Assistente AI">
           <Sparkles className="h-4 w-4" />
         </Button>
+        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowLens(true)} title="SicurLens (QR + AI Vision)">
+          <ScanLine className="h-4 w-4" />
+        </Button>
         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowShare(true)} title="Condividi">
           <Share2 className="h-4 w-4" />
         </Button>
@@ -519,6 +524,14 @@ const NoteEditorPanel = ({
           zipUrl={zipPreview.url}
         />
       )}
+      {/* SicurLens */}
+      <SicurLens
+        open={showLens}
+        onOpenChange={setShowLens}
+        onInsertText={(text) => {
+          setContent(prev => prev + text);
+        }}
+      />
     </div>
   );
 };
