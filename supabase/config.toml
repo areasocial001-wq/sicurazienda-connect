@@ -71,3 +71,6 @@ verify_jwt = false
 
 [functions.send-certificate-email]
 verify_jwt = false
+
+[functions.vision-ai]
+verify_jwt = false
