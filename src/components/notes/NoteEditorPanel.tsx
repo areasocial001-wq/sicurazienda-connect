@@ -12,8 +12,9 @@ import {
   Pin, PinOff, Archive, ArchiveRestore, Trash2,
   Tag, Paperclip, Download, X, Plus, Save,
   FileText, Image, Music, File, ChevronLeft, Sparkles, Share2,
-  MessageSquare, History, FileDown, Camera,
+  MessageSquare, History, FileDown, Camera, ScanLine,
 } from "lucide-react";
+import SicurLens from "./SicurLens";
 import NoteShareDialog from "./NoteShareDialog";
 import NoteComments from "./NoteComments";
 import NoteVersionHistory from "./NoteVersionHistory";
