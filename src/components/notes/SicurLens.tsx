@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   QrCode, ScanLine, FileText, Eye, Languages, Search,
   Camera, Upload, Loader2, Copy, Check, X, ImagePlus,
+  ScanText, Contact, UserPlus,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
@@ -17,10 +18,26 @@ interface SicurLensProps {
   onInsertText: (text: string) => void;
 }
 
-type LensMode = "ocr" | "recognize" | "translate" | "search";
+type LensMode = "ocr" | "recognize" | "translate" | "search" | "document" | "business_card";
+
+interface BusinessCardData {
+  name?: string;
+  company?: string;
+  role?: string;
+  email?: string;
+  phone?: string;
+  website?: string;
+  address?: string;
+  pec?: string;
+  vat_number?: string;
+  fiscal_code?: string;
+  notes?: string;
+}
 
 const MODE_CONFIG: Record<LensMode, { label: string; icon: React.ReactNode; description: string }> = {
-  ocr: { label: "Estrai testo", icon: <FileText className="h-4 w-4" />, description: "OCR — estrai testo da foto/documenti" },
+  ocr: { label: "Testo", icon: <FileText className="h-4 w-4" />, description: "OCR — estrai testo da foto/documenti" },
+  document: { label: "Documento", icon: <ScanText className="h-4 w-4" />, description: "Scansiona documento e ottieni testo pulito" },
+  business_card: { label: "Biglietto", icon: <Contact className="h-4 w-4" />, description: "Scansiona biglietto da visita ed estrai contatti" },
   recognize: { label: "Riconosci", icon: <Eye className="h-4 w-4" />, description: "Identifica oggetti e attrezzature" },
   translate: { label: "Traduci", icon: <Languages className="h-4 w-4" />, description: "Estrai e traduci testo in italiano" },
   search: { label: "Info", icon: <Search className="h-4 w-4" />, description: "Cerca informazioni su ciò che vedi" },
@@ -32,22 +49,22 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState<string | null>(null);
+  const [businessCard, setBusinessCard] = useState<BusinessCardData | null>(null);
   const [copied, setCopied] = useState(false);
   const [qrResult, setQrResult] = useState<string | null>(null);
   const [isScanning, setIsScanning] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
   const scannerRef = useRef<any>(null);
 
-  // Cleanup on close
   useEffect(() => {
     if (!open) {
       stopQrScanner();
       setCapturedImage(null);
       setResult(null);
       setQrResult(null);
+      setBusinessCard(null);
     }
   }, [open]);
 
@@ -69,7 +86,7 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
           scanner.stop().catch(console.error);
           setIsScanning(false);
         },
-        () => { /* ignore scan failures */ }
+        () => {}
       );
     } catch (err) {
       console.error("QR scanner error:", err);
@@ -94,6 +111,7 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
     reader.onload = () => {
       setCapturedImage(reader.result as string);
       setResult(null);
+      setBusinessCard(null);
     };
     reader.readAsDataURL(file);
     e.target.value = "";
@@ -104,6 +122,7 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
     if (!capturedImage) return;
     setIsAnalyzing(true);
     setResult(null);
+    setBusinessCard(null);
 
     try {
       const { data, error } = await supabase.functions.invoke("vision-ai", {
@@ -113,7 +132,20 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
-      setResult(data.result);
+      const rawResult = data.result;
+
+      if (lensMode === "business_card") {
+        try {
+          const jsonStr = rawResult.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+          const parsed: BusinessCardData = JSON.parse(jsonStr);
+          setBusinessCard(parsed);
+          setResult(null);
+        } catch {
+          setResult(rawResult);
+        }
+      } else {
+        setResult(rawResult);
+      }
     } catch (err: any) {
       console.error("Vision AI error:", err);
       toast.error(err.message || "Errore nell'analisi dell'immagine");
@@ -123,19 +155,34 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
   };
 
   const handleCopyResult = () => {
-    if (!result) return;
-    navigator.clipboard.writeText(result);
+    const text = businessCard ? JSON.stringify(businessCard, null, 2) : result;
+    if (!text) return;
+    navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
   const handleInsertResult = () => {
-    if (!result) return;
-    // Convert markdown-ish result to basic HTML
-    const html = result
-      .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-      .replace(/\n/g, "<br/>");
-    onInsertText(html);
+    if (businessCard) {
+      const lines = [];
+      if (businessCard.name) lines.push(`<strong>${businessCard.name}</strong>`);
+      if (businessCard.role) lines.push(businessCard.role);
+      if (businessCard.company) lines.push(`🏢 ${businessCard.company}`);
+      if (businessCard.email) lines.push(`✉️ <a href="mailto:${businessCard.email}">${businessCard.email}</a>`);
+      if (businessCard.pec) lines.push(`📧 PEC: ${businessCard.pec}`);
+      if (businessCard.phone) lines.push(`📞 ${businessCard.phone}`);
+      if (businessCard.website) lines.push(`🌐 <a href="${businessCard.website}" target="_blank">${businessCard.website}</a>`);
+      if (businessCard.address) lines.push(`📍 ${businessCard.address}`);
+      if (businessCard.vat_number) lines.push(`P.IVA: ${businessCard.vat_number}`);
+      if (businessCard.fiscal_code) lines.push(`CF: ${businessCard.fiscal_code}`);
+      if (businessCard.notes) lines.push(`📝 ${businessCard.notes}`);
+      onInsertText(lines.join("<br/>"));
+    } else if (result) {
+      const html = result
+        .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+        .replace(/\n/g, "<br/>");
+      onInsertText(html);
+    }
     toast.success("Testo inserito nella nota");
     onOpenChange(false);
   };
@@ -150,6 +197,42 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
     toast.success("Risultato QR inserito nella nota");
     onOpenChange(false);
   };
+
+  // ── Business Card Result ──────────────────────
+  const renderBusinessCardResult = () => {
+    if (!businessCard) return null;
+    const fields: { key: keyof BusinessCardData; label: string; icon: string }[] = [
+      { key: "name", label: "Nome", icon: "👤" },
+      { key: "company", label: "Azienda", icon: "🏢" },
+      { key: "role", label: "Ruolo", icon: "💼" },
+      { key: "email", label: "Email", icon: "✉️" },
+      { key: "pec", label: "PEC", icon: "📧" },
+      { key: "phone", label: "Telefono", icon: "📞" },
+      { key: "website", label: "Sito web", icon: "🌐" },
+      { key: "address", label: "Indirizzo", icon: "📍" },
+      { key: "vat_number", label: "P.IVA", icon: "🏛️" },
+      { key: "fiscal_code", label: "Cod. Fiscale", icon: "🆔" },
+      { key: "notes", label: "Note", icon: "📝" },
+    ];
+
+    return (
+      <div className="space-y-1.5">
+        {fields.map(({ key, label, icon }) =>
+          businessCard[key] ? (
+            <div key={key} className="flex items-start gap-2 text-sm">
+              <span className="shrink-0">{icon}</span>
+              <div>
+                <span className="text-muted-foreground text-xs">{label}</span>
+                <p className="font-medium break-all">{businessCard[key]}</p>
+              </div>
+            </div>
+          ) : null
+        )}
+      </div>
+    );
+  };
+
+  const hasResult = !!result || !!businessCard;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -224,12 +307,12 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
 
           {/* ── Lens Tab ──────────────────────────── */}
           <TabsContent value="lens" className="flex-1 flex flex-col min-h-0 px-4 pb-4 gap-3">
-            {/* Mode selector */}
-            <div className="grid grid-cols-4 gap-1.5">
+            {/* Mode selector — 2 rows of 3 */}
+            <div className="grid grid-cols-3 gap-1.5">
               {(Object.entries(MODE_CONFIG) as [LensMode, typeof MODE_CONFIG["ocr"]][]).map(([key, cfg]) => (
                 <button
                   key={key}
-                  onClick={() => { setLensMode(key); setResult(null); }}
+                  onClick={() => { setLensMode(key); setResult(null); setBusinessCard(null); }}
                   className={`flex flex-col items-center gap-1 p-2 rounded-lg text-xs transition-colors ${
                     lensMode === key
                       ? "bg-primary text-primary-foreground"
@@ -258,7 +341,7 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
                   variant="secondary"
                   size="icon"
                   className="absolute top-1 right-1 h-6 w-6"
-                  onClick={() => { setCapturedImage(null); setResult(null); }}
+                  onClick={() => { setCapturedImage(null); setResult(null); setBusinessCard(null); }}
                 >
                   <X className="h-3 w-3" />
                 </Button>
@@ -275,7 +358,7 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
             )}
 
             {/* Analyze button */}
-            {capturedImage && !result && (
+            {capturedImage && !hasResult && (
               <Button onClick={analyzeImage} disabled={isAnalyzing} className="w-full">
                 {isAnalyzing ? (
                   <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Analisi in corso...</>
@@ -286,12 +369,16 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
             )}
 
             {/* Result */}
-            {result && (
+            {hasResult && (
               <div className="flex-1 min-h-0 flex flex-col gap-2">
                 <ScrollArea className="flex-1 max-h-48 border rounded-lg p-3">
-                  <div className="prose prose-sm max-w-none dark:prose-invert text-sm">
-                    <ReactMarkdown>{result}</ReactMarkdown>
-                  </div>
+                  {businessCard ? (
+                    renderBusinessCardResult()
+                  ) : (
+                    <div className="prose prose-sm max-w-none dark:prose-invert text-sm">
+                      <ReactMarkdown>{result!}</ReactMarkdown>
+                    </div>
+                  )}
                 </ScrollArea>
                 <div className="flex gap-2">
                   <Button size="sm" variant="outline" className="flex-1" onClick={handleCopyResult}>
