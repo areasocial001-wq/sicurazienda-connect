@@ -58,6 +58,7 @@ const NoteEditorPanel = ({
   const [showShare, setShowShare] = useState(false);
   const [showComments, setShowComments] = useState(false);
   const [showVersionHistory, setShowVersionHistory] = useState(false);
+  const [showLens, setShowLens] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [zipPreview, setZipPreview] = useState<{ url: string; name: string } | null>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
