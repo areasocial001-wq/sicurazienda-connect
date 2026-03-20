@@ -524,6 +524,14 @@ const NoteEditorPanel = ({
           zipUrl={zipPreview.url}
         />
       )}
+      {/* SicurLens */}
+      <SicurLens
+        open={showLens}
+        onOpenChange={setShowLens}
+        onInsertText={(text) => {
+          setContent(prev => prev + text);
+        }}
+      />
     </div>
   );
 };
