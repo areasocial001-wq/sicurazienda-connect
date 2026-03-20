@@ -324,6 +324,9 @@ const NoteEditorPanel = ({
         <Button variant="ghost" size="icon" className={`h-7 w-7 ${showAI ? 'text-primary' : ''}`} onClick={() => setShowAI(!showAI)} title="Assistente AI">
           <Sparkles className="h-4 w-4" />
         </Button>
+        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowLens(true)} title="SicurLens (QR + AI Vision)">
+          <ScanLine className="h-4 w-4" />
+        </Button>
         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowShare(true)} title="Condividi">
           <Share2 className="h-4 w-4" />
         </Button>
