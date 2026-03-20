@@ -30,6 +30,31 @@ Se ci sono più blocchi di testo, traducili tutti mantenendo l'ordine.`,
 - Suggerisci possibili azioni o approfondimenti
 
 Rispondi in italiano in modo dettagliato e strutturato.`,
+  document: `Questa è una foto di un documento cartaceo. Esegui le seguenti operazioni:
+1. Estrai TUTTO il testo visibile, mantenendo la struttura originale (titoli, paragrafi, elenchi, tabelle)
+2. Correggi eventuali errori di lettura dovuti alla qualità della foto
+3. Se ci sono tabelle, riproducile in formato markdown
+4. Indica il tipo di documento (fattura, lettera, certificato, modulo, ecc.)
+
+Rispondi con il testo pulito e formattato in markdown. Inizia con "**Tipo documento:** ..." seguito dal contenuto.`,
+  business_card: `Questa è la foto di un biglietto da visita. Estrai tutte le informazioni di contatto in formato JSON strutturato. Rispondi SOLO con il JSON, senza commenti.
+
+Il JSON deve avere questa struttura:
+{
+  "name": "Nome e Cognome",
+  "company": "Nome Azienda",
+  "role": "Ruolo/Titolo",
+  "email": "email@example.com",
+  "phone": "+39 ...",
+  "website": "www.example.com",
+  "address": "Indirizzo completo",
+  "pec": "pec@example.com",
+  "vat_number": "P.IVA ...",
+  "fiscal_code": "Codice Fiscale ...",
+  "notes": "Altre info rilevanti"
+}
+
+Ometti i campi che non riesci a leggere. Rispondi SOLO con il JSON valido.`,
   general: `Analizza questa immagine e descrivi in dettaglio cosa vedi. Rispondi in italiano.`,
 };
 
