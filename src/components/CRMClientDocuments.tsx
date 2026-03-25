@@ -624,6 +624,7 @@ function DocumentItem({ document, onDownload, onDelete, onUpdateExpiry, canDelet
           await firstPage.render({
             canvasContext: context,
             viewport,
+            canvas,
             annotationMode: pdfjsLib.AnnotationMode.DISABLE,
           }).promise;
 
