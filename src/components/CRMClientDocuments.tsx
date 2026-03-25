@@ -534,9 +534,8 @@ export default function CRMClientDocuments({ contactId, contactName, contactEmai
                     </div>
                   </AccordionTrigger>
                   <AccordionContent>
-                    <ScrollArea className="max-h-[300px]">
-                      <div className="space-y-2">
-                        {docs.map((doc) => (
+                    <div className="space-y-2">
+                      {docs.map((doc) => (
                           <DocumentItem
                             key={doc.id}
                             document={doc}
