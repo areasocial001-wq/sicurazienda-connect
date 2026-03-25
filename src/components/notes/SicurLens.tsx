@@ -330,71 +330,81 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
               {MODE_CONFIG[lensMode].description}
             </p>
 
-            {/* Image area */}
-            {capturedImage ? (
-              <div className="relative w-full">
-                <img
-                  src={capturedImage}
-                  alt="Cattura"
-                  className="w-full max-h-48 object-contain rounded-lg bg-muted"
-                />
-                <Button
-                  variant="secondary"
-                  size="icon"
-                  className="absolute top-1 right-1 h-6 w-6"
-                  onClick={() => { setCapturedImage(null); setResult(null); setBusinessCard(null); }}
-                >
-                  <X className="h-3 w-3" />
-                </Button>
-              </div>
+            {/* Document Scanner mode — dedicated component */}
+            {lensMode === "document" ? (
+              <SicurLensDocScanner
+                onInsertText={onInsertText}
+                onClose={() => onOpenChange(false)}
+              />
             ) : (
-              <div className="flex gap-2 justify-center">
-                <Button variant="outline" size="sm" onClick={() => cameraInputRef.current?.click()}>
-                  <Camera className="h-3.5 w-3.5 mr-1" /> Scatta foto
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
-                  <Upload className="h-3.5 w-3.5 mr-1" /> Carica immagine
-                </Button>
-              </div>
-            )}
-
-            {/* Analyze button */}
-            {capturedImage && !hasResult && (
-              <Button onClick={analyzeImage} disabled={isAnalyzing} className="w-full">
-                {isAnalyzing ? (
-                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Analisi in corso...</>
+              <>
+                {/* Image area */}
+                {capturedImage ? (
+                  <div className="relative w-full">
+                    <img
+                      src={capturedImage}
+                      alt="Cattura"
+                      className="w-full max-h-48 object-contain rounded-lg bg-muted"
+                    />
+                    <Button
+                      variant="secondary"
+                      size="icon"
+                      className="absolute top-1 right-1 h-6 w-6"
+                      onClick={() => { setCapturedImage(null); setResult(null); setBusinessCard(null); }}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
                 ) : (
-                  <><ScanLine className="h-4 w-4 mr-2" /> Analizza</>
+                  <div className="flex gap-2 justify-center">
+                    <Button variant="outline" size="sm" onClick={() => cameraInputRef.current?.click()}>
+                      <Camera className="h-3.5 w-3.5 mr-1" /> Scatta foto
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+                      <Upload className="h-3.5 w-3.5 mr-1" /> Carica immagine
+                    </Button>
+                  </div>
                 )}
-              </Button>
-            )}
 
-            {/* Result */}
-            {hasResult && (
-              <div className="flex-1 min-h-0 flex flex-col gap-2">
-                <ScrollArea className="flex-1 max-h-48 border rounded-lg p-3">
-                  {businessCard ? (
-                    renderBusinessCardResult()
-                  ) : (
-                    <div className="prose prose-sm max-w-none dark:prose-invert text-sm">
-                      <ReactMarkdown>{result!}</ReactMarkdown>
+                {/* Analyze button */}
+                {capturedImage && !hasResult && (
+                  <Button onClick={analyzeImage} disabled={isAnalyzing} className="w-full">
+                    {isAnalyzing ? (
+                      <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Analisi in corso...</>
+                    ) : (
+                      <><ScanLine className="h-4 w-4 mr-2" /> Analizza</>
+                    )}
+                  </Button>
+                )}
+
+                {/* Result */}
+                {hasResult && (
+                  <div className="flex-1 min-h-0 flex flex-col gap-2">
+                    <ScrollArea className="flex-1 max-h-48 border rounded-lg p-3">
+                      {businessCard ? (
+                        renderBusinessCardResult()
+                      ) : (
+                        <div className="prose prose-sm max-w-none dark:prose-invert text-sm">
+                          <ReactMarkdown>{result!}</ReactMarkdown>
+                        </div>
+                      )}
+                    </ScrollArea>
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="outline" className="flex-1" onClick={handleCopyResult}>
+                        {copied ? <Check className="h-3.5 w-3.5 mr-1" /> : <Copy className="h-3.5 w-3.5 mr-1" />}
+                        {copied ? "Copiato" : "Copia"}
+                      </Button>
+                      <Button size="sm" className="flex-1" onClick={handleInsertResult}>
+                        <ImagePlus className="h-3.5 w-3.5 mr-1" /> Inserisci nella nota
+                      </Button>
                     </div>
-                  )}
-                </ScrollArea>
-                <div className="flex gap-2">
-                  <Button size="sm" variant="outline" className="flex-1" onClick={handleCopyResult}>
-                    {copied ? <Check className="h-3.5 w-3.5 mr-1" /> : <Copy className="h-3.5 w-3.5 mr-1" />}
-                    {copied ? "Copiato" : "Copia"}
-                  </Button>
-                  <Button size="sm" className="flex-1" onClick={handleInsertResult}>
-                    <ImagePlus className="h-3.5 w-3.5 mr-1" /> Inserisci nella nota
-                  </Button>
-                </div>
-              </div>
-            )}
+                  </div>
+                )}
 
-            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageCapture} />
-            <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleImageCapture} />
+                <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageCapture} />
+                <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleImageCapture} />
+              </>
+            )}
           </TabsContent>
         </Tabs>
       </DialogContent>
