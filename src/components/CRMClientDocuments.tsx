@@ -546,8 +546,7 @@ export default function CRMClientDocuments({ contactId, contactName, contactEmai
                             canEdit={userArea === doc.area || userArea === 'admin'}
                           />
                         ))}
-                      </div>
-                    </ScrollArea>
+                    </div>
                   </AccordionContent>
                 </AccordionItem>
               ))}
