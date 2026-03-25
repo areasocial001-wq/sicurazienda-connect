@@ -44,6 +44,10 @@ import {
 import { useCRMDocuments, CRMDocument } from '@/hooks/useCRMDocuments';
 import { CreateClientAccount } from './CreateClientAccount';
 import { cn } from '@/lib/utils';
+import * as pdfjsLib from 'pdfjs-dist';
+import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 
 const areaColors: Record<string, string> = {
   contabilita: 'bg-blue-500/20 text-blue-700 border-blue-500/30',
@@ -571,6 +575,8 @@ function DocumentItem({ document, onDownload, onDelete, onUpdateExpiry, canDelet
   const [showExpiryPicker, setShowExpiryPicker] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [pdfPreviewImage, setPdfPreviewImage] = useState<string | null>(null);
+  const [pdfPages, setPdfPages] = useState<number | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const expiryStatus = getExpiryStatus(document.expiry_date);
 
@@ -578,27 +584,72 @@ function DocumentItem({ document, onDownload, onDelete, onUpdateExpiry, canDelet
   const isPdf = document.file_type === 'application/pdf';
   const canPreview = isImage || isPdf;
 
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
+
   const loadPreview = useCallback(async () => {
     if (previewUrl) return;
     setPreviewLoading(true);
     try {
-      // Download as blob to avoid cross-origin iframe blocking (Brave, etc.)
+      // Download as blob to avoid cross-origin blocking and render PDF natively (no iframe)
       const { data, error } = await supabase.storage
         .from('crm-documents')
         .download(document.file_path);
       if (error) throw error;
+
       const blobUrl = URL.createObjectURL(data);
       setPreviewUrl(blobUrl);
+
+      if (isPdf) {
+        try {
+          const pdfBuffer = await data.arrayBuffer();
+          const pdf = await pdfjsLib.getDocument({ data: pdfBuffer }).promise;
+          const firstPage = await pdf.getPage(1);
+          const viewport = firstPage.getViewport({ scale: 1.35 });
+          const canvas = window.document.createElement('canvas');
+          const context = canvas.getContext('2d');
+
+          if (!context) throw new Error('Canvas context non disponibile');
+
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
+
+          await firstPage.render({ canvasContext: context, viewport, canvas }).promise;
+
+          setPdfPreviewImage(canvas.toDataURL('image/png'));
+          setPdfPages(pdf.numPages);
+        } catch (pdfRenderError) {
+          console.error('PDF preview render error:', pdfRenderError);
+          setPdfPreviewImage(null);
+        }
+      }
     } catch (err) {
       console.error('Preview error:', err);
     } finally {
       setPreviewLoading(false);
     }
-  }, [document.file_path, previewUrl]);
+  }, [document.file_path, isPdf, previewUrl]);
 
   const handlePreview = async () => {
     setShowPreview(true);
     await loadPreview();
+  };
+
+  const handleOpenPdf = () => {
+    if (previewUrl) window.open(previewUrl, '_blank', 'noopener,noreferrer');
+  };
+
+  const handlePreviewDialogChange = (open: boolean) => {
+    setShowPreview(open);
+    if (!open) {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(null);
+      setPdfPreviewImage(null);
+      setPdfPages(null);
+    }
   };
 
   return (
@@ -710,7 +761,7 @@ function DocumentItem({ document, onDownload, onDelete, onUpdateExpiry, canDelet
       </div>
 
       {/* Preview Dialog */}
-      <Dialog open={showPreview} onOpenChange={(open) => { setShowPreview(open); if (!open) { if (previewUrl) URL.revokeObjectURL(previewUrl); setPreviewUrl(null); } }}>
+      <Dialog open={showPreview} onOpenChange={handlePreviewDialogChange}>
         <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-sm">
@@ -732,11 +783,27 @@ function DocumentItem({ document, onDownload, onDelete, onUpdateExpiry, canDelet
                   className="max-w-full max-h-[65vh] object-contain"
                 />
               ) : isPdf ? (
-                <iframe
-                  src={previewUrl}
-                  title={document.name}
-                  className="w-full h-[65vh] border-0 rounded"
-                />
+                <div className="w-full h-full flex flex-col items-center justify-center gap-3 p-3">
+                  {pdfPreviewImage ? (
+                    <img
+                      src={pdfPreviewImage}
+                      alt={`Anteprima PDF ${document.name}`}
+                      className="max-w-full max-h-[55vh] object-contain border rounded"
+                    />
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center">
+                      Anteprima PDF non disponibile nel viewer interno di Brave.
+                    </p>
+                  )}
+                  <div className="flex flex-wrap items-center justify-center gap-2">
+                    <Button variant="outline" size="sm" onClick={handleOpenPdf}>
+                      Apri PDF in nuova scheda
+                    </Button>
+                    {pdfPages && (
+                      <Badge variant="secondary">{pdfPages} pagine</Badge>
+                    )}
+                  </div>
+                </div>
               ) : null
             ) : (
               <p className="text-sm text-muted-foreground py-12">Anteprima non disponibile</p>
