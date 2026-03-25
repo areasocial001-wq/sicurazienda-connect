@@ -11,6 +11,7 @@ import {
   ScanText, Contact, UserPlus,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import SicurLensDocScanner from "./SicurLensDocScanner";
 
 interface SicurLensProps {
   open: boolean;
