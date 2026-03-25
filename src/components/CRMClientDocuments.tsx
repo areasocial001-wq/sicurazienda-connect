@@ -4,8 +4,9 @@ import { it } from 'date-fns/locale';
 import { 
   FolderOpen, Upload, Download, Trash2, FileText, 
   File, Image, FileSpreadsheet, Loader2, Plus, Search,
-  Calendar, AlertTriangle, Clock, X, Link2, UserPlus, Eye
+  Calendar, AlertTriangle, Clock, X, Link2, UserPlus, Eye, FolderUp
 } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -117,36 +118,127 @@ export default function CRMClientDocuments({ contactId, contactName, contactEmai
   const [showUploadDialog, setShowUploadDialog] = useState(false);
   const [description, setDescription] = useState('');
   const [expiryDate, setExpiryDate] = useState<Date | undefined>();
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const dropZoneRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchDocuments();
   }, [fetchDocuments]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setSelectedFile(file);
+    const files = Array.from(e.target.files || []);
+    if (files.length > 0) {
+      setSelectedFiles(prev => [...prev, ...files]);
     }
   };
 
-  const handleUpload = async () => {
-    if (!selectedFile) return;
+  const removeSelectedFile = (index: number) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // Recursively read directory entries from DataTransferItem
+  const readDirectory = async (entry: FileSystemDirectoryEntry): Promise<File[]> => {
+    const files: File[] = [];
+    const reader = entry.createReader();
+    const readEntries = (): Promise<FileSystemEntry[]> =>
+      new Promise((resolve, reject) => reader.readEntries(resolve, reject));
     
-    const result = await uploadDocument(
-      selectedFile, 
-      description || undefined,
-      expiryDate ? format(expiryDate, 'yyyy-MM-dd') : undefined
-    );
-    if (result) {
+    let entries: FileSystemEntry[];
+    do {
+      entries = await readEntries();
+      for (const e of entries) {
+        if (e.isFile) {
+          const file = await new Promise<File>((resolve, reject) =>
+            (e as FileSystemFileEntry).file(resolve, reject)
+          );
+          files.push(file);
+        } else if (e.isDirectory) {
+          const subFiles = await readDirectory(e as FileSystemDirectoryEntry);
+          files.push(...subFiles);
+        }
+      }
+    } while (entries.length > 0);
+    return files;
+  };
+
+  const handleDrop = useCallback(async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const items = e.dataTransfer.items;
+    const droppedFiles: File[] = [];
+
+    if (items) {
+      const entries: FileSystemEntry[] = [];
+      for (let i = 0; i < items.length; i++) {
+        const entry = items[i].webkitGetAsEntry?.();
+        if (entry) entries.push(entry);
+      }
+      for (const entry of entries) {
+        if (entry.isFile) {
+          const file = await new Promise<File>((resolve, reject) =>
+            (entry as FileSystemFileEntry).file(resolve, reject)
+          );
+          droppedFiles.push(file);
+        } else if (entry.isDirectory) {
+          const files = await readDirectory(entry as FileSystemDirectoryEntry);
+          droppedFiles.push(...files);
+        }
+      }
+    } else {
+      droppedFiles.push(...Array.from(e.dataTransfer.files));
+    }
+
+    if (droppedFiles.length > 0) {
+      setSelectedFiles(prev => [...prev, ...droppedFiles]);
+    }
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (dropZoneRef.current && !dropZoneRef.current.contains(e.relatedTarget as Node)) {
+      setIsDragging(false);
+    }
+  }, []);
+
+  const handleUpload = async () => {
+    if (selectedFiles.length === 0) return;
+    
+    setUploadProgress({ done: 0, total: selectedFiles.length });
+    let successCount = 0;
+    
+    for (const file of selectedFiles) {
+      const result = await uploadDocument(
+        file, 
+        description || undefined,
+        expiryDate ? format(expiryDate, 'yyyy-MM-dd') : undefined
+      );
+      if (result) successCount++;
+      setUploadProgress(prev => prev ? { ...prev, done: (prev.done || 0) + 1 } : null);
+    }
+    
+    if (successCount > 0) {
       setShowUploadDialog(false);
-      setSelectedFile(null);
+      setSelectedFiles([]);
       setDescription('');
       setExpiryDate(undefined);
+      setUploadProgress(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
+
+  const totalSelectedSize = selectedFiles.reduce((sum, f) => sum + f.size, 0);
 
   const documentsByArea = getDocumentsByArea();
   const expiringDocs = getExpiringDocuments(30);
@@ -212,22 +304,65 @@ export default function CRMClientDocuments({ contactId, contactName, contactEmai
                     <DialogTitle>Carica documento per {contactName}</DialogTitle>
                   </DialogHeader>
                   <div className="space-y-4">
-                    <div>
-                      <Label>File</Label>
-                      <Input
+                    {/* Drop Zone */}
+                    <div
+                      ref={dropZoneRef}
+                      onDrop={handleDrop}
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                      className={cn(
+                        "border-2 border-dashed rounded-lg p-6 text-center transition-colors cursor-pointer",
+                        isDragging
+                          ? "border-primary bg-primary/5"
+                          : "border-muted-foreground/25 hover:border-primary/50"
+                      )}
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <input
                         ref={fileInputRef}
                         type="file"
+                        multiple
+                        className="hidden"
                         onChange={handleFileSelect}
                         accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.gif,.txt,.zip,.rar,.7z,.tar,.gz"
                       />
-                      {selectedFile && (
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {selectedFile.name} ({formatFileSize(selectedFile.size)})
-                        </p>
-                      )}
+                      <FolderUp className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                      <p className="text-sm font-medium">
+                        {isDragging ? 'Rilascia qui i file' : 'Trascina file o cartelle qui'}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        oppure clicca per selezionare • File multipli supportati
+                      </p>
                     </div>
+
+                    {/* Selected Files List */}
+                    {selectedFiles.length > 0 && (
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-xs">{selectedFiles.length} file selezionat{selectedFiles.length === 1 ? 'o' : 'i'} ({formatFileSize(totalSelectedSize)})</Label>
+                          <Button variant="ghost" size="sm" className="h-6 text-xs text-destructive" onClick={() => setSelectedFiles([])}>
+                            Rimuovi tutti
+                          </Button>
+                        </div>
+                        <ScrollArea className="max-h-[120px]">
+                          <div className="space-y-1">
+                            {selectedFiles.map((file, i) => (
+                              <div key={i} className="flex items-center gap-2 text-xs bg-muted/50 rounded px-2 py-1.5">
+                                {getFileIcon(file.type)}
+                                <span className="flex-1 truncate">{file.name}</span>
+                                <span className="text-muted-foreground shrink-0">{formatFileSize(file.size)}</span>
+                                <Button variant="ghost" size="icon" className="h-5 w-5 shrink-0" onClick={() => removeSelectedFile(i)}>
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        </ScrollArea>
+                      </div>
+                    )}
+
                     <div>
-                      <Label>Descrizione (opzionale)</Label>
+                      <Label>Descrizione (opzionale, applicata a tutti)</Label>
                       <Textarea
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
@@ -236,7 +371,7 @@ export default function CRMClientDocuments({ contactId, contactName, contactEmai
                       />
                     </div>
                     <div>
-                      <Label>Data di scadenza (opzionale)</Label>
+                      <Label>Data di scadenza (opzionale, applicata a tutti)</Label>
                       <Popover>
                         <PopoverTrigger asChild>
                           <Button
@@ -276,8 +411,8 @@ export default function CRMClientDocuments({ contactId, contactName, contactEmai
                       </div>
                     )}
                     {!clientUserId && onLinkClient && (
-                      <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/5 p-3 space-y-2">
-                        <div className="flex items-center gap-2 text-sm font-medium text-yellow-700">
+                      <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 space-y-2">
+                        <div className="flex items-center gap-2 text-sm font-medium text-destructive">
                           <AlertTriangle className="h-4 w-4" />
                           Account cliente non collegato
                         </div>
@@ -303,20 +438,32 @@ export default function CRMClientDocuments({ contactId, contactName, contactEmai
                         </Button>
                       </div>
                     )}
+
+                    {/* Upload Progress */}
+                    {uploadProgress && (
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                          <span>Caricamento {uploadProgress.done}/{uploadProgress.total}</span>
+                          <span>{Math.round((uploadProgress.done / uploadProgress.total) * 100)}%</span>
+                        </div>
+                        <Progress value={(uploadProgress.done / uploadProgress.total) * 100} className="h-2" />
+                      </div>
+                    )}
+
                     <Button 
                       onClick={handleUpload} 
                       className="w-full" 
-                      disabled={!selectedFile || uploading}
+                      disabled={selectedFiles.length === 0 || uploading}
                     >
                       {uploading ? (
                         <>
                           <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Caricamento...
+                          Caricamento {uploadProgress ? `${uploadProgress.done}/${uploadProgress.total}` : '...'}
                         </>
                       ) : (
                         <>
                           <Upload className="h-4 w-4 mr-2" />
-                          Carica documento
+                          Carica {selectedFiles.length > 1 ? `${selectedFiles.length} documenti` : 'documento'}
                         </>
                       )}
                     </Button>
