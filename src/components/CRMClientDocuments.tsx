@@ -4,7 +4,7 @@ import { it } from 'date-fns/locale';
 import { 
   FolderOpen, Upload, Download, Trash2, FileText, 
   File, Image, FileSpreadsheet, Loader2, Plus, Search,
-  Calendar, AlertTriangle, Clock, X, Link2, UserPlus, Eye, FolderUp
+  Calendar, AlertTriangle, Clock, X, Link2, UserPlus, Eye, FolderUp, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { supabase } from '@/integrations/supabase/client';
@@ -577,7 +577,10 @@ function DocumentItem({ document, onDownload, onDelete, onUpdateExpiry, canDelet
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [pdfPreviewImage, setPdfPreviewImage] = useState<string | null>(null);
   const [pdfPages, setPdfPages] = useState<number | null>(null);
+  const [pdfCurrentPage, setPdfCurrentPage] = useState(1);
+  const [pdfPageLoading, setPdfPageLoading] = useState(false);
   const [previewLoading, setPreviewLoading] = useState(false);
+  const pdfDocumentRef = useRef<any>(null);
   const expiryStatus = getExpiryStatus(document.expiry_date);
 
   const isImage = document.file_type?.startsWith('image/');
@@ -587,8 +590,33 @@ function DocumentItem({ document, onDownload, onDelete, onUpdateExpiry, canDelet
   useEffect(() => {
     return () => {
       if (previewUrl) URL.revokeObjectURL(previewUrl);
+      if (pdfDocumentRef.current) {
+        pdfDocumentRef.current.destroy?.();
+        pdfDocumentRef.current = null;
+      }
     };
   }, [previewUrl]);
+
+  const renderPdfPage = useCallback(async (pdfDocument: any, pageNumber: number) => {
+    const page = await pdfDocument.getPage(pageNumber);
+    const viewport = page.getViewport({ scale: 1.35 });
+    const canvas = window.document.createElement('canvas');
+    const context = canvas.getContext('2d');
+
+    if (!context) throw new Error('Canvas context non disponibile');
+
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+
+    await page.render({
+      canvasContext: context,
+      viewport,
+      canvas,
+      annotationMode: pdfjsLib.AnnotationMode.DISABLE,
+    }).promise;
+
+    setPdfPreviewImage(canvas.toDataURL('image/png'));
+  }, []);
 
   const loadPreview = useCallback(async () => {
     if (previewUrl) return;
@@ -611,25 +639,10 @@ function DocumentItem({ document, onDownload, onDelete, onUpdateExpiry, canDelet
             stopAtErrors: false,
             isEvalSupported: false,
           }).promise;
-          const firstPage = await pdf.getPage(1);
-          const viewport = firstPage.getViewport({ scale: 1.35 });
-          const canvas = window.document.createElement('canvas');
-          const context = canvas.getContext('2d');
-
-          if (!context) throw new Error('Canvas context non disponibile');
-
-          canvas.width = viewport.width;
-          canvas.height = viewport.height;
-
-          await firstPage.render({
-            canvasContext: context,
-            viewport,
-            canvas,
-            annotationMode: pdfjsLib.AnnotationMode.DISABLE,
-          }).promise;
-
-          setPdfPreviewImage(canvas.toDataURL('image/png'));
+          pdfDocumentRef.current = pdf;
           setPdfPages(pdf.numPages);
+          setPdfCurrentPage(1);
+          await renderPdfPage(pdf, 1);
         } catch (pdfRenderError) {
           console.error('PDF preview render error:', pdfRenderError);
           setPdfPreviewImage(null);
@@ -640,7 +653,7 @@ function DocumentItem({ document, onDownload, onDelete, onUpdateExpiry, canDelet
     } finally {
       setPreviewLoading(false);
     }
-  }, [document.file_path, isPdf, previewUrl]);
+  }, [document.file_path, isPdf, previewUrl, renderPdfPage]);
 
   const handlePreview = async () => {
     setShowPreview(true);
@@ -659,13 +672,36 @@ function DocumentItem({ document, onDownload, onDelete, onUpdateExpiry, canDelet
     window.document.body.removeChild(link);
   };
 
+  const handlePdfPageChange = async (direction: 'prev' | 'next') => {
+    if (!pdfDocumentRef.current || !pdfPages) return;
+
+    const nextPage = direction === 'prev' ? pdfCurrentPage - 1 : pdfCurrentPage + 1;
+    if (nextPage < 1 || nextPage > pdfPages) return;
+
+    setPdfPageLoading(true);
+    try {
+      await renderPdfPage(pdfDocumentRef.current, nextPage);
+      setPdfCurrentPage(nextPage);
+    } catch (error) {
+      console.error('PDF page navigation error:', error);
+    } finally {
+      setPdfPageLoading(false);
+    }
+  };
+
   const handlePreviewDialogChange = (open: boolean) => {
     setShowPreview(open);
     if (!open) {
       if (previewUrl) URL.revokeObjectURL(previewUrl);
+      if (pdfDocumentRef.current) {
+        pdfDocumentRef.current.destroy?.();
+        pdfDocumentRef.current = null;
+      }
       setPreviewUrl(null);
       setPdfPreviewImage(null);
       setPdfPages(null);
+      setPdfCurrentPage(1);
+      setPdfPageLoading(false);
     }
   };
 
@@ -805,7 +841,10 @@ function DocumentItem({ document, onDownload, onDelete, onUpdateExpiry, canDelet
                     <img
                       src={pdfPreviewImage}
                       alt={`Anteprima PDF ${document.name}`}
-                      className="max-w-full max-h-[55vh] object-contain border rounded"
+                      className={cn(
+                        'max-w-full max-h-[55vh] object-contain border rounded transition-opacity',
+                        pdfPageLoading && 'opacity-60'
+                      )}
                     />
                   ) : (
                     <p className="text-sm text-muted-foreground text-center">
@@ -813,11 +852,35 @@ function DocumentItem({ document, onDownload, onDelete, onUpdateExpiry, canDelet
                     </p>
                   )}
                   <div className="flex flex-wrap items-center justify-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => handlePdfPageChange('prev')}
+                      disabled={!pdfPages || pdfCurrentPage <= 1 || pdfPageLoading}
+                      title="Pagina precedente"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <Badge variant="secondary">
+                      Pagina {pdfCurrentPage}{pdfPages ? `/${pdfPages}` : ''}
+                    </Badge>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => handlePdfPageChange('next')}
+                      disabled={!pdfPages || pdfCurrentPage >= pdfPages || pdfPageLoading}
+                      title="Pagina successiva"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
                     <Button variant="outline" size="sm" onClick={handleOpenPdf}>
                       Apri PDF in nuova scheda
                     </Button>
-                    {pdfPages && (
-                      <Badge variant="secondary">{pdfPages} pagine</Badge>
+                    {pdfPageLoading && (
+                      <Badge variant="outline" className="gap-1">
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        Caricamento pagina
+                      </Badge>
                     )}
                   </div>
                 </div>
