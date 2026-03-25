@@ -606,7 +606,11 @@ function DocumentItem({ document, onDownload, onDelete, onUpdateExpiry, canDelet
       if (isPdf) {
         try {
           const pdfBuffer = await data.arrayBuffer();
-          const pdf = await pdfjsLib.getDocument({ data: pdfBuffer }).promise;
+          const pdf = await pdfjsLib.getDocument({
+            data: pdfBuffer,
+            stopAtErrors: false,
+            isEvalSupported: false,
+          }).promise;
           const firstPage = await pdf.getPage(1);
           const viewport = firstPage.getViewport({ scale: 1.35 });
           const canvas = window.document.createElement('canvas');
@@ -617,7 +621,12 @@ function DocumentItem({ document, onDownload, onDelete, onUpdateExpiry, canDelet
           canvas.width = viewport.width;
           canvas.height = viewport.height;
 
-          await firstPage.render({ canvasContext: context, viewport, canvas }).promise;
+          await firstPage.render({
+            canvasContext: context,
+            viewport,
+            canvas,
+            annotationMode: pdfjsLib.AnnotationMode.DISABLE,
+          }).promise;
 
           setPdfPreviewImage(canvas.toDataURL('image/png'));
           setPdfPages(pdf.numPages);
@@ -639,7 +648,15 @@ function DocumentItem({ document, onDownload, onDelete, onUpdateExpiry, canDelet
   };
 
   const handleOpenPdf = () => {
-    if (previewUrl) window.open(previewUrl, '_blank', 'noopener,noreferrer');
+    if (!previewUrl) return;
+
+    const link = window.document.createElement('a');
+    link.href = previewUrl;
+    link.target = '_blank';
+    link.rel = 'noopener';
+    window.document.body.appendChild(link);
+    link.click();
+    window.document.body.removeChild(link);
   };
 
   const handlePreviewDialogChange = (open: boolean) => {
