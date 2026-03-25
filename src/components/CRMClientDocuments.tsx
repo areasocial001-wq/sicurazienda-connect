@@ -424,108 +424,184 @@ interface DocumentItemProps {
 
 function DocumentItem({ document, onDownload, onDelete, onUpdateExpiry, canDelete, canEdit }: DocumentItemProps) {
   const [showExpiryPicker, setShowExpiryPicker] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
   const expiryStatus = getExpiryStatus(document.expiry_date);
 
+  const isImage = document.file_type?.startsWith('image/');
+  const isPdf = document.file_type === 'application/pdf';
+  const canPreview = isImage || isPdf;
+
+  const loadPreview = useCallback(async () => {
+    if (previewUrl) return;
+    setPreviewLoading(true);
+    try {
+      const { data, error } = await supabase.storage
+        .from('crm-documents')
+        .createSignedUrl(document.file_path, 300); // 5 min
+      if (error) throw error;
+      setPreviewUrl(data.signedUrl);
+    } catch (err) {
+      console.error('Preview error:', err);
+    } finally {
+      setPreviewLoading(false);
+    }
+  }, [document.file_path, previewUrl]);
+
+  const handlePreview = async () => {
+    setShowPreview(true);
+    await loadPreview();
+  };
+
   return (
-    <div className={cn(
-      "flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors",
-      expiryStatus?.urgent && "border-red-500/30 bg-red-500/5"
-    )}>
-      <div className="flex items-center gap-3 flex-1 min-w-0">
-        <div className="text-muted-foreground">
-          {getFileIcon(document.file_type)}
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="font-medium text-sm truncate">{document.name}</p>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
-            <span>{format(new Date(document.created_at), 'dd/MM/yyyy', { locale: it })}</span>
-            {document.file_size && (
-              <>
-                <span>•</span>
-                <span>{formatFileSize(document.file_size)}</span>
-              </>
-            )}
-            {expiryStatus && (
-              <>
-                <span>•</span>
-                <Badge variant="outline" className={cn("text-xs py-0 h-5", expiryStatus.color)}>
-                  <expiryStatus.icon className="h-3 w-3 mr-1" />
-                  {expiryStatus.label}
-                </Badge>
-              </>
+    <>
+      <div className={cn(
+        "flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors",
+        expiryStatus?.urgent && "border-destructive/30 bg-destructive/5"
+      )}>
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          <div className="text-muted-foreground">
+            {getFileIcon(document.file_type)}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-medium text-sm truncate">{document.name}</p>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
+              <span>{format(new Date(document.created_at), 'dd/MM/yyyy', { locale: it })}</span>
+              {document.file_size && (
+                <>
+                  <span>•</span>
+                  <span>{formatFileSize(document.file_size)}</span>
+                </>
+              )}
+              {expiryStatus && (
+                <>
+                  <span>•</span>
+                  <Badge variant="outline" className={cn("text-xs py-0 h-5", expiryStatus.color)}>
+                    <expiryStatus.icon className="h-3 w-3 mr-1" />
+                    {expiryStatus.label}
+                  </Badge>
+                </>
+              )}
+            </div>
+            {document.description && (
+              <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
+                {document.description}
+              </p>
             )}
           </div>
-          {document.description && (
-            <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
-              {document.description}
-            </p>
+        </div>
+        <div className="flex items-center gap-1 ml-2">
+          {canPreview && (
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handlePreview} title="Anteprima">
+              <Eye className="h-4 w-4" />
+            </Button>
+          )}
+          {canEdit && (
+            <Popover open={showExpiryPicker} onOpenChange={setShowExpiryPicker}>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8" title="Imposta scadenza">
+                  <Calendar className="h-4 w-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <div className="p-2 border-b">
+                  <p className="text-sm font-medium">Data di scadenza</p>
+                  {document.expiry_date && (
+                    <Button 
+                      variant="link" 
+                      size="sm" 
+                      className="p-0 h-auto text-destructive"
+                      onClick={() => { onUpdateExpiry(null); setShowExpiryPicker(false); }}
+                    >
+                      Rimuovi scadenza
+                    </Button>
+                  )}
+                </div>
+                <CalendarComponent
+                  mode="single"
+                  selected={document.expiry_date ? new Date(document.expiry_date) : undefined}
+                  onSelect={(date) => {
+                    if (date) {
+                      onUpdateExpiry(format(date, 'yyyy-MM-dd'));
+                      setShowExpiryPicker(false);
+                    }
+                  }}
+                  disabled={(date) => date < new Date()}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+          )}
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onDownload}>
+            <Download className="h-4 w-4" />
+          </Button>
+          {canDelete && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Eliminare il documento?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Stai per eliminare "{document.name}". Questa azione non può essere annullata.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Annulla</AlertDialogCancel>
+                  <AlertDialogAction onClick={onDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                    Elimina
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           )}
         </div>
       </div>
-      <div className="flex items-center gap-1 ml-2">
-        {canEdit && (
-          <Popover open={showExpiryPicker} onOpenChange={setShowExpiryPicker}>
-            <PopoverTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8" title="Imposta scadenza">
-                <Calendar className="h-4 w-4" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="end">
-              <div className="p-2 border-b">
-                <p className="text-sm font-medium">Data di scadenza</p>
-                {document.expiry_date && (
-                  <Button 
-                    variant="link" 
-                    size="sm" 
-                    className="p-0 h-auto text-destructive"
-                    onClick={() => { onUpdateExpiry(null); setShowExpiryPicker(false); }}
-                  >
-                    Rimuovi scadenza
-                  </Button>
-                )}
+
+      {/* Preview Dialog */}
+      <Dialog open={showPreview} onOpenChange={(open) => { setShowPreview(open); if (!open) setPreviewUrl(null); }}>
+        <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-sm">
+              {getFileIcon(document.file_type)}
+              {document.name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 min-h-0 flex items-center justify-center bg-muted/30 rounded-lg overflow-hidden">
+            {previewLoading ? (
+              <div className="flex flex-col items-center gap-2 py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">Caricamento anteprima...</p>
               </div>
-              <CalendarComponent
-                mode="single"
-                selected={document.expiry_date ? new Date(document.expiry_date) : undefined}
-                onSelect={(date) => {
-                  if (date) {
-                    onUpdateExpiry(format(date, 'yyyy-MM-dd'));
-                    setShowExpiryPicker(false);
-                  }
-                }}
-                disabled={(date) => date < new Date()}
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
-        )}
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onDownload}>
-          <Download className="h-4 w-4" />
-        </Button>
-        {canDelete && (
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Eliminare il documento?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Stai per eliminare "{document.name}". Questa azione non può essere annullata.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Annulla</AlertDialogCancel>
-                <AlertDialogAction onClick={onDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                  Elimina
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        )}
-      </div>
-    </div>
+            ) : previewUrl ? (
+              isImage ? (
+                <img
+                  src={previewUrl}
+                  alt={document.name}
+                  className="max-w-full max-h-[65vh] object-contain"
+                />
+              ) : isPdf ? (
+                <iframe
+                  src={previewUrl}
+                  title={document.name}
+                  className="w-full h-[65vh] border-0 rounded"
+                />
+              ) : null
+            ) : (
+              <p className="text-sm text-muted-foreground py-12">Anteprima non disponibile</p>
+            )}
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" size="sm" onClick={onDownload}>
+              <Download className="h-4 w-4 mr-1" /> Scarica
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
