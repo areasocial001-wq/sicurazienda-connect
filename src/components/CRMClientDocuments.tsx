@@ -617,7 +617,7 @@ function DocumentItem({ document, onDownload, onDelete, onUpdateExpiry, canDelet
           canvas.width = viewport.width;
           canvas.height = viewport.height;
 
-          await firstPage.render({ canvasContext: context, viewport }).promise;
+          await firstPage.render({ canvasContext: context, viewport, canvas }).promise;
 
           setPdfPreviewImage(canvas.toDataURL('image/png'));
           setPdfPages(pdf.numPages);
