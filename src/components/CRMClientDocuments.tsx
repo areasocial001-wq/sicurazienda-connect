@@ -534,9 +534,8 @@ export default function CRMClientDocuments({ contactId, contactName, contactEmai
                     </div>
                   </AccordionTrigger>
                   <AccordionContent>
-                    <ScrollArea className="max-h-[300px]">
-                      <div className="space-y-2">
-                        {docs.map((doc) => (
+                    <div className="space-y-2">
+                      {docs.map((doc) => (
                           <DocumentItem
                             key={doc.id}
                             document={doc}
@@ -547,8 +546,7 @@ export default function CRMClientDocuments({ contactId, contactName, contactEmai
                             canEdit={userArea === doc.area || userArea === 'admin'}
                           />
                         ))}
-                      </div>
-                    </ScrollArea>
+                    </div>
                   </AccordionContent>
                 </AccordionItem>
               ))}
@@ -584,11 +582,13 @@ function DocumentItem({ document, onDownload, onDelete, onUpdateExpiry, canDelet
     if (previewUrl) return;
     setPreviewLoading(true);
     try {
+      // Download as blob to avoid cross-origin iframe blocking (Brave, etc.)
       const { data, error } = await supabase.storage
         .from('crm-documents')
-        .createSignedUrl(document.file_path, 300); // 5 min
+        .download(document.file_path);
       if (error) throw error;
-      setPreviewUrl(data.signedUrl);
+      const blobUrl = URL.createObjectURL(data);
+      setPreviewUrl(blobUrl);
     } catch (err) {
       console.error('Preview error:', err);
     } finally {
@@ -710,7 +710,7 @@ function DocumentItem({ document, onDownload, onDelete, onUpdateExpiry, canDelet
       </div>
 
       {/* Preview Dialog */}
-      <Dialog open={showPreview} onOpenChange={(open) => { setShowPreview(open); if (!open) setPreviewUrl(null); }}>
+      <Dialog open={showPreview} onOpenChange={(open) => { setShowPreview(open); if (!open) { if (previewUrl) URL.revokeObjectURL(previewUrl); setPreviewUrl(null); } }}>
         <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-sm">
