@@ -582,11 +582,13 @@ function DocumentItem({ document, onDownload, onDelete, onUpdateExpiry, canDelet
     if (previewUrl) return;
     setPreviewLoading(true);
     try {
+      // Download as blob to avoid cross-origin iframe blocking (Brave, etc.)
       const { data, error } = await supabase.storage
         .from('crm-documents')
-        .createSignedUrl(document.file_path, 300); // 5 min
+        .download(document.file_path);
       if (error) throw error;
-      setPreviewUrl(data.signedUrl);
+      const blobUrl = URL.createObjectURL(data);
+      setPreviewUrl(blobUrl);
     } catch (err) {
       console.error('Preview error:', err);
     } finally {
