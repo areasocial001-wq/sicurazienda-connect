@@ -710,7 +710,7 @@ function DocumentItem({ document, onDownload, onDelete, onUpdateExpiry, canDelet
       </div>
 
       {/* Preview Dialog */}
-      <Dialog open={showPreview} onOpenChange={(open) => { setShowPreview(open); if (!open) setPreviewUrl(null); }}>
+      <Dialog open={showPreview} onOpenChange={(open) => { setShowPreview(open); if (!open) { if (previewUrl) URL.revokeObjectURL(previewUrl); setPreviewUrl(null); } }}>
         <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-sm">
