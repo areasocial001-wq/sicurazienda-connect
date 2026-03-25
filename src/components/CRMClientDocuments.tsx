@@ -117,36 +117,127 @@ export default function CRMClientDocuments({ contactId, contactName, contactEmai
   const [showUploadDialog, setShowUploadDialog] = useState(false);
   const [description, setDescription] = useState('');
   const [expiryDate, setExpiryDate] = useState<Date | undefined>();
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const dropZoneRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchDocuments();
   }, [fetchDocuments]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setSelectedFile(file);
+    const files = Array.from(e.target.files || []);
+    if (files.length > 0) {
+      setSelectedFiles(prev => [...prev, ...files]);
     }
   };
 
-  const handleUpload = async () => {
-    if (!selectedFile) return;
+  const removeSelectedFile = (index: number) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // Recursively read directory entries from DataTransferItem
+  const readDirectory = async (entry: FileSystemDirectoryEntry): Promise<File[]> => {
+    const files: File[] = [];
+    const reader = entry.createReader();
+    const readEntries = (): Promise<FileSystemEntry[]> =>
+      new Promise((resolve, reject) => reader.readEntries(resolve, reject));
     
-    const result = await uploadDocument(
-      selectedFile, 
-      description || undefined,
-      expiryDate ? format(expiryDate, 'yyyy-MM-dd') : undefined
-    );
-    if (result) {
+    let entries: FileSystemEntry[];
+    do {
+      entries = await readEntries();
+      for (const e of entries) {
+        if (e.isFile) {
+          const file = await new Promise<File>((resolve, reject) =>
+            (e as FileSystemFileEntry).file(resolve, reject)
+          );
+          files.push(file);
+        } else if (e.isDirectory) {
+          const subFiles = await readDirectory(e as FileSystemDirectoryEntry);
+          files.push(...subFiles);
+        }
+      }
+    } while (entries.length > 0);
+    return files;
+  };
+
+  const handleDrop = useCallback(async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const items = e.dataTransfer.items;
+    const droppedFiles: File[] = [];
+
+    if (items) {
+      const entries: FileSystemEntry[] = [];
+      for (let i = 0; i < items.length; i++) {
+        const entry = items[i].webkitGetAsEntry?.();
+        if (entry) entries.push(entry);
+      }
+      for (const entry of entries) {
+        if (entry.isFile) {
+          const file = await new Promise<File>((resolve, reject) =>
+            (entry as FileSystemFileEntry).file(resolve, reject)
+          );
+          droppedFiles.push(file);
+        } else if (entry.isDirectory) {
+          const files = await readDirectory(entry as FileSystemDirectoryEntry);
+          droppedFiles.push(...files);
+        }
+      }
+    } else {
+      droppedFiles.push(...Array.from(e.dataTransfer.files));
+    }
+
+    if (droppedFiles.length > 0) {
+      setSelectedFiles(prev => [...prev, ...droppedFiles]);
+    }
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (dropZoneRef.current && !dropZoneRef.current.contains(e.relatedTarget as Node)) {
+      setIsDragging(false);
+    }
+  }, []);
+
+  const handleUpload = async () => {
+    if (selectedFiles.length === 0) return;
+    
+    setUploadProgress({ done: 0, total: selectedFiles.length });
+    let successCount = 0;
+    
+    for (const file of selectedFiles) {
+      const result = await uploadDocument(
+        file, 
+        description || undefined,
+        expiryDate ? format(expiryDate, 'yyyy-MM-dd') : undefined
+      );
+      if (result) successCount++;
+      setUploadProgress(prev => prev ? { ...prev, done: (prev.done || 0) + 1 } : null);
+    }
+    
+    if (successCount > 0) {
       setShowUploadDialog(false);
-      setSelectedFile(null);
+      setSelectedFiles([]);
       setDescription('');
       setExpiryDate(undefined);
+      setUploadProgress(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
+
+  const totalSelectedSize = selectedFiles.reduce((sum, f) => sum + f.size, 0);
 
   const documentsByArea = getDocumentsByArea();
   const expiringDocs = getExpiringDocuments(30);
