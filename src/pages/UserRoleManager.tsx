@@ -482,9 +482,47 @@ export default function UserRoleManager() {
                             <SelectItem value="area_tecnica">Area Tecnica</SelectItem>
                             <SelectItem value="gestione_corsi">Gestione Corsi</SelectItem>
                             <SelectItem value="consulenti_tecnici">Consulenti Tecnici</SelectItem>
+                            <SelectItem value="medicina">Medicina</SelectItem>
                             <SelectItem value="admin">Amministratore</SelectItem>
                           </SelectContent>
                         </Select>
+                        {userItem.id !== user?.id && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                disabled={deletingUsers.has(userItem.id)}
+                                title="Elimina utente"
+                              >
+                                {deletingUsers.has(userItem.id) ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Trash2 className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Conferma eliminazione utente</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Sei sicuro di voler eliminare l'utente <strong>{userItem.email}</strong>?
+                                  <br /><br />
+                                  Questa azione è irreversibile e cancellerà tutti i dati associati all'utente.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Annulla</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleDeleteUser(userItem.id, userItem.email)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Elimina Utente
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
                       </div>
                     </div>
                   ))}
