@@ -4,12 +4,24 @@ import { useUserRole } from '@/hooks/useUserRole'
 import { supabase } from '@/integrations/supabase/client'
 import BottomNav from '@/components/BottomNav'
 import AuthModal from '@/components/AuthModal'
+import AdminCreateUser from '@/components/AdminCreateUser'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
-import { Shield, User, Building2, CheckCircle, AlertCircle, Loader2, KeyRound } from 'lucide-react'
+import { Shield, User, Building2, CheckCircle, AlertCircle, Loader2, KeyRound, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 interface UserWithProfile {
   id: string
@@ -34,6 +46,7 @@ export default function UserRoleManager() {
   const [loading, setLoading] = useState(true)
   const [confirmingUsers, setConfirmingUsers] = useState<Set<string>>(new Set())
   const [resettingPasswords, setResettingPasswords] = useState<Set<string>>(new Set())
+  const [deletingUsers, setDeletingUsers] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     if (!roleLoading && user && isAdmin) {
@@ -172,6 +185,30 @@ export default function UserRoleManager() {
       setResettingPasswords(prev => {
         const next = new Set(prev)
         next.delete(email)
+        return next
+      })
+    }
+  }
+
+  const handleDeleteUser = async (userId: string, email: string) => {
+    setDeletingUsers(prev => new Set(prev).add(userId))
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('admin-delete-user', {
+        body: { userId }
+      })
+      
+      if (error) throw error
+      
+      toast.success(`Utente ${email} eliminato con successo`)
+      fetchUsers()
+    } catch (error: any) {
+      console.error('Error deleting user:', error)
+      toast.error(error.message || 'Errore nell\'eliminazione utente')
+    } finally {
+      setDeletingUsers(prev => {
+        const next = new Set(prev)
+        next.delete(userId)
         return next
       })
     }
@@ -342,8 +379,9 @@ export default function UserRoleManager() {
           </div>
 
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Utenti e Ruoli</CardTitle>
+              <AdminCreateUser onUserCreated={fetchUsers} />
             </CardHeader>
             <CardContent>
               {loading ? (
@@ -444,9 +482,47 @@ export default function UserRoleManager() {
                             <SelectItem value="area_tecnica">Area Tecnica</SelectItem>
                             <SelectItem value="gestione_corsi">Gestione Corsi</SelectItem>
                             <SelectItem value="consulenti_tecnici">Consulenti Tecnici</SelectItem>
+                            <SelectItem value="medicina">Medicina</SelectItem>
                             <SelectItem value="admin">Amministratore</SelectItem>
                           </SelectContent>
                         </Select>
+                        {userItem.id !== user?.id && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                disabled={deletingUsers.has(userItem.id)}
+                                title="Elimina utente"
+                              >
+                                {deletingUsers.has(userItem.id) ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Trash2 className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Conferma eliminazione utente</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Sei sicuro di voler eliminare l'utente <strong>{userItem.email}</strong>?
+                                  <br /><br />
+                                  Questa azione è irreversibile e cancellerà tutti i dati associati all'utente.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Annulla</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleDeleteUser(userItem.id, userItem.email)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Elimina Utente
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
                       </div>
                     </div>
                   ))}
