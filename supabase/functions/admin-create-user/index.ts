@@ -128,8 +128,8 @@ const handler = async (req: Request): Promise<Response> => {
       .insert({
         id: newUser.user.id,
         user_id: newUser.user.id,
-        full_name: fullName || null,
-        company_name: companyName || null,
+        full_name: sanitizedFullName || null,
+        company_name: sanitizedCompanyName || null,
       });
 
     if (profileError) {
