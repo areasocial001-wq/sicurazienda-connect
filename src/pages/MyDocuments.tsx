@@ -86,6 +86,69 @@ export default function MyDocuments() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [description, setDescription] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [previewDoc, setPreviewDoc] = useState<ClientDocument | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [pdfPreviewImage, setPdfPreviewImage] = useState<string | null>(null);
+  const [pdfPages, setPdfPages] = useState<number>(0);
+  const [pdfCurrentPage, setPdfCurrentPage] = useState(1);
+  const pdfDocRef = useRef<any>(null);
+
+  const renderPdfPage = useCallback(async (pdf: any, pageNum: number) => {
+    const page = await pdf.getPage(pageNum);
+    const scale = 2;
+    const viewport = page.getViewport({ scale });
+    const canvas = document.createElement('canvas');
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    await page.render({
+      canvasContext: canvas.getContext('2d')!,
+      viewport,
+      annotationMode: pdfjsLib.AnnotationMode.DISABLE,
+    }).promise;
+    setPdfPreviewImage(canvas.toDataURL('image/png'));
+    setPdfCurrentPage(pageNum);
+  }, []);
+
+  const handlePreview = async (doc: ClientDocument) => {
+    setPreviewDoc(doc);
+    setPreviewLoading(true);
+    setPdfPreviewImage(null);
+    setPdfPages(0);
+    setPdfCurrentPage(1);
+    pdfDocRef.current = null;
+
+    try {
+      const { data, error } = await supabase.storage
+        .from('crm-documents')
+        .download(doc.file_path);
+      if (error) throw error;
+
+      const url = URL.createObjectURL(data);
+      setPreviewUrl(url);
+
+      const isPdf = doc.file_type === 'application/pdf';
+      if (isPdf) {
+        const buffer = await data.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: buffer, stopAtErrors: false }).promise;
+        pdfDocRef.current = pdf;
+        setPdfPages(pdf.numPages);
+        await renderPdfPage(pdf, 1);
+      }
+    } catch (err: any) {
+      console.error('Preview error:', err);
+      toast({ title: 'Errore anteprima', description: err.message, variant: 'destructive' });
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  const changePdfPage = async (delta: number) => {
+    const next = pdfCurrentPage + delta;
+    if (pdfDocRef.current && next >= 1 && next <= pdfPages) {
+      await renderPdfPage(pdfDocRef.current, next);
+    }
+  };
 
   const fetchDocuments = useCallback(async () => {
     if (!user) return;
