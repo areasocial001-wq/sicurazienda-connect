@@ -9,30 +9,86 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-interface SendQREmailRequest {
-  recipientEmail: string;
-  documentName: string;
-  downloadUrl: string;
-  qrCodeBase64: string;
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
 }
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 const handler = async (req: Request): Promise<Response> => {
-  // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { recipientEmail, documentName, downloadUrl, qrCodeBase64 }: SendQREmailRequest = await req.json();
+    const body = await req.json();
+    const { recipientEmail, documentName, downloadUrl, qrCodeBase64 } = body;
+
+    // Validate recipientEmail
+    if (!recipientEmail || typeof recipientEmail !== 'string' || !EMAIL_REGEX.test(recipientEmail) || recipientEmail.length > 255) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Invalid recipient email" }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    // Validate documentName
+    if (!documentName || typeof documentName !== 'string' || documentName.length > 255) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Invalid document name" }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    // Validate downloadUrl
+    if (!downloadUrl || typeof downloadUrl !== 'string') {
+      return new Response(
+        JSON.stringify({ success: false, error: "Invalid download URL" }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+    try {
+      const parsedUrl = new URL(downloadUrl);
+      if (parsedUrl.protocol !== 'https:') {
+        throw new Error('Must be HTTPS');
+      }
+    } catch {
+      return new Response(
+        JSON.stringify({ success: false, error: "Download URL must be a valid HTTPS URL" }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    // Validate qrCodeBase64
+    if (!qrCodeBase64 || typeof qrCodeBase64 !== 'string' || !qrCodeBase64.startsWith('data:image/')) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Invalid QR code data" }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    // Limit QR code size (max 500KB)
+    if (qrCodeBase64.length > 500000) {
+      return new Response(
+        JSON.stringify({ success: false, error: "QR code data too large" }),
+        { status: 413, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    const safeDocName = escapeHtml(documentName);
+    const safeDownloadUrl = encodeURI(downloadUrl);
 
     console.log("Sending QR code email to:", recipientEmail);
-    console.log("Document name:", documentName);
 
-    // Use Resend test domain until sicurazienda.com is verified
     const emailResponse = await resend.emails.send({
       from: "SicurAzienda <onboarding@resend.dev>",
       to: [recipientEmail],
-      subject: `QR Code per il download: ${documentName}`,
+      subject: `QR Code per il download: ${safeDocName}`,
       html: `
         <!DOCTYPE html>
         <html>
@@ -58,7 +114,7 @@ const handler = async (req: Request): Promise<Response> => {
             <div class="content">
               <h2>Il tuo documento è pronto per il download</h2>
               <p>Ti è stato inviato un QR Code per scaricare il seguente documento:</p>
-              <p><strong>${documentName}</strong></p>
+              <p><strong>${safeDocName}</strong></p>
               
               <div class="qr-container">
                 <p>Scansiona questo QR Code con il tuo smartphone:</p>
@@ -67,7 +123,7 @@ const handler = async (req: Request): Promise<Response> => {
               
               <p>Oppure clicca sul pulsante qui sotto:</p>
               <p style="text-align: center;">
-                <a href="${downloadUrl}" class="btn">Scarica Documento</a>
+                <a href="${safeDownloadUrl}" class="btn">Scarica Documento</a>
               </p>
               
               <div class="footer">
@@ -81,23 +137,17 @@ const handler = async (req: Request): Promise<Response> => {
       `,
     });
 
-    console.log("Email sent successfully:", emailResponse);
+    console.log("Email sent successfully");
 
     return new Response(JSON.stringify({ success: true, data: emailResponse }), {
       status: 200,
-      headers: {
-        "Content-Type": "application/json",
-        ...corsHeaders,
-      },
+      headers: { "Content-Type": "application/json", ...corsHeaders },
     });
   } catch (error: any) {
     console.error("Error in send-qr-email function:", error);
     return new Response(
-      JSON.stringify({ success: false, error: error.message }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      }
+      JSON.stringify({ success: false, error: "Failed to send email" }),
+      { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
   }
 };

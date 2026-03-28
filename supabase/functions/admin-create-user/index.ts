@@ -77,7 +77,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    if (typeof email !== 'string' || !emailRegex.test(email) || email.length > 255) {
       return new Response(
         JSON.stringify({ error: "Invalid email format" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -85,12 +85,16 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Validate password length
-    if (password.length < 6) {
+    if (typeof password !== 'string' || password.length < 6 || password.length > 128) {
       return new Response(
-        JSON.stringify({ error: "Password must be at least 6 characters" }),
+        JSON.stringify({ error: "Password must be between 6 and 128 characters" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    // Validate and sanitize optional fields
+    const sanitizedFullName = typeof fullName === 'string' ? fullName.slice(0, 200).trim() : '';
+    const sanitizedCompanyName = typeof companyName === 'string' ? companyName.slice(0, 200).trim() : '';
 
     // Create admin client with service role
     const adminClient = createClient(supabaseUrl, supabaseServiceKey, {
