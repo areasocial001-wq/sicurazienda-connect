@@ -67,7 +67,7 @@ export function useGoogleCalendar(userId: string | undefined) {
       const redirectUri = `https://obzflzotzvwlmgyjxfpv.supabase.co/functions/v1/google-calendar-callback`;
       
       const { data, error } = await supabase.functions.invoke('google-calendar-auth', {
-        body: { action: 'get_auth_url', userId, redirectUri },
+        body: { action: 'get_auth_url', redirectUri },
       });
 
       if (error) throw error;
