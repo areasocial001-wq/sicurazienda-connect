@@ -96,16 +96,24 @@ export default function MyDocuments() {
 
   const renderPdfPage = useCallback(async (pdf: any, pageNum: number) => {
     const page = await pdf.getPage(pageNum);
-    const scale = 2;
-    const viewport = page.getViewport({ scale });
+    const viewport = page.getViewport({ scale: 1.35 });
     const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+
+    if (!context) {
+      throw new Error('Canvas context non disponibile');
+    }
+
     canvas.width = viewport.width;
     canvas.height = viewport.height;
+
     await page.render({
-      canvasContext: canvas.getContext('2d')!,
+      canvasContext: context,
       viewport,
+      canvas,
       annotationMode: pdfjsLib.AnnotationMode.DISABLE,
     }).promise;
+
     setPdfPreviewImage(canvas.toDataURL('image/png'));
     setPdfCurrentPage(pageNum);
   }, []);
@@ -130,7 +138,12 @@ export default function MyDocuments() {
       const isPdf = doc.file_type === 'application/pdf';
       if (isPdf) {
         const buffer = await data.arrayBuffer();
-        const pdf = await pdfjsLib.getDocument({ data: buffer, stopAtErrors: false }).promise;
+        const pdf = await pdfjsLib.getDocument({
+          data: new Uint8Array(buffer),
+          stopAtErrors: false,
+          isEvalSupported: false,
+        }).promise;
+
         pdfDocRef.current = pdf;
         setPdfPages(pdf.numPages);
         await renderPdfPage(pdf, 1);
