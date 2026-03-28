@@ -12,6 +12,7 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   courseTypes: { value: string; label: string }[];
+  onCourseCreated?: () => void;
 }
 
 const AddCourseDialog = ({ open, onOpenChange, courseTypes }: Props) => {
