@@ -46,6 +46,7 @@ export default function UserRoleManager() {
   const [loading, setLoading] = useState(true)
   const [confirmingUsers, setConfirmingUsers] = useState<Set<string>>(new Set())
   const [resettingPasswords, setResettingPasswords] = useState<Set<string>>(new Set())
+  const [deletingUsers, setDeletingUsers] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     if (!roleLoading && user && isAdmin) {
