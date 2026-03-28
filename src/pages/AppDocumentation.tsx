@@ -411,7 +411,7 @@ const AppDocumentation = () => {
           <FileText className="h-12 w-12 mx-auto mb-3 text-primary" />
           <h1 className="text-2xl font-bold mb-2">Documentazione App</h1>
           <p className="text-muted-foreground">
-            Scarica la documentazione completa in PDF
+            Consulta la documentazione online oppure scaricala in formato PDF
           </p>
         </div>
 
