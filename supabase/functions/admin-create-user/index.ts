@@ -107,8 +107,8 @@ const handler = async (req: Request): Promise<Response> => {
       password,
       email_confirm: true, // Auto-confirm email since admin is creating
       user_metadata: {
-        full_name: fullName || '',
-        company_name: companyName || ''
+        full_name: sanitizedFullName,
+        company_name: sanitizedCompanyName
       }
     });
 
