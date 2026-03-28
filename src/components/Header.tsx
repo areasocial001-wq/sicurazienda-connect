@@ -68,22 +68,26 @@ const Header = () => {
                   <FileText className="h-4 w-4 mr-2" />
                   Le mie bozze
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate("/crm")} className="cursor-pointer">
-                  <Users className="h-4 w-4 mr-2" />
-                  CRM Contatti
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate("/notes")} className="cursor-pointer">
-                  <NotebookPen className="h-4 w-4 mr-2" />
-                  SicurNote
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate("/corsi")} className="cursor-pointer">
-                  <GraduationCap className="h-4 w-4 mr-2" />
-                  Gestione Corsi
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate("/qr-history")} className="cursor-pointer">
-                  <QrCode className="h-4 w-4 mr-2" />
-                  Cronologia QR
-                </DropdownMenuItem>
+                {!isUser && (
+                  <>
+                    <DropdownMenuItem onClick={() => navigate("/crm")} className="cursor-pointer">
+                      <Users className="h-4 w-4 mr-2" />
+                      CRM Contatti
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate("/notes")} className="cursor-pointer">
+                      <NotebookPen className="h-4 w-4 mr-2" />
+                      SicurNote
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate("/corsi")} className="cursor-pointer">
+                      <GraduationCap className="h-4 w-4 mr-2" />
+                      Gestione Corsi
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate("/qr-history")} className="cursor-pointer">
+                      <QrCode className="h-4 w-4 mr-2" />
+                      Cronologia QR
+                    </DropdownMenuItem>
+                  </>
+                )}
                 <DropdownMenuItem onClick={() => navigate("/documentazione")} className="cursor-pointer">
                   <BookOpen className="h-4 w-4 mr-2" />
                   Documentazione App
