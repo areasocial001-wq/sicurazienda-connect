@@ -4,7 +4,7 @@ import Header from "@/components/Header";
 import BottomNav from "@/components/BottomNav";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Download, FileText, Loader2 } from "lucide-react";
+import { Download, FileText, Loader2, BookOpen } from "lucide-react";
 import { toast } from "sonner";
 
 const AppDocumentation = () => {
