@@ -379,8 +379,9 @@ export default function UserRoleManager() {
           </div>
 
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Utenti e Ruoli</CardTitle>
+              <AdminCreateUser onUserCreated={fetchUsers} />
             </CardHeader>
             <CardContent>
               {loading ? (
