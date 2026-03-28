@@ -46,6 +46,7 @@ const AddCourseDialog = ({ open, onOpenChange, courseTypes, onCourseCreated }: P
     setSaving(false);
     setForm({ name: "", course_type: "sicurezza", description: "", duration_hours: "", max_participants: "", is_mandatory: false, renewal_months: "", category: "" });
     onOpenChange(false);
+    onCourseCreated?.();
   };
 
   return (
