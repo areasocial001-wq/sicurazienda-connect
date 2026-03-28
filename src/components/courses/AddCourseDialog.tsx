@@ -15,7 +15,7 @@ interface Props {
   onCourseCreated?: () => void;
 }
 
-const AddCourseDialog = ({ open, onOpenChange, courseTypes }: Props) => {
+const AddCourseDialog = ({ open, onOpenChange, courseTypes, onCourseCreated }: Props) => {
   const { createCourse } = useCourses();
   const [form, setForm] = useState({
     name: "",
