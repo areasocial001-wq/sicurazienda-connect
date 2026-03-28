@@ -58,13 +58,29 @@ serve(async (req) => {
     // Use the authenticated user's ID instead of trusting client-supplied userId
     const authenticatedUserId = claimsData.claims.sub as string;
 
-    const { action, data } = await req.json();
+    const body = await req.json();
+    const { action, data } = body;
+
+    // Validate action
+    const validActions = ['analyze_contact', 'suggest_followup', 'categorize_lead', 'generate_email', 'summarize_interactions', 'check_reminders', 'extract_contact', 'cleanup_data'];
+    if (!action || typeof action !== 'string' || !validActions.includes(action)) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Azione non valida" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Validate request body size (limit to 2MB)
+    const bodyStr = JSON.stringify(body);
+    if (bodyStr.length > 2000000) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Richiesta troppo grande (max 2MB)" }),
+        { status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY non configurata");
-    }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY!);
 

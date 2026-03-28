@@ -89,7 +89,38 @@ serve(async (req) => {
       );
     }
 
-    const { action, filename, content, query } = await req.json();
+    const body = await req.json();
+    const { action, filename, content, query } = body;
+
+    // Validate action
+    const validActions = ['classify', 'search', 'extract'];
+    if (!action || !validActions.includes(action)) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Azione non valida. Azioni permesse: " + validActions.join(', ') }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Validate and limit input sizes
+    if (filename && (typeof filename !== 'string' || filename.length > 500)) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Nome file non valido o troppo lungo (max 500 caratteri)" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    if (content && (typeof content !== 'string' || content.length > 1000000)) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Contenuto troppo grande (max 1MB)" }),
+        { status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    if (query && (typeof query !== 'string' || query.length > 2000)) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Query troppo lunga (max 2000 caratteri)" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
     if (!LOVABLE_API_KEY) {
@@ -120,8 +151,6 @@ Estrai tutte le informazioni rilevanti dal testo fornito e restituisci un JSON s
 
 Rispondi SOLO con JSON valido.`;
       userMessage = `Estrai i dati da questo documento:\nNome: ${filename}\nContenuto: ${content}`;
-    } else {
-      throw new Error("Azione non valida");
     }
 
     console.log(`Document agent action: ${action}`, { filename, hasContent: !!content });
