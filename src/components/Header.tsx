@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import logoImg from "@/assets/sicurazienda-logo-optimized.png";
 import headerBg from "@/assets/header-background.jpg";
 import { useAuth } from "@/hooks/useAuth";
+import { useUserRole } from "@/hooks/useUserRole";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
