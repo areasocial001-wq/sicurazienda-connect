@@ -18,6 +18,7 @@ import { User, LogOut, FileText, QrCode, BookOpen, Users, NotebookPen, Graduatio
 
 const Header = () => {
   const { user, signOut } = useAuth();
+  const { isUser } = useUserRole();
   const navigate = useNavigate();
   const [showAuthModal, setShowAuthModal] = useState(false);
 
