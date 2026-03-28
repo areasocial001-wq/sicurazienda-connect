@@ -522,6 +522,42 @@ export default function MyDocuments() {
             </CardContent>
           </Card>
         )}
+
+        {/* Preview Dialog */}
+        <Dialog open={!!previewDoc} onOpenChange={(open) => { if (!open) { setPreviewDoc(null); if (previewUrl) URL.revokeObjectURL(previewUrl); setPreviewUrl(null); setPdfPreviewImage(null); } }}>
+          <DialogContent className="max-w-3xl max-h-[90vh]">
+            <DialogHeader>
+              <DialogTitle className="truncate">{previewDoc?.name}</DialogTitle>
+            </DialogHeader>
+            <div className="flex flex-col items-center gap-3 overflow-auto max-h-[70vh]">
+              {previewLoading ? (
+                <div className="flex flex-col items-center gap-2 py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">Caricamento anteprima...</p>
+                </div>
+              ) : previewDoc?.file_type?.startsWith('image/') && previewUrl ? (
+                <img src={previewUrl} alt={previewDoc.name} className="max-w-full max-h-[65vh] object-contain rounded" />
+              ) : previewDoc?.file_type === 'application/pdf' && pdfPreviewImage ? (
+                <>
+                  <img src={pdfPreviewImage} alt={`PDF pagina ${pdfCurrentPage}`} className="max-w-full max-h-[55vh] object-contain border rounded" />
+                  {pdfPages > 1 && (
+                    <div className="flex items-center gap-3">
+                      <Button variant="outline" size="icon" disabled={pdfCurrentPage <= 1} onClick={() => changePdfPage(-1)}>
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      <span className="text-sm">{pdfCurrentPage} / {pdfPages}</span>
+                      <Button variant="outline" size="icon" disabled={pdfCurrentPage >= pdfPages} onClick={() => changePdfPage(1)}>
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground py-12">Anteprima non disponibile</p>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
       </main>
       
       <BottomNav />
