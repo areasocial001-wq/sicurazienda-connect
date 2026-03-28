@@ -12,9 +12,10 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   courseTypes: { value: string; label: string }[];
+  onCourseCreated?: () => void;
 }
 
-const AddCourseDialog = ({ open, onOpenChange, courseTypes }: Props) => {
+const AddCourseDialog = ({ open, onOpenChange, courseTypes, onCourseCreated }: Props) => {
   const { createCourse } = useCourses();
   const [form, setForm] = useState({
     name: "",
@@ -45,6 +46,7 @@ const AddCourseDialog = ({ open, onOpenChange, courseTypes }: Props) => {
     setSaving(false);
     setForm({ name: "", course_type: "sicurezza", description: "", duration_hours: "", max_participants: "", is_mandatory: false, renewal_months: "", category: "" });
     onOpenChange(false);
+    onCourseCreated?.();
   };
 
   return (

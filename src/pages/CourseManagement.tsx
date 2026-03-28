@@ -275,6 +275,7 @@ const CourseManagement = () => {
         open={showAddCourse}
         onOpenChange={setShowAddCourse}
         courseTypes={COURSE_TYPES}
+        onCourseCreated={() => { fetchCourses(); fetchEditions(); }}
       />
       <CourseImport
         open={showImport}
