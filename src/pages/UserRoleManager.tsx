@@ -190,6 +190,30 @@ export default function UserRoleManager() {
     }
   }
 
+  const handleDeleteUser = async (userId: string, email: string) => {
+    setDeletingUsers(prev => new Set(prev).add(userId))
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('admin-delete-user', {
+        body: { userId }
+      })
+      
+      if (error) throw error
+      
+      toast.success(`Utente ${email} eliminato con successo`)
+      fetchUsers()
+    } catch (error: any) {
+      console.error('Error deleting user:', error)
+      toast.error(error.message || 'Errore nell\'eliminazione utente')
+    } finally {
+      setDeletingUsers(prev => {
+        const next = new Set(prev)
+        next.delete(userId)
+        return next
+      })
+    }
+  }
+
   const handleSignOut = async () => {
     await signOut()
     window.location.href = '/'
