@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { jsPDF } from "jspdf";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import Header from "@/components/Header";
 import BottomNav from "@/components/BottomNav";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Download, FileText, Loader2 } from "lucide-react";
+import { Download, FileText, Loader2, BookOpen } from "lucide-react";
 import { toast } from "sonner";
 
 const AppDocumentation = () => {
@@ -411,7 +412,7 @@ const AppDocumentation = () => {
           <FileText className="h-12 w-12 mx-auto mb-3 text-primary" />
           <h1 className="text-2xl font-bold mb-2">Documentazione App</h1>
           <p className="text-muted-foreground">
-            Scarica la documentazione completa in PDF
+            Consulta la documentazione online oppure scaricala in formato PDF
           </p>
         </div>
 
@@ -447,8 +448,158 @@ const AppDocumentation = () => {
             <p className="text-xs text-muted-foreground text-center">
               Generato il {new Date().toLocaleDateString("it-IT")}
             </p>
-          </CardContent>
+           </CardContent>
         </Card>
+
+        {/* Documentazione Online */}
+        <div className="max-w-2xl mx-auto mt-8">
+          <div className="flex items-center gap-2 mb-4">
+            <BookOpen className="h-5 w-5 text-primary" />
+            <h2 className="text-lg font-semibold">Consulta online</h2>
+          </div>
+          <Accordion type="multiple" className="space-y-2">
+            <AccordionItem value="panoramica" className="border rounded-lg px-4">
+              <AccordionTrigger>1. Panoramica</AccordionTrigger>
+              <AccordionContent className="text-sm text-muted-foreground space-y-2">
+                <p>SicurAzienda è una piattaforma digitale per la gestione della sicurezza sul lavoro. Offre servizi di consulenza, gestione documentale, formazione, CRM e assistente AI.</p>
+                <p><strong>Slogan:</strong> "L'azione di tanti per la sicurezza di tutti"</p>
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="home" className="border rounded-lg px-4">
+              <AccordionTrigger>2. Home Page</AccordionTrigger>
+              <AccordionContent className="text-sm text-muted-foreground space-y-1">
+                <ul className="list-disc pl-5 space-y-1">
+                  <li>Hero Section con gradiente brand giallo-rosso</li>
+                  <li>6 servizi principali: Nuovo Cliente, Già Cliente, Area Documenti, Dashboard Admin, CRM, Assistente AI</li>
+                  <li>Contatti rapidi: email, telefono, orari, indirizzo</li>
+                  <li>Chat flottante per assistenza rapida</li>
+                </ul>
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="clienti" className="border rounded-lg px-4">
+              <AccordionTrigger>3. Gestione Clienti</AccordionTrigger>
+              <AccordionContent className="text-sm text-muted-foreground space-y-2">
+                <p className="font-medium">Nuovo Cliente</p>
+                <ul className="list-disc pl-5 space-y-1">
+                  <li>Form richiesta check-up gratuito</li>
+                  <li>Selezione servizi: DVR, Medicina del Lavoro, Formazione, HACCP, Privacy</li>
+                  <li>Validazione codice fiscale in tempo reale</li>
+                  <li>Invio email automatico + salvataggio database</li>
+                </ul>
+                <p className="font-medium mt-2">Già Cliente</p>
+                <ul className="list-disc pl-5 space-y-1">
+                  <li>Form semplificato per clienti esistenti</li>
+                  <li>Richiesta assistenza e supporto</li>
+                </ul>
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="documenti" className="border rounded-lg px-4">
+              <AccordionTrigger>4. Gestione Documenti</AccordionTrigger>
+              <AccordionContent className="text-sm text-muted-foreground space-y-1">
+                <ul className="list-disc pl-5 space-y-1">
+                  <li>Upload e download documenti</li>
+                  <li>Generazione QR Code per ogni documento</li>
+                  <li>Filtro per categoria e data di scadenza</li>
+                  <li>Estrazione dati automatica con AI</li>
+                  <li>Sezione attestati di formazione</li>
+                </ul>
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="auth" className="border rounded-lg px-4">
+              <AccordionTrigger>5. Autenticazione e Profilo</AccordionTrigger>
+              <AccordionContent className="text-sm text-muted-foreground space-y-1">
+                <ul className="list-disc pl-5 space-y-1">
+                  <li>Login/Registrazione via modal</li>
+                  <li>Sessione persistente con Supabase</li>
+                  <li>Recupero password</li>
+                  <li>Profilo con bozze salvate</li>
+                </ul>
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="admin" className="border rounded-lg px-4">
+              <AccordionTrigger>6. Area Amministrativa</AccordionTrigger>
+              <AccordionContent className="text-sm text-muted-foreground space-y-1">
+                <ul className="list-disc pl-5 space-y-1">
+                  <li>Dashboard con statistiche documenti, utenti e QR</li>
+                  <li>Grafici andamento QR (ultimi 30 giorni)</li>
+                  <li>Carica attestati per utente specifico</li>
+                  <li>Gestione ruoli: admin, user, contabilità, area_tecnica, gestione_corsi, consulenti_tecnici, medicina</li>
+                </ul>
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="qr" className="border rounded-lg px-4">
+              <AccordionTrigger>7. Sistema QR Code</AccordionTrigger>
+              <AccordionContent className="text-sm text-muted-foreground space-y-1">
+                <ul className="list-disc pl-5 space-y-1">
+                  <li>Generazione QR, copia link e download PNG</li>
+                  <li>Invio automatico via email (Resend)</li>
+                  <li>Cronologia con filtri e export CSV</li>
+                  <li>Statistiche avanzate: scansioni, dispositivi, geolocalizzazione</li>
+                  <li>Notifiche real-time via Supabase Realtime</li>
+                </ul>
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="crm" className="border rounded-lg px-4">
+              <AccordionTrigger>8. Sistema CRM</AccordionTrigger>
+              <AccordionContent className="text-sm text-muted-foreground space-y-1">
+                <ul className="list-disc pl-5 space-y-1">
+                  <li>Gestione contatti con stati (lead, prospect, cliente, inattivo)</li>
+                  <li>Tags, note e cronologia interazioni</li>
+                  <li>Calendario settimanale con sincronizzazione Google Calendar</li>
+                  <li>Analytics e report attività</li>
+                  <li>Agente AI per suggerimenti follow-up</li>
+                </ul>
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="corsi" className="border rounded-lg px-4">
+              <AccordionTrigger>9. Gestione Corsi</AccordionTrigger>
+              <AccordionContent className="text-sm text-muted-foreground space-y-2">
+                <ul className="list-disc pl-5 space-y-1">
+                  <li>Catalogo corsi con tipologia, durata e obbligatorietà</li>
+                  <li>Edizioni con date, aula, sede e docente</li>
+                  <li>Iscrizioni dipendenti e matrice presenze interattiva</li>
+                  <li>Attestati con 3 template e branding personalizzato</li>
+                  <li>Registro presenze PDF stampabile</li>
+                  <li>Importazione massiva da Excel</li>
+                  <li>Scadenzario con notifiche automatiche</li>
+                </ul>
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="ai" className="border rounded-lg px-4">
+              <AccordionTrigger>10. Assistente AI e Promemoria</AccordionTrigger>
+              <AccordionContent className="text-sm text-muted-foreground space-y-1">
+                <ul className="list-disc pl-5 space-y-1">
+                  <li>Chat intelligente per supporto</li>
+                  <li>Analisi documenti ed estrazione dati automatica</li>
+                  <li>Campanella notifiche con promemoria scadenze</li>
+                  <li>Notifiche scansioni QR real-time</li>
+                </ul>
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="tech" className="border rounded-lg px-4">
+              <AccordionTrigger>11. Stack Tecnologico</AccordionTrigger>
+              <AccordionContent className="text-sm text-muted-foreground space-y-1">
+                <ul className="list-disc pl-5 space-y-1">
+                  <li>Frontend: React 18 + TypeScript + Vite</li>
+                  <li>Styling: Tailwind CSS + shadcn/ui</li>
+                  <li>Backend: Supabase (Auth, DB, Storage, Edge Functions, Realtime)</li>
+                  <li>Email: Resend API</li>
+                  <li>Mobile: Capacitor (iOS/Android)</li>
+                </ul>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+        </div>
       </main>
       
       <BottomNav />
