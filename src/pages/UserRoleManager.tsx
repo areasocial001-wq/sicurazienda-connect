@@ -4,12 +4,24 @@ import { useUserRole } from '@/hooks/useUserRole'
 import { supabase } from '@/integrations/supabase/client'
 import BottomNav from '@/components/BottomNav'
 import AuthModal from '@/components/AuthModal'
+import AdminCreateUser from '@/components/AdminCreateUser'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
-import { Shield, User, Building2, CheckCircle, AlertCircle, Loader2, KeyRound } from 'lucide-react'
+import { Shield, User, Building2, CheckCircle, AlertCircle, Loader2, KeyRound, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 interface UserWithProfile {
   id: string
