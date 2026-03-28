@@ -3,8 +3,13 @@ import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { 
   FileText, Download, Folder, Loader2, Lock, User, LogOut,
-  File, FileSpreadsheet, FileImage, AlertTriangle, Upload, Plus
+  File, FileSpreadsheet, FileImage, AlertTriangle, Upload, Plus, Eye,
+  ChevronLeft, ChevronRight
 } from 'lucide-react';
+import * as pdfjsLib from 'pdfjs-dist';
+import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 import Header from '@/components/Header';
 import BottomNav from '@/components/BottomNav';
 import AuthModal from '@/components/AuthModal';
