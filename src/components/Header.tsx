@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import AuthModal from "@/components/AuthModal";
 import { NotificationBell } from "@/components/NotificationBell";
-import { User, LogOut, FileText, QrCode, BookOpen, Users, NotebookPen, GraduationCap } from "lucide-react";
+import { User, LogOut, FileText, QrCode, BookOpen, Users, NotebookPen, GraduationCap, FolderOpen } from "lucide-react";
 
 const Header = () => {
   const { user, signOut } = useAuth();
