@@ -6,8 +6,8 @@ import {
   File, FileSpreadsheet, FileImage, AlertTriangle, Upload, Plus, Eye,
   ChevronLeft, ChevronRight
 } from 'lucide-react';
-import * as pdfjsLib from 'pdfjs-dist';
-import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
+import pdfjsWorker from 'pdfjs-dist/legacy/build/pdf.worker.min.mjs?url';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 import Header from '@/components/Header';
