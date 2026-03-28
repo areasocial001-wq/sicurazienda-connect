@@ -3,8 +3,13 @@ import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { 
   FileText, Download, Folder, Loader2, Lock, User, LogOut,
-  File, FileSpreadsheet, FileImage, AlertTriangle, Upload, Plus
+  File, FileSpreadsheet, FileImage, AlertTriangle, Upload, Plus, Eye,
+  ChevronLeft, ChevronRight
 } from 'lucide-react';
+import * as pdfjsLib from 'pdfjs-dist';
+import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 import Header from '@/components/Header';
 import BottomNav from '@/components/BottomNav';
 import AuthModal from '@/components/AuthModal';
@@ -81,6 +86,69 @@ export default function MyDocuments() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [description, setDescription] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [previewDoc, setPreviewDoc] = useState<ClientDocument | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [pdfPreviewImage, setPdfPreviewImage] = useState<string | null>(null);
+  const [pdfPages, setPdfPages] = useState<number>(0);
+  const [pdfCurrentPage, setPdfCurrentPage] = useState(1);
+  const pdfDocRef = useRef<any>(null);
+
+  const renderPdfPage = useCallback(async (pdf: any, pageNum: number) => {
+    const page = await pdf.getPage(pageNum);
+    const scale = 2;
+    const viewport = page.getViewport({ scale });
+    const canvas = document.createElement('canvas');
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    await page.render({
+      canvasContext: canvas.getContext('2d')!,
+      viewport,
+      annotationMode: pdfjsLib.AnnotationMode.DISABLE,
+    }).promise;
+    setPdfPreviewImage(canvas.toDataURL('image/png'));
+    setPdfCurrentPage(pageNum);
+  }, []);
+
+  const handlePreview = async (doc: ClientDocument) => {
+    setPreviewDoc(doc);
+    setPreviewLoading(true);
+    setPdfPreviewImage(null);
+    setPdfPages(0);
+    setPdfCurrentPage(1);
+    pdfDocRef.current = null;
+
+    try {
+      const { data, error } = await supabase.storage
+        .from('crm-documents')
+        .download(doc.file_path);
+      if (error) throw error;
+
+      const url = URL.createObjectURL(data);
+      setPreviewUrl(url);
+
+      const isPdf = doc.file_type === 'application/pdf';
+      if (isPdf) {
+        const buffer = await data.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: buffer, stopAtErrors: false }).promise;
+        pdfDocRef.current = pdf;
+        setPdfPages(pdf.numPages);
+        await renderPdfPage(pdf, 1);
+      }
+    } catch (err: any) {
+      console.error('Preview error:', err);
+      toast({ title: 'Errore anteprima', description: err.message, variant: 'destructive' });
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  const changePdfPage = async (delta: number) => {
+    const next = pdfCurrentPage + delta;
+    if (pdfDocRef.current && next >= 1 && next <= pdfPages) {
+      await renderPdfPage(pdfDocRef.current, next);
+    }
+  };
 
   const fetchDocuments = useCallback(async () => {
     if (!user) return;
@@ -433,14 +501,16 @@ export default function MyDocuments() {
                                   )}
                                 </div>
                               </div>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleDownload(doc)}
-                                title="Scarica"
-                              >
-                                <Download className="h-4 w-4" />
-                              </Button>
+                              <div className="flex items-center gap-1 shrink-0">
+                                {(doc.file_type?.startsWith('image/') || doc.file_type === 'application/pdf') && (
+                                  <Button variant="ghost" size="icon" onClick={() => handlePreview(doc)} title="Anteprima">
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
+                                )}
+                                <Button variant="ghost" size="icon" onClick={() => handleDownload(doc)} title="Scarica">
+                                  <Download className="h-4 w-4" />
+                                </Button>
+                              </div>
                             </div>
                           );
                         })}
@@ -452,6 +522,42 @@ export default function MyDocuments() {
             </CardContent>
           </Card>
         )}
+
+        {/* Preview Dialog */}
+        <Dialog open={!!previewDoc} onOpenChange={(open) => { if (!open) { setPreviewDoc(null); if (previewUrl) URL.revokeObjectURL(previewUrl); setPreviewUrl(null); setPdfPreviewImage(null); } }}>
+          <DialogContent className="max-w-3xl max-h-[90vh]">
+            <DialogHeader>
+              <DialogTitle className="truncate">{previewDoc?.name}</DialogTitle>
+            </DialogHeader>
+            <div className="flex flex-col items-center gap-3 overflow-auto max-h-[70vh]">
+              {previewLoading ? (
+                <div className="flex flex-col items-center gap-2 py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">Caricamento anteprima...</p>
+                </div>
+              ) : previewDoc?.file_type?.startsWith('image/') && previewUrl ? (
+                <img src={previewUrl} alt={previewDoc.name} className="max-w-full max-h-[65vh] object-contain rounded" />
+              ) : previewDoc?.file_type === 'application/pdf' && pdfPreviewImage ? (
+                <>
+                  <img src={pdfPreviewImage} alt={`PDF pagina ${pdfCurrentPage}`} className="max-w-full max-h-[55vh] object-contain border rounded" />
+                  {pdfPages > 1 && (
+                    <div className="flex items-center gap-3">
+                      <Button variant="outline" size="icon" disabled={pdfCurrentPage <= 1} onClick={() => changePdfPage(-1)}>
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      <span className="text-sm">{pdfCurrentPage} / {pdfPages}</span>
+                      <Button variant="outline" size="icon" disabled={pdfCurrentPage >= pdfPages} onClick={() => changePdfPage(1)}>
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground py-12">Anteprima non disponibile</p>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
       </main>
       
       <BottomNav />
