@@ -501,14 +501,16 @@ export default function MyDocuments() {
                                   )}
                                 </div>
                               </div>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleDownload(doc)}
-                                title="Scarica"
-                              >
-                                <Download className="h-4 w-4" />
-                              </Button>
+                              <div className="flex items-center gap-1 shrink-0">
+                                {(doc.file_type?.startsWith('image/') || doc.file_type === 'application/pdf') && (
+                                  <Button variant="ghost" size="icon" onClick={() => handlePreview(doc)} title="Anteprima">
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
+                                )}
+                                <Button variant="ghost" size="icon" onClick={() => handleDownload(doc)} title="Scarica">
+                                  <Download className="h-4 w-4" />
+                                </Button>
+                              </div>
                             </div>
                           );
                         })}
