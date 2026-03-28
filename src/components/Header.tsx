@@ -68,6 +68,12 @@ const Header = () => {
                   <FileText className="h-4 w-4 mr-2" />
                   Le mie bozze
                 </DropdownMenuItem>
+                {isUser && (
+                  <DropdownMenuItem onClick={() => navigate("/my-documents")} className="cursor-pointer">
+                    <FolderOpen className="h-4 w-4 mr-2" />
+                    I miei documenti
+                  </DropdownMenuItem>
+                )}
                 {!isUser && (
                   <>
                     <DropdownMenuItem onClick={() => navigate("/crm")} className="cursor-pointer">
