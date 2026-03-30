@@ -23,7 +23,7 @@ const Home = () => {
     <div className="min-h-screen bg-background">
       <Header />
       
-      <main className="container mx-auto p-4 pb-20">
+      <main className="max-w-3xl mx-auto px-3 sm:px-4 pb-24 pt-4">
         {/* Hero Section */}
         <Card className="mb-6 gradient-sicur text-white relative overflow-hidden">
           <div 
