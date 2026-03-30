@@ -27,7 +27,16 @@ import EnexImportDialog from "@/components/notes/EnexImportDialog";
 
 const Notes = () => {
   const { user } = useAuth();
-  const isMobile = useIsMobile();
+  const isMobileDevice = useIsMobile();
+  // Treat tablets (< 1024px) as mobile for the 3-panel layout
+  const [isTablet, setIsTablet] = useState(false);
+  useEffect(() => {
+    const check = () => setIsTablet(window.innerWidth < 1024);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+  const isMobile = isMobileDevice || isTablet;
   const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
   const {
