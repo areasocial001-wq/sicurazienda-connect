@@ -389,10 +389,24 @@ export default function CRM() {
             </Button>
             <CRMDataImport onImportComplete={fetchContacts} />
             <CRMLocationsImport onImportComplete={fetchContacts} />
-            <Button variant="outline" onClick={exportContactsCSV}>
-              <Download className="h-4 w-4 mr-2" />
-              Export
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline">
+                  <Download className="h-4 w-4 mr-2" />
+                  Export
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={exportPhoneListCSV}>
+                  <Phone className="h-4 w-4 mr-2" />
+                  Azienda + Telefono
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={exportContactsCSV}>
+                  <FileText className="h-4 w-4 mr-2" />
+                  Export completo
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Button variant="outline" onClick={handleSuggestFollowups} disabled={aiProcessing}>
               {aiProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Brain className="h-4 w-4 mr-2" />}
               AI
