@@ -55,6 +55,7 @@ import { useNavigate } from 'react-router-dom';
 import { useCRM, CRMContact } from '@/hooks/useCRM';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
 import { CRMDataImport } from '@/components/CRMDataImport';
 import { CRMLocationsImport } from '@/components/CRMLocationsImport';
 import { AIContactAutoFill } from '@/components/AIContactAutoFill';
