@@ -261,36 +261,73 @@ export default function CRM() {
     toast.success('Follow-up rimosso');
   };
 
-  const exportContactsCSV = () => {
+  const exportContactsCSV = async () => {
     if (contacts.length === 0) {
       toast.error('Nessun contatto da esportare');
       return;
     }
 
-    const headers = ['Nome', 'Email', 'Telefono', 'Azienda', 'Ruolo', 'Status', 'Fonte', 'Note', 'Creato il'];
-    const rows = contacts.map(c => [
-      c.name,
-      c.email || '',
-      c.phone || '',
-      c.company || '',
-      c.role || '',
-      c.status,
-      c.source || '',
-      (c.notes || '').replace(/"/g, '""'),
-      new Date(c.created_at).toLocaleDateString('it-IT')
-    ]);
+    try {
+      // Fetch all locations for phone + address fallback
+      const locationPhones: Record<string, string> = {};
+      const locationAddresses: Record<string, string> = {};
+      const pageSize = 1000;
+      for (let from = 0; ; from += pageSize) {
+        const { data: locations, error } = await supabase
+          .from('crm_locations')
+          .select('contact_id, phone, address, city, province')
+          .range(from, from + pageSize - 1);
 
-    const csvContent = [
-      headers.join(';'),
-      ...rows.map(row => row.map(cell => `"${cell}"`).join(';'))
-    ].join('\n');
+        if (error) throw error;
+        if (!locations || locations.length === 0) break;
 
-    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `contatti_crm_${new Date().toISOString().split('T')[0]}.csv`;
-    link.click();
-    toast.success('Export contatti completato');
+        for (const loc of locations) {
+          if (loc.contact_id) {
+            if (loc.phone && loc.phone.trim() && !locationPhones[loc.contact_id]) {
+              locationPhones[loc.contact_id] = loc.phone.trim();
+            }
+            if (!locationAddresses[loc.contact_id]) {
+              const parts = [loc.address, loc.city, loc.province].filter(Boolean).map(s => s!.trim()).filter(s => s);
+              if (parts.length > 0) {
+                locationAddresses[loc.contact_id] = parts.join(', ');
+              }
+            }
+          }
+        }
+        if (locations.length < pageSize) break;
+      }
+
+      const headers = ['Azienda', 'Partita IVA', 'Sede', 'Telefono', 'Email'];
+      const rows = contacts
+        .filter(c => (c.company || c.name || '').trim())
+        .map(c => {
+          const azienda = (c.company || c.name || '').trim();
+          const piva = (c.vat_number || '').trim();
+          const sede = (c.address || locationAddresses[c.id] || '').trim();
+          const phone = (c.phone || locationPhones[c.id] || '').trim();
+          const email = (c.email || '').trim();
+          return [azienda, piva, sede, phone, email];
+        });
+
+      const csvContent = [
+        headers.join(';'),
+        ...rows.map(([azienda, piva, sede, phone, email]) =>
+          `"${azienda}";"${piva}";"${sede}";="${phone}";"${email}"`
+        ),
+      ].join('\n');
+
+      const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `contatti_crm_${new Date().toISOString().split('T')[0]}.csv`;
+      link.click();
+      URL.revokeObjectURL(url);
+      toast.success(`Esportati ${rows.length} contatti`);
+    } catch (error: any) {
+      console.error('Export error:', error);
+      toast.error(error?.message || 'Errore durante l\'export');
+    }
   };
 
   const exportPhoneListCSV = async () => {
