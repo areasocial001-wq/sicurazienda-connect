@@ -299,51 +299,72 @@ export default function CRM() {
       return;
     }
 
-    // Fetch location phones for contacts missing phone
-    const contactIds = contacts.filter(c => !c.phone).map(c => c.id);
-    let locationPhones: Record<string, string> = {};
-    
-    if (contactIds.length > 0) {
-      const { data: locations } = await supabase
-        .from('crm_locations')
-        .select('contact_id, phone')
-        .in('contact_id', contactIds)
-        .not('phone', 'is', null);
-      
-      if (locations) {
+    try {
+      const normalizePhone = (value?: string | null) => (value || '').trim();
+      const locationPhones: Record<string, string> = {};
+      const pageSize = 1000;
+
+      for (let from = 0; ; from += pageSize) {
+        const { data: locations, error } = await supabase
+          .from('crm_locations')
+          .select('contact_id, phone')
+          .not('phone', 'is', null)
+          .range(from, from + pageSize - 1);
+
+        if (error) {
+          throw error;
+        }
+
+        if (!locations || locations.length === 0) {
+          break;
+        }
+
         for (const loc of locations) {
-          if (loc.contact_id && loc.phone && !locationPhones[loc.contact_id]) {
-            locationPhones[loc.contact_id] = loc.phone;
+          const phone = normalizePhone(loc.phone);
+          if (loc.contact_id && phone && !locationPhones[loc.contact_id]) {
+            locationPhones[loc.contact_id] = phone;
           }
         }
+
+        if (locations.length < pageSize) {
+          break;
+        }
       }
+
+      const headers = ['Azienda', 'Telefono'];
+      const rows = contacts
+        .map((contact) => {
+          const company = (contact.company || contact.name || '').trim();
+          const phone = normalizePhone(contact.phone) || locationPhones[contact.id] || '';
+
+          return [
+            company.replace(/"/g, '""'),
+            phone.replace(/"/g, '""'),
+          ];
+        })
+        .filter(([company, phone]) => company.length > 0 && phone.length > 0);
+
+      if (rows.length === 0) {
+        toast.error('Nessun telefono trovato per i contatti CRM');
+        return;
+      }
+
+      const csvContent = [
+        headers.join(';'),
+        ...rows.map((row) => row.map((cell) => `"${cell}"`).join(';')),
+      ].join('\n');
+
+      const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `rubrica_telefonica_${new Date().toISOString().split('T')[0]}.csv`;
+      link.click();
+      URL.revokeObjectURL(link.href);
+      toast.success(`Esportati ${rows.length} contatti (Azienda + Telefono)`);
+    } catch (error: any) {
+      console.error('Phone export error:', error);
+      toast.error(error?.message || 'Errore durante l\'export dei telefoni');
     }
-
-    const headers = ['Azienda', 'Telefono'];
-    const rows = contacts
-      .map(c => {
-        const phone = c.phone || locationPhones[c.id] || '';
-        const company = (c.company || c.name || '').replace(/"/g, '""');
-        return [company, phone.replace(/"/g, '""')];
-      })
-      .filter(([company, phone]) => company && phone);
-
-    if (rows.length === 0) {
-      toast.error('Nessun contatto con azienda e telefono');
-      return;
-    }
-
-    const csvContent = [
-      headers.join(';'),
-      ...rows.map(row => row.map(cell => `"${cell}"`).join(';'))
-    ].join('\n');
-
-    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `rubrica_telefonica_${new Date().toISOString().split('T')[0]}.csv`;
-    link.click();
-    toast.success(`Esportati ${rows.length} contatti (Azienda + Telefono)`);
   };
 
   if (authLoading) {
