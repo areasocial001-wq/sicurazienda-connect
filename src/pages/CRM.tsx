@@ -292,22 +292,43 @@ export default function CRM() {
     toast.success('Export contatti completato');
   };
 
-  const exportPhoneListCSV = () => {
+  const exportPhoneListCSV = async () => {
     if (contacts.length === 0) {
       toast.error('Nessun contatto da esportare');
       return;
     }
 
+    // Fetch location phones for contacts missing phone
+    const contactIds = contacts.filter(c => !c.phone).map(c => c.id);
+    let locationPhones: Record<string, string> = {};
+    
+    if (contactIds.length > 0) {
+      const { data: locations } = await supabase
+        .from('crm_locations')
+        .select('contact_id, phone')
+        .in('contact_id', contactIds)
+        .not('phone', 'is', null);
+      
+      if (locations) {
+        for (const loc of locations) {
+          if (loc.contact_id && loc.phone && !locationPhones[loc.contact_id]) {
+            locationPhones[loc.contact_id] = loc.phone;
+          }
+        }
+      }
+    }
+
     const headers = ['Azienda', 'Telefono'];
     const rows = contacts
-      .filter(c => c.company || c.phone)
-      .map(c => [
-        (c.company || c.name || '').replace(/"/g, '""'),
-        (c.phone || '').replace(/"/g, '""'),
-      ]);
+      .map(c => {
+        const phone = c.phone || locationPhones[c.id] || '';
+        const company = (c.company || c.name || '').replace(/"/g, '""');
+        return [company, phone.replace(/"/g, '""')];
+      })
+      .filter(([company, phone]) => company && phone);
 
     if (rows.length === 0) {
-      toast.error('Nessun contatto con azienda o telefono');
+      toast.error('Nessun contatto con azienda e telefono');
       return;
     }
 
