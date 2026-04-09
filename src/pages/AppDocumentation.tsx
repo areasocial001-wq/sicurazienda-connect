@@ -269,7 +269,32 @@ const AppDocumentation = () => {
       addSpace(10);
 
       // ASSISTENTE AI
-      addTitle("11. Assistente AI (/assistente)");
+      addTitle("11. Conformita AI Act");
+      addSpace(3);
+      addSubtitle("1. Premessa");
+      addText("La piattaforma SicurAzienda integra alcune funzionalita basate su intelligenza artificiale a supporto delle attivita di assistenza, estrazione dati, analisi documentale e gestione relazionale. Tali funzionalita sono progettate per operare come strumenti di supporto all'utente e non come sistemi autonomi di decisione finale.");
+      addSpace(3);
+      addSubtitle("2. Classificazione preliminare del rischio");
+      addText("Sulla base dell'uso previsto, i moduli AI della piattaforma sono classificati in via preliminare come sistemi a rischio minimo o limitato. Il modulo Assistente AI e le funzioni di chat devono rispettare obblighi di trasparenza verso l'utente, mentre eventuali funzioni di supporto decisionale in ambito CRM o formazione richiedono supervisione umana rafforzata.");
+      addSpace(3);
+      addSubtitle("3. Trasparenza verso l'utente");
+      addText("Ogni volta che l'utente interagisce con un sistema AI, la piattaforma indica in modo chiaro che la risposta e generata o assistita da intelligenza artificiale. Per i moduli di assistenza e chat, e sempre disponibile un meccanismo di escalation verso supporto umano, ove applicabile.");
+      addSpace(3);
+      addSubtitle("4. Supervisione umana");
+      addText("Le funzionalita AI sono soggette a controllo umano, in particolare quando producono suggerimenti, estrazioni, classificazioni o riepiloghi che possono influenzare decisioni operative. L'utente puo verificare, modificare, confermare o rifiutare l'output prodotto dal sistema.");
+      addSpace(3);
+      addSubtitle("5. Dati, qualita e tracciabilita");
+      addText("I dati utilizzati dai moduli AI sono pertinenti, aggiornati e limitati alla finalita dichiarata. La piattaforma mantiene log utili alla tracciabilita degli input, degli output generati e delle eventuali correzioni effettuate dall'operatore.");
+      addSpace(3);
+      addSubtitle("6. Gestione del cambiamento");
+      addText("Ogni nuova funzionalita AI, modifica di modello o ampliamento del perimetro d'uso deve essere sottoposta a rivalutazione della classificazione del rischio e degli obblighi di conformita applicabili.");
+      addSpace(3);
+      addSubtitle("7. Stato di conformita");
+      addText("SicurAzienda e configurata come piattaforma gestionale con funzionalita AI di supporto, senza evidenza di impieghi destinati a classificazione ad alto rischio ai sensi dell'AI Act, purche i moduli attuali restino limitati ad assistenza, estrazione dati e suggerimenti operativi non vincolanti.");
+      addSpace(10);
+
+      // ASSISTENTE AI (ora punto 12)
+      addTitle("12. Assistente AI (/assistente)");
       addBullet("Chat intelligente per supporto");
       addBullet("Analisi documenti con AI");
       addBullet("Estrazione dati automatica");
@@ -277,7 +302,7 @@ const AppDocumentation = () => {
       addSpace(10);
 
       // PROMEMORIA
-      addTitle("12. Sistema Promemoria");
+      addTitle("13. Sistema Promemoria");
       addBullet("Campanella notifiche nell'header");
       addBullet("Promemoria scadenze documenti");
       addBullet("Promemoria scadenze attestati corsi");
@@ -295,7 +320,7 @@ const AppDocumentation = () => {
       y = 20;
 
       // DATABASE
-      addTitle("13. Database (Supabase)");
+      addTitle("14. Database (Supabase)");
       addText("Tabelle:");
       addBullet("profiles - Dati utente (nome, azienda)");
       addBullet("documents - Documenti caricati con scadenze");
@@ -319,7 +344,7 @@ const AppDocumentation = () => {
       addSpace(10);
 
       // EDGE FUNCTIONS
-      addTitle("14. Edge Functions");
+      addTitle("15. Edge Functions");
       addBullet("ai-chat - Chat intelligente con AI");
       addBullet("check-expiries - Controllo scadenze documenti e attestati");
       addBullet("check-upcoming-events - Eventi in arrivo");
@@ -337,7 +362,7 @@ const AppDocumentation = () => {
       addSpace(10);
 
       // TECNOLOGIE
-      addTitle("15. Stack Tecnologico");
+      addTitle("16. Stack Tecnologico");
       addBullet("Frontend: React 18 + TypeScript + Vite");
       addBullet("Styling: Tailwind CSS + shadcn/ui");
       addBullet("Backend: Supabase (Auth, DB, Storage, Edge Functions, Realtime)");
