@@ -586,8 +586,34 @@ const AppDocumentation = () => {
               </AccordionContent>
             </AccordionItem>
 
+            <AccordionItem value="ai-act" className="border rounded-lg px-4">
+              <AccordionTrigger>11. Conformità AI Act</AccordionTrigger>
+              <AccordionContent className="text-sm text-muted-foreground space-y-3">
+                <p><strong>1. Premessa</strong></p>
+                <p>La piattaforma SicurAzienda integra alcune funzionalità basate su intelligenza artificiale a supporto delle attività di assistenza, estrazione dati, analisi documentale e gestione relazionale. Tali funzionalità sono progettate per operare come strumenti di supporto all'utente e non come sistemi autonomi di decisione finale.</p>
+                
+                <p><strong>2. Classificazione preliminare del rischio</strong></p>
+                <p>Sulla base dell'uso previsto, i moduli AI della piattaforma sono classificati in via preliminare come sistemi a rischio minimo o limitato. Il modulo Assistente AI e le funzioni di chat devono rispettare obblighi di trasparenza verso l'utente, mentre eventuali funzioni di supporto decisionale in ambito CRM o formazione richiedono supervisione umana rafforzata.</p>
+                
+                <p><strong>3. Trasparenza verso l'utente</strong></p>
+                <p>Ogni volta che l'utente interagisce con un sistema AI, la piattaforma indica in modo chiaro che la risposta è generata o assistita da intelligenza artificiale. Per i moduli di assistenza e chat, è sempre disponibile un meccanismo di escalation verso supporto umano, ove applicabile.</p>
+                
+                <p><strong>4. Supervisione umana</strong></p>
+                <p>Le funzionalità AI sono soggette a controllo umano, in particolare quando producono suggerimenti, estrazioni, classificazioni o riepiloghi che possono influenzare decisioni operative. L'utente può verificare, modificare, confermare o rifiutare l'output prodotto dal sistema.</p>
+                
+                <p><strong>5. Dati, qualità e tracciabilità</strong></p>
+                <p>I dati utilizzati dai moduli AI sono pertinenti, aggiornati e limitati alla finalità dichiarata. La piattaforma mantiene log utili alla tracciabilità degli input, degli output generati e delle eventuali correzioni effettuate dall'operatore.</p>
+                
+                <p><strong>6. Gestione del cambiamento</strong></p>
+                <p>Ogni nuova funzionalità AI, modifica di modello o ampliamento del perimetro d'uso deve essere sottoposta a rivalutazione della classificazione del rischio e degli obblighi di conformità applicabili.</p>
+                
+                <p><strong>7. Stato di conformità</strong></p>
+                <p>SicurAzienda è configurata come piattaforma gestionale con funzionalità AI di supporto, senza evidenza di impieghi destinati a classificazione ad alto rischio ai sensi dell'AI Act, purché i moduli attuali restino limitati ad assistenza, estrazione dati e suggerimenti operativi non vincolanti.</p>
+              </AccordionContent>
+            </AccordionItem>
+
             <AccordionItem value="tech" className="border rounded-lg px-4">
-              <AccordionTrigger>11. Stack Tecnologico</AccordionTrigger>
+              <AccordionTrigger>12. Stack Tecnologico</AccordionTrigger>
               <AccordionContent className="text-sm text-muted-foreground space-y-1">
                 <ul className="list-disc pl-5 space-y-1">
                   <li>Frontend: React 18 + TypeScript + Vite</li>
