@@ -269,7 +269,32 @@ const AppDocumentation = () => {
       addSpace(10);
 
       // ASSISTENTE AI
-      addTitle("11. Assistente AI (/assistente)");
+      addTitle("11. Conformita AI Act");
+      addSpace(3);
+      addSubtitle("1. Premessa");
+      addText("La piattaforma SicurAzienda integra alcune funzionalita basate su intelligenza artificiale a supporto delle attivita di assistenza, estrazione dati, analisi documentale e gestione relazionale. Tali funzionalita sono progettate per operare come strumenti di supporto all'utente e non come sistemi autonomi di decisione finale.");
+      addSpace(3);
+      addSubtitle("2. Classificazione preliminare del rischio");
+      addText("Sulla base dell'uso previsto, i moduli AI della piattaforma sono classificati in via preliminare come sistemi a rischio minimo o limitato. Il modulo Assistente AI e le funzioni di chat devono rispettare obblighi di trasparenza verso l'utente, mentre eventuali funzioni di supporto decisionale in ambito CRM o formazione richiedono supervisione umana rafforzata.");
+      addSpace(3);
+      addSubtitle("3. Trasparenza verso l'utente");
+      addText("Ogni volta che l'utente interagisce con un sistema AI, la piattaforma indica in modo chiaro che la risposta e generata o assistita da intelligenza artificiale. Per i moduli di assistenza e chat, e sempre disponibile un meccanismo di escalation verso supporto umano, ove applicabile.");
+      addSpace(3);
+      addSubtitle("4. Supervisione umana");
+      addText("Le funzionalita AI sono soggette a controllo umano, in particolare quando producono suggerimenti, estrazioni, classificazioni o riepiloghi che possono influenzare decisioni operative. L'utente puo verificare, modificare, confermare o rifiutare l'output prodotto dal sistema.");
+      addSpace(3);
+      addSubtitle("5. Dati, qualita e tracciabilita");
+      addText("I dati utilizzati dai moduli AI sono pertinenti, aggiornati e limitati alla finalita dichiarata. La piattaforma mantiene log utili alla tracciabilita degli input, degli output generati e delle eventuali correzioni effettuate dall'operatore.");
+      addSpace(3);
+      addSubtitle("6. Gestione del cambiamento");
+      addText("Ogni nuova funzionalita AI, modifica di modello o ampliamento del perimetro d'uso deve essere sottoposta a rivalutazione della classificazione del rischio e degli obblighi di conformita applicabili.");
+      addSpace(3);
+      addSubtitle("7. Stato di conformita");
+      addText("SicurAzienda e configurata come piattaforma gestionale con funzionalita AI di supporto, senza evidenza di impieghi destinati a classificazione ad alto rischio ai sensi dell'AI Act, purche i moduli attuali restino limitati ad assistenza, estrazione dati e suggerimenti operativi non vincolanti.");
+      addSpace(10);
+
+      // ASSISTENTE AI (ora punto 12)
+      addTitle("12. Assistente AI (/assistente)");
       addBullet("Chat intelligente per supporto");
       addBullet("Analisi documenti con AI");
       addBullet("Estrazione dati automatica");
@@ -277,7 +302,7 @@ const AppDocumentation = () => {
       addSpace(10);
 
       // PROMEMORIA
-      addTitle("12. Sistema Promemoria");
+      addTitle("13. Sistema Promemoria");
       addBullet("Campanella notifiche nell'header");
       addBullet("Promemoria scadenze documenti");
       addBullet("Promemoria scadenze attestati corsi");
@@ -295,7 +320,7 @@ const AppDocumentation = () => {
       y = 20;
 
       // DATABASE
-      addTitle("13. Database (Supabase)");
+      addTitle("14. Database (Supabase)");
       addText("Tabelle:");
       addBullet("profiles - Dati utente (nome, azienda)");
       addBullet("documents - Documenti caricati con scadenze");
@@ -319,7 +344,7 @@ const AppDocumentation = () => {
       addSpace(10);
 
       // EDGE FUNCTIONS
-      addTitle("14. Edge Functions");
+      addTitle("15. Edge Functions");
       addBullet("ai-chat - Chat intelligente con AI");
       addBullet("check-expiries - Controllo scadenze documenti e attestati");
       addBullet("check-upcoming-events - Eventi in arrivo");
@@ -337,7 +362,7 @@ const AppDocumentation = () => {
       addSpace(10);
 
       // TECNOLOGIE
-      addTitle("15. Stack Tecnologico");
+      addTitle("16. Stack Tecnologico");
       addBullet("Frontend: React 18 + TypeScript + Vite");
       addBullet("Styling: Tailwind CSS + shadcn/ui");
       addBullet("Backend: Supabase (Auth, DB, Storage, Edge Functions, Realtime)");
@@ -359,7 +384,7 @@ const AppDocumentation = () => {
       y = 20;
 
       // DESIGN SYSTEM
-      addTitle("16. Design System");
+      addTitle("17. Design System");
       addSubtitle("Colori Brand");
       addBullet("Primary (Giallo): HSL 45 100% 50%");
       addBullet("Secondary (Rosso): HSL 0 84% 55%");
@@ -372,14 +397,14 @@ const AppDocumentation = () => {
       addSpace(10);
 
       // NAVIGAZIONE
-      addTitle("17. Navigazione");
+      addTitle("18. Navigazione");
       addBullet("Header: Logo, campanella notifiche, menu dropdown, login");
       addBullet("Bottom Nav: Home, Nuovo Cliente, Documenti, Profilo");
       addBullet("FloatingChat: Chat assistente sempre disponibile");
       addSpace(10);
 
       // EXPORT
-      addTitle("18. Funzionalita Export");
+      addTitle("19. Funzionalita Export");
       addBullet("Export statistiche QR in CSV");
       addBullet("Export report QR completo in PDF");
       addBullet("Export cronologia QR in CSV");
@@ -586,8 +611,34 @@ const AppDocumentation = () => {
               </AccordionContent>
             </AccordionItem>
 
+            <AccordionItem value="ai-act" className="border rounded-lg px-4">
+              <AccordionTrigger>11. Conformità AI Act</AccordionTrigger>
+              <AccordionContent className="text-sm text-muted-foreground space-y-3">
+                <p><strong>1. Premessa</strong></p>
+                <p>La piattaforma SicurAzienda integra alcune funzionalità basate su intelligenza artificiale a supporto delle attività di assistenza, estrazione dati, analisi documentale e gestione relazionale. Tali funzionalità sono progettate per operare come strumenti di supporto all'utente e non come sistemi autonomi di decisione finale.</p>
+                
+                <p><strong>2. Classificazione preliminare del rischio</strong></p>
+                <p>Sulla base dell'uso previsto, i moduli AI della piattaforma sono classificati in via preliminare come sistemi a rischio minimo o limitato. Il modulo Assistente AI e le funzioni di chat devono rispettare obblighi di trasparenza verso l'utente, mentre eventuali funzioni di supporto decisionale in ambito CRM o formazione richiedono supervisione umana rafforzata.</p>
+                
+                <p><strong>3. Trasparenza verso l'utente</strong></p>
+                <p>Ogni volta che l'utente interagisce con un sistema AI, la piattaforma indica in modo chiaro che la risposta è generata o assistita da intelligenza artificiale. Per i moduli di assistenza e chat, è sempre disponibile un meccanismo di escalation verso supporto umano, ove applicabile.</p>
+                
+                <p><strong>4. Supervisione umana</strong></p>
+                <p>Le funzionalità AI sono soggette a controllo umano, in particolare quando producono suggerimenti, estrazioni, classificazioni o riepiloghi che possono influenzare decisioni operative. L'utente può verificare, modificare, confermare o rifiutare l'output prodotto dal sistema.</p>
+                
+                <p><strong>5. Dati, qualità e tracciabilità</strong></p>
+                <p>I dati utilizzati dai moduli AI sono pertinenti, aggiornati e limitati alla finalità dichiarata. La piattaforma mantiene log utili alla tracciabilità degli input, degli output generati e delle eventuali correzioni effettuate dall'operatore.</p>
+                
+                <p><strong>6. Gestione del cambiamento</strong></p>
+                <p>Ogni nuova funzionalità AI, modifica di modello o ampliamento del perimetro d'uso deve essere sottoposta a rivalutazione della classificazione del rischio e degli obblighi di conformità applicabili.</p>
+                
+                <p><strong>7. Stato di conformità</strong></p>
+                <p>SicurAzienda è configurata come piattaforma gestionale con funzionalità AI di supporto, senza evidenza di impieghi destinati a classificazione ad alto rischio ai sensi dell'AI Act, purché i moduli attuali restino limitati ad assistenza, estrazione dati e suggerimenti operativi non vincolanti.</p>
+              </AccordionContent>
+            </AccordionItem>
+
             <AccordionItem value="tech" className="border rounded-lg px-4">
-              <AccordionTrigger>11. Stack Tecnologico</AccordionTrigger>
+              <AccordionTrigger>12. Stack Tecnologico</AccordionTrigger>
               <AccordionContent className="text-sm text-muted-foreground space-y-1">
                 <ul className="list-disc pl-5 space-y-1">
                   <li>Frontend: React 18 + TypeScript + Vite</li>
