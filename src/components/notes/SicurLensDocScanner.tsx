@@ -4,10 +4,10 @@ import { Slider } from "@/components/ui/slider";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import {
-  Camera, Upload, X, Plus,
+  Camera, Upload, X, Plus, GripVertical,
   ScanLine, FileText, Image as ImageIcon, Download,
   Share2, RotateCw, Sun, Contrast, Wand2, Palette,
-  Trash2, ChevronLeft, ChevronRight,
+  Trash2, ChevronLeft, ChevronRight, CopyCheck,
 } from "lucide-react";
 import jsPDF from "jspdf";
 
