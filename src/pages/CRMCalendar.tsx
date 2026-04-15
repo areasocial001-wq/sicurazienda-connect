@@ -59,6 +59,7 @@ export default function CRMCalendar() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
   const [dialogDefaultDate, setDialogDefaultDate] = useState<Date>(new Date());
+  const [icsImportOpen, setIcsImportOpen] = useState(false);
 
   // System data
   const [contacts, setContacts] = useState<any[]>([]);
