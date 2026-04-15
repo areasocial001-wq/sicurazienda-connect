@@ -131,6 +131,65 @@ const SicurLensDocScanner = ({ onInsertText, onClose }: DocScannerProps) => {
     setCurrentPageIndex((prev) => Math.max(0, prev - 1));
   };
 
+  // Drag-and-drop reorder
+  const handleDragStart = (idx: number) => {
+    setDragIndex(idx);
+  };
+
+  const handleDragOver = (e: React.DragEvent, idx: number) => {
+    e.preventDefault();
+    setDragOverIndex(idx);
+  };
+
+  const handleDrop = (idx: number) => {
+    if (dragIndex === null || dragIndex === idx) {
+      setDragIndex(null);
+      setDragOverIndex(null);
+      return;
+    }
+    setPages((prev) => {
+      const updated = [...prev];
+      const [moved] = updated.splice(dragIndex, 1);
+      updated.splice(idx, 0, moved);
+      return updated;
+    });
+    // Update currentPageIndex to follow the dragged page
+    if (currentPageIndex === dragIndex) {
+      setCurrentPageIndex(idx);
+    } else if (dragIndex < currentPageIndex && idx >= currentPageIndex) {
+      setCurrentPageIndex((prev) => prev - 1);
+    } else if (dragIndex > currentPageIndex && idx <= currentPageIndex) {
+      setCurrentPageIndex((prev) => prev + 1);
+    }
+    setDragIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDragEnd = () => {
+    setDragIndex(null);
+    setDragOverIndex(null);
+  };
+
+  // Apply preset to ALL pages
+  const applyPresetToAll = (updates: Partial<ScannedPage>) => {
+    setPages((prev) => prev.map((p) => ({ ...p, ...updates })));
+  };
+
+  const autoEnhanceAll = () => {
+    applyPresetToAll({ brightness: 110, contrast: 130, grayscale: false });
+    toast.success("Miglioramento applicato a tutte le pagine");
+  };
+
+  const scanToGrayscaleAll = () => {
+    applyPresetToAll({ brightness: 105, contrast: 150, grayscale: true });
+    toast.success("Scanner B/N applicato a tutte le pagine");
+  };
+
+  const colorDocPresetAll = () => {
+    applyPresetToAll({ brightness: 108, contrast: 120, grayscale: false });
+    toast.success("Documento a colori applicato a tutte le pagine");
+  };
+
   // Generate multi-page PDF
   const generatePDF = () => {
     if (pages.length === 0) return;
