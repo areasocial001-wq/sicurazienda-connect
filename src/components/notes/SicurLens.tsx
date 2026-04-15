@@ -58,16 +58,50 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const scannerRef = useRef<any>(null);
+  const qrReaderRef = useRef<HTMLDivElement>(null);
+  const qrReaderIdRef = useRef(`qr-reader-${Math.random().toString(36).slice(2, 9)}`);
+
+  // Cleanup scanner safely before React unmounts
+  const cleanupScanner = useCallback(async () => {
+    if (scannerRef.current) {
+      try {
+        const state = scannerRef.current.getState?.();
+        // State 2 = SCANNING, State 3 = PAUSED
+        if (state === 2 || state === 3) {
+          await scannerRef.current.stop();
+        }
+      } catch {
+        // ignore stop errors
+      }
+      try {
+        scannerRef.current.clear();
+      } catch {
+        // ignore clear errors
+      }
+      scannerRef.current = null;
+    }
+    // Manually clear any leftover DOM nodes html5-qrcode injected
+    if (qrReaderRef.current) {
+      while (qrReaderRef.current.firstChild) {
+        qrReaderRef.current.removeChild(qrReaderRef.current.firstChild);
+      }
+    }
+    setIsScanning(false);
+  }, []);
 
   useEffect(() => {
     if (!open) {
-      stopQrScanner();
+      cleanupScanner();
       setCapturedImage(null);
       setResult(null);
       setQrResult(null);
       setBusinessCard(null);
     }
-  }, [open]);
+    return () => {
+      // Also cleanup on unmount
+      cleanupScanner();
+    };
+  }, [open, cleanupScanner]);
 
   // ── QR Scanner ──────────────────────────────────
   const startQrScanner = useCallback(async () => {
