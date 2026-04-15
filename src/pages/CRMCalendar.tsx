@@ -613,12 +613,14 @@ export default function CRMCalendar() {
         onDelete={deleteEvent}
       />
 
-      <ICSImportDialog
-        open={icsImportOpen}
-        onOpenChange={setIcsImportOpen}
-        userId={user.id}
-        onImported={fetchEvents}
-      />
+      {user && (
+        <ICSImportDialog
+          open={icsImportOpen}
+          onOpenChange={setIcsImportOpen}
+          userId={user.id}
+          onImported={fetchEvents}
+        />
+      )}
     </div>
   );
 }
