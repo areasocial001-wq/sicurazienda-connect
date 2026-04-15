@@ -1,16 +1,12 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 import {
-  Camera, Upload, Loader2, Copy, Check, X,
+  Camera, Upload, X,
   ScanLine, FileText, Image as ImageIcon, Download,
   Share2, RotateCw, Sun, Contrast, Wand2,
 } from "lucide-react";
-import ReactMarkdown from "react-markdown";
 import jsPDF from "jspdf";
 
 interface DocScannerProps {
@@ -21,11 +17,7 @@ interface DocScannerProps {
 const SicurLensDocScanner = ({ onInsertText, onClose }: DocScannerProps) => {
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [enhancedImage, setEnhancedImage] = useState<string | null>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [extractedText, setExtractedText] = useState<string | null>(null);
-  const [docType, setDocType] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
-  const [resultTab, setResultTab] = useState<"original" | "text">("original");
+  const [pdfGenerated, setPdfGenerated] = useState(false);
 
   // Enhancement controls
   const [brightness, setBrightness] = useState(100);
@@ -44,8 +36,7 @@ const SicurLensDocScanner = ({ onInsertText, onClose }: DocScannerProps) => {
     reader.onload = () => {
       setCapturedImage(reader.result as string);
       setEnhancedImage(null);
-      setExtractedText(null);
-      setDocType(null);
+      setPdfGenerated(false);
       setBrightness(100);
       setContrast(100);
       setRotation(0);
@@ -64,7 +55,6 @@ const SicurLensDocScanner = ({ onInsertText, onClose }: DocScannerProps) => {
 
     const img = new window.Image();
     img.onload = () => {
-      // Handle rotation dimensions
       const isRotated = rotation === 90 || rotation === 270;
       canvas.width = isRotated ? img.height : img.width;
       canvas.height = isRotated ? img.width : img.height;
@@ -99,60 +89,63 @@ const SicurLensDocScanner = ({ onInsertText, onClose }: DocScannerProps) => {
     toast.success("Modalità scanner B/N applicata");
   };
 
-  // AI analysis
-  const analyzeDocument = async () => {
-    const imageToSend = enhancedImage || capturedImage;
-    if (!imageToSend) return;
-    setIsAnalyzing(true);
-
-    try {
-      const { data, error } = await supabase.functions.invoke("vision-ai", {
-        body: { image_base64: imageToSend, mode: "document" },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-
-      const raw = data.result as string;
-      // Extract doc type from "**Tipo documento:** ..."
-      const typeMatch = raw.match(/\*\*Tipo documento:\*\*\s*(.+)/i);
-      if (typeMatch) setDocType(typeMatch[1].trim());
-      setExtractedText(raw);
-      setResultTab("text");
-    } catch (err: any) {
-      console.error("Doc scan error:", err);
-      toast.error(err.message || "Errore nell'analisi del documento");
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
-
-  // Export PDF
-  const exportPDF = () => {
+  // Generate and download clean PDF from enhanced image
+  const generatePDF = () => {
     const imageToUse = enhancedImage || capturedImage;
     if (!imageToUse) return;
 
     const img = new window.Image();
     img.onload = () => {
-      const pdf = new jsPDF({
-        orientation: img.width > img.height ? "landscape" : "portrait",
-        unit: "px",
-        format: [img.width, img.height],
-      });
-      pdf.addImage(imageToUse, "JPEG", 0, 0, img.width, img.height);
+      // A4 dimensions in mm
+      const a4Width = 210;
+      const a4Height = 297;
+      const margin = 10;
+      const usableWidth = a4Width - margin * 2;
+      const usableHeight = a4Height - margin * 2;
 
-      // If we have extracted text, add a second page with OCR text
-      if (extractedText) {
-        pdf.addPage();
-        pdf.setFontSize(11);
-        const lines = pdf.splitTextToSize(
-          extractedText.replace(/\*\*/g, "").replace(/\n/g, "\n"),
-          pdf.internal.pageSize.getWidth() - 40
-        );
-        pdf.text(lines, 20, 30);
+      const imgRatio = img.width / img.height;
+      const usableRatio = usableWidth / usableHeight;
+
+      let drawWidth: number;
+      let drawHeight: number;
+
+      if (imgRatio > usableRatio) {
+        // Image wider than usable area
+        drawWidth = usableWidth;
+        drawHeight = usableWidth / imgRatio;
+      } else {
+        // Image taller than usable area
+        drawHeight = usableHeight;
+        drawWidth = usableHeight * imgRatio;
       }
 
-      pdf.save(`documento_scansionato_${Date.now()}.pdf`);
-      toast.success("PDF scaricato");
+      const orientation = img.width > img.height ? "landscape" : "portrait";
+      const pdf = new jsPDF({ orientation, unit: "mm", format: "a4" });
+
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+
+      // Recalculate for actual page orientation
+      const effUsableW = pageW - margin * 2;
+      const effUsableH = pageH - margin * 2;
+
+      if (imgRatio > effUsableW / effUsableH) {
+        drawWidth = effUsableW;
+        drawHeight = effUsableW / imgRatio;
+      } else {
+        drawHeight = effUsableH;
+        drawWidth = effUsableH * imgRatio;
+      }
+
+      // Center the image
+      const x = (pageW - drawWidth) / 2;
+      const y = (pageH - drawHeight) / 2;
+
+      pdf.addImage(imageToUse, "JPEG", x, y, drawWidth, drawHeight);
+      pdf.save(`scansione_${new Date().toISOString().slice(0, 10)}_${Date.now()}.pdf`);
+
+      setPdfGenerated(true);
+      toast.success("PDF generato e scaricato");
     };
     img.src = imageToUse;
   };
@@ -169,11 +162,10 @@ const SicurLensDocScanner = ({ onInsertText, onClose }: DocScannerProps) => {
       if (navigator.share && navigator.canShare?.({ files: [file] })) {
         await navigator.share({
           title: "Documento scansionato",
-          text: docType ? `Tipo: ${docType}` : "Documento scansionato con SicurLens",
+          text: "Documento scansionato con SicurLens",
           files: [file],
         });
       } else {
-        // Fallback: copy image to clipboard
         await navigator.clipboard.write([
           new ClipboardItem({ "image/jpeg": blob }),
         ]);
@@ -185,23 +177,6 @@ const SicurLensDocScanner = ({ onInsertText, onClose }: DocScannerProps) => {
     }
   };
 
-  const handleCopyText = () => {
-    if (!extractedText) return;
-    navigator.clipboard.writeText(extractedText.replace(/\*\*/g, ""));
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  const handleInsertText = () => {
-    if (!extractedText) return;
-    const html = extractedText
-      .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-      .replace(/\n/g, "<br/>");
-    onInsertText(html);
-    toast.success("Testo inserito nella nota");
-    onClose();
-  };
-
   const handleInsertImage = () => {
     const imageToUse = enhancedImage || capturedImage;
     if (!imageToUse) return;
@@ -211,7 +186,6 @@ const SicurLensDocScanner = ({ onInsertText, onClose }: DocScannerProps) => {
   };
 
   const displayImage = enhancedImage || capturedImage;
-  const hasResult = !!extractedText;
 
   return (
     <div className="flex flex-col gap-3">
@@ -222,7 +196,7 @@ const SicurLensDocScanner = ({ onInsertText, onClose }: DocScannerProps) => {
             <ScanLine className="h-8 w-8 text-primary" />
           </div>
           <p className="text-sm text-muted-foreground text-center max-w-xs">
-            Scatta una foto al documento o carica un'immagine per ottenere una scansione digitale di alta qualità
+            Scatta una foto al documento o carica un'immagine per generare un PDF pulito e migliorato digitalmente
           </p>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={() => cameraInputRef.current?.click()}>
@@ -258,8 +232,7 @@ const SicurLensDocScanner = ({ onInsertText, onClose }: DocScannerProps) => {
                   onClick={() => {
                     setCapturedImage(null);
                     setEnhancedImage(null);
-                    setExtractedText(null);
-                    setDocType(null);
+                    setPdfGenerated(false);
                   }}
                   title="Rimuovi"
                 >
@@ -289,86 +262,29 @@ const SicurLensDocScanner = ({ onInsertText, onClose }: DocScannerProps) => {
             </div>
           </div>
 
-          {/* Results area */}
-          {hasResult ? (
-            <Tabs value={resultTab} onValueChange={(v) => setResultTab(v as any)} className="flex flex-col min-h-0">
-              <TabsList className="grid grid-cols-2 mb-2">
-                <TabsTrigger value="original" className="gap-1.5 text-xs">
-                  <ImageIcon className="h-3.5 w-3.5" /> Originale
-                </TabsTrigger>
-                <TabsTrigger value="text" className="gap-1.5 text-xs">
-                  <FileText className="h-3.5 w-3.5" /> Testo estratto
-                </TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="original" className="mt-0">
-                <div className="relative">
-                  <img
-                    src={displayImage!}
-                    alt="Documento scansionato"
-                    className="w-full max-h-52 object-contain rounded-lg bg-muted"
-                  />
-                  {docType && (
-                    <div className="absolute top-2 left-2 bg-background/90 backdrop-blur-sm px-2 py-0.5 rounded text-[10px] font-medium text-primary border">
-                      {docType}
-                    </div>
-                  )}
-                </div>
-              </TabsContent>
-
-              <TabsContent value="text" className="mt-0">
-                <ScrollArea className="max-h-52 border rounded-lg p-3">
-                  <div className="prose prose-sm max-w-none dark:prose-invert text-sm">
-                    <ReactMarkdown>{extractedText!}</ReactMarkdown>
-                  </div>
-                </ScrollArea>
-              </TabsContent>
-            </Tabs>
-          ) : (
-            <div className="relative">
-              <img
-                src={displayImage!}
-                alt="Documento"
-                className="w-full max-h-52 object-contain rounded-lg bg-muted"
-              />
-            </div>
-          )}
+          {/* Image preview */}
+          <div className="relative">
+            <img
+              src={displayImage!}
+              alt="Documento"
+              className="w-full max-h-52 object-contain rounded-lg bg-muted"
+            />
+          </div>
 
           {/* Actions */}
-          {!hasResult ? (
-            <Button onClick={analyzeDocument} disabled={isAnalyzing} className="w-full">
-              {isAnalyzing ? (
-                <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Scansione in corso...</>
-              ) : (
-                <><ScanLine className="h-4 w-4 mr-2" /> Scansiona documento</>
-              )}
+          <Button onClick={generatePDF} className="w-full">
+            <Download className="h-4 w-4 mr-2" /> Genera PDF
+          </Button>
+
+          {/* Secondary actions */}
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" className="flex-1" onClick={handleInsertImage}>
+              <ImageIcon className="h-3.5 w-3.5 mr-1" /> Inserisci nella nota
             </Button>
-          ) : (
-            <div className="space-y-2">
-              {/* Primary actions */}
-              <div className="grid grid-cols-2 gap-2">
-                <Button size="sm" variant="outline" onClick={handleInsertImage}>
-                  <ImageIcon className="h-3.5 w-3.5 mr-1" /> Inserisci immagine
-                </Button>
-                <Button size="sm" onClick={handleInsertText}>
-                  <FileText className="h-3.5 w-3.5 mr-1" /> Inserisci testo
-                </Button>
-              </div>
-              {/* Secondary actions */}
-              <div className="flex gap-2">
-                <Button size="sm" variant="outline" className="flex-1" onClick={handleCopyText}>
-                  {copied ? <Check className="h-3.5 w-3.5 mr-1" /> : <Copy className="h-3.5 w-3.5 mr-1" />}
-                  {copied ? "Copiato" : "Copia testo"}
-                </Button>
-                <Button size="sm" variant="outline" className="flex-1" onClick={exportPDF}>
-                  <Download className="h-3.5 w-3.5 mr-1" /> PDF
-                </Button>
-                <Button size="sm" variant="outline" onClick={shareDocument}>
-                  <Share2 className="h-3.5 w-3.5" />
-                </Button>
-              </div>
-            </div>
-          )}
+            <Button size="sm" variant="outline" onClick={shareDocument}>
+              <Share2 className="h-3.5 w-3.5 mr-1" /> Condividi
+            </Button>
+          </div>
         </>
       )}
 
