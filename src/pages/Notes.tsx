@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import Header from "@/components/Header";
 import BottomNav from "@/components/BottomNav";
@@ -27,6 +27,7 @@ import EnexImportDialog from "@/components/notes/EnexImportDialog";
 
 const Notes = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const isMobileDevice = useIsMobile();
   // Treat tablets (< 1024px) as mobile for the 3-panel layout
   const [isTablet, setIsTablet] = useState(false);
@@ -235,6 +236,9 @@ const Notes = () => {
       <div className="min-h-screen bg-background flex flex-col pb-20">
         {/* Mobile header */}
         <div className="flex items-center gap-2 px-3 py-2.5 border-b border-border bg-[hsl(var(--sicurnote-sidebar))] text-[hsl(var(--sicurnote-sidebar-foreground))]">
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-inherit hover:bg-white/10 shrink-0" onClick={() => navigate('/')}>
+            <Home className="h-4 w-4" />
+          </Button>
           <NotebookPen className="h-5 w-5 text-emerald-400" />
           <span className="font-bold flex-1 text-sm">SicurNote</span>
 
