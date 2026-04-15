@@ -1,0 +1,53 @@
+# Project Memory
+
+## Core
+- **Roles:** 6 business roles (`admin`, `contabilita`, `area_tecnica`, etc.) + `user` for clients. Filter UI routes based on role.
+- **Vulnerabilities:** Fix only "error" level vulnerabilities during security scans. Ignore lower levels.
+- **Layout:** No `max-width: 1280px` on `#root`. Use flexible widths and `pb-24` padding to avoid mobile nav overlap.
+- **Scrolling:** Use standard `max-h-[60vh] overflow-y-auto` instead of Radix UI ScrollArea for lists >30 items.
+- **Edge Functions:** ALWAYS derive user ID exclusively from server-side JWT claims (never trust body).
+- **PDF Preview:** MUST use legacy build `pdfjs-dist` v4.10.38 to bypass browser restrictions (e.g. Brave ERR_BLOCKED_BY_CLIENT).
+- **RLS/Storage:** For `crm-documents` bucket RLS, explicitly use `storage.objects.name` in `storage.foldername()`.
+- **Calendar:** Internal calendar replaces Google Calendar entirely. No GCal sync.
+
+## Memories
+- [Calendario Interno](mem://funzionalita/calendario-interno) — Internal calendar with month/week/day views, CRM linking, shared events
+- [Internal Calendar Preference](mem://constraints/google-calendar-internal-preference) — Evaluate internal calendar due to GCal sync freeze issues
+- [Email Configuration](mem://integrations/email-configuration) — Resend API via noreply@sicurazienda.com, configured DKIM/SPF/DMARC
+- [Automatic User Provisioning](mem://architettura/provisioning-automatico-utenti) — DB triggers automatically create user profile and assign 'user' role
+- [Google Drive Sync](mem://integrazioni/google-drive) — GDrive sync via Edge Functions + OAuth
+- [Scroll Conventions](mem://stile/convenzione-scrolling-liste) — Use vertical scroll instead of Radix for long lists
+- [Contact Selectors](mem://funzionalita/crm/selettori-contatti) — Dropdowns include "Altro" option for free text input
+- [Form Drafts](mem://funzionalita/profilo/bozze-moduli) — Incomplete forms saved to form_drafts table
+- [Codice Fiscale Validation](mem://vincoli/crm/validazione-codice-fiscale) — Real-time validation for 16-char Italian Codice Fiscale
+- [Contact Form Delivery](mem://funzionalita/crm/modulo-contatti) — Contact submits delivered via Resend, stored in contact_requests
+- [Reminder System](mem://funzionalita/notifiche/promemoria) — Push notifications for deadlines, categorized by urgency
+- [Deadline Automation](mem://funzionalita/notifiche/automazione-scadenze) — Daily 8:00 UTC check for deadlines and email alerts
+- [Google OAuth Limit](mem://vincoli/integrazioni/google-oauth) — Blocked in Lovable previews, needs prod domain
+- [Signed URLs for Storage](mem://decisioni/storage/url-firmati) — Supabase signed URLs for document sharing
+- [QR Code Public Access](mem://funzionalita/codici-qr/accesso-pubblico) — QR gives 1-hour signed URL access to specific docs
+- [CRM Mass Import](mem://funzionalita/crm/importazione-massiva) — Mass import Excel matching strictly by company name
+- [Environment URLs Config](mem://architettura/config/url-ambiente) — Centralized utility for base URLs (prod vs preview)
+- [Privileged Document Management](mem://sicurezza/auth/gestione-documenti-privilegiata) — Edge Functions bypass RLS for staff document management
+- [CRM Contact Sorting](mem://funzionalita/crm/ordinamento-contatti) — A-Z alphabetical sorting by company name default
+- [CRM Contact UI Statuses](mem://funzionalita/crm/ui-contatti) — Localized status terms (Primo contatto, etc.)
+- [CRM Excel Import Rule](mem://vincoli/crm/nomenclatura-importazione) — Exact company name match required for Excel import
+- [QR Security Logic](mem://sicurezza/qr/logica-accesso) — Edge function validates ID before generating signed URLs
+- [CRM Date Verification](mem://funzionalita/crm/verifica-date) — Confirmation dialog showing old vs new dates
+- [Edge Function Security](mem://sicurezza/auth/protezione-edge-function) — Strict JWT validation, ID from claims, input validation
+- [Audit Logs Strategy](mem://architettura/monitoraggio/log-audit) — FKs removed from audit_logs to allow soft user deletion
+- [SicurNote Import/Export](mem://funzionalita/sicurnote/utility-dati-e-import-export) — Max 500MB upload, auto-zip folder drag-and-drop
+- [CRM Financial Tracking](mem://funzionalita/crm/allineamento-excel-e-margini) — Attività track costs, Commesse track delivery/margin
+- [SicurNote Design](mem://stile/sicurnote-design-editor) — 3-panel layout, dark green sidebar
+- [Roles & Access Strategy](mem://architettura/strategia-accessi-ruoli) — 6 business roles + user, UI filters, RLS
+- [Document Drawer UI](mem://funzionalita/crm/gestione-documentale-cassetto) — pdfjs-dist v4.10.38 workaround, folder drag-and-drop
+- [SicurNote Email Access](mem://funzionalita/sicurnote/risoluzione-accessi-email) — Auto-resolve email shares on login
+- [SicurNote CRM Link](mem://funzionalita/sicurnote/integrazione-crm-note-clienti) — Notes linked to CRM contacts
+- [Vulnerability Scan Rule](mem://vincoli/sicurezza/priorita-scansioni-vulnerabilita) — Focus only on "error" level
+- [User Management UI](mem://funzionalita/admin/interfaccia-gestione-utenti-ruoli) — Hide trash icon for current user
+- [Deleted User Data Policy](mem://architettura/policy-conservazione-dati-utenti-eliminati) — Soft-delete/orphan data on user deletion to preserve history
+- [Notes Version History RLS](mem://sicurezza/rls/note-versions-access) — `note_versions` insert restricted to service_role
+- [Client Document Access RLS](mem://sicurezza/rls/accesso-documenti-clienti) — Bucket RLS requires `storage.objects.name` parsing
+- [Global Responsive Layout](mem://architettura/layout-responsivo-globale) — Removed max-width constraint for fluid mobile adaptation
+- [SicurNote Tablet Layout](mem://funzionalita/sicurnote/comportamento-tablet-responsivo) — <1024px forces single-panel mobile layout
+- [CRM Data Export Specs](mem://funzionalita/crm/esportazione-dati) — CSV with semicolon, BOM, phone format `="VAL"`, location fallback
