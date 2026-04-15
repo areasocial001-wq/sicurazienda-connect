@@ -637,6 +637,7 @@ const Notes = () => {
         }}
         selectedNotebook={selectedNotebook}
       />
+      <BottomNav />
     </div>
   );
 };
