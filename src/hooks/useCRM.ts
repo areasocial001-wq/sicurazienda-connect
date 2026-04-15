@@ -167,23 +167,7 @@ export function useCRM() {
 
       if (error) throw error;
       
-      // Sync follow-up to Google Calendar if connected and follow-up date changed
-      if (updates.next_followup_at && isGoogleConnected) {
-        const contact = contacts.find(c => c.id === id);
-        if (contact) {
-          const followupDate = new Date(updates.next_followup_at);
-          const endDate = new Date(followupDate.getTime() + 60 * 60 * 1000); // 1 hour duration
-          
-          await createGoogleEvent({
-            title: `Follow-up: ${contact.name}${contact.company ? ` (${contact.company})` : ''}`,
-            description: `Follow-up CRM per ${contact.name}\n${contact.notes || ''}`,
-            start: followupDate.toISOString(),
-            end: endDate.toISOString(),
-            allDay: false,
-            location: '',
-          });
-        }
-      }
+      
       
       toast({ title: "Contatto aggiornato" });
       await fetchContacts();
@@ -192,7 +176,7 @@ export function useCRM() {
       toast({ title: "Errore", description: error.message, variant: "destructive" });
       return false;
     }
-  }, [fetchContacts, toast, isGoogleConnected, createGoogleEvent, contacts]);
+  }, [fetchContacts, toast, contacts]);
 
   const deleteContact = useCallback(async (id: string) => {
     try {
