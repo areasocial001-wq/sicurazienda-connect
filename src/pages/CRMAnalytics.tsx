@@ -12,7 +12,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import GoogleCalendarSync from '@/components/GoogleCalendarSync';
+
 import ReminderStats from '@/components/ReminderStats';
 import {
   BarChart,
@@ -490,13 +490,7 @@ export default function CRMAnalytics() {
           <ReminderStats userId={user?.id} />
         </div>
 
-        {/* Google Calendar Integration */}
-        <div className="mb-6">
-          <h2 className="text-xl font-semibold mb-4">Integrazioni</h2>
-          <div className="max-w-md">
-            <GoogleCalendarSync userId={user?.id} />
-          </div>
-        </div>
+        
       </main>
 
       <BottomNav />
