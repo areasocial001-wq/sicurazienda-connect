@@ -58,25 +58,62 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const scannerRef = useRef<any>(null);
+  const qrReaderRef = useRef<HTMLDivElement>(null);
+  const qrReaderIdRef = useRef(`qr-reader-${Math.random().toString(36).slice(2, 9)}`);
+
+  // Cleanup scanner safely before React unmounts
+  const cleanupScanner = useCallback(async () => {
+    if (scannerRef.current) {
+      try {
+        const state = scannerRef.current.getState?.();
+        // State 2 = SCANNING, State 3 = PAUSED
+        if (state === 2 || state === 3) {
+          await scannerRef.current.stop();
+        }
+      } catch {
+        // ignore stop errors
+      }
+      try {
+        scannerRef.current.clear();
+      } catch {
+        // ignore clear errors
+      }
+      scannerRef.current = null;
+    }
+    // Manually clear any leftover DOM nodes html5-qrcode injected
+    if (qrReaderRef.current) {
+      while (qrReaderRef.current.firstChild) {
+        qrReaderRef.current.removeChild(qrReaderRef.current.firstChild);
+      }
+    }
+    setIsScanning(false);
+  }, []);
 
   useEffect(() => {
     if (!open) {
-      stopQrScanner();
+      cleanupScanner();
       setCapturedImage(null);
       setResult(null);
       setQrResult(null);
       setBusinessCard(null);
     }
-  }, [open]);
+    return () => {
+      // Also cleanup on unmount
+      cleanupScanner();
+    };
+  }, [open, cleanupScanner]);
 
   // ── QR Scanner ──────────────────────────────────
   const startQrScanner = useCallback(async () => {
     try {
+      // Ensure previous scanner is fully cleaned up
+      await cleanupScanner();
+
       const { Html5Qrcode } = await import("html5-qrcode");
       setIsScanning(true);
       setQrResult(null);
 
-      const scanner = new Html5Qrcode("qr-reader");
+      const scanner = new Html5Qrcode(qrReaderIdRef.current);
       scannerRef.current = scanner;
 
       await scanner.start(
@@ -84,8 +121,7 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
         { fps: 10, qrbox: { width: 250, height: 250 } },
         (decodedText) => {
           setQrResult(decodedText);
-          scanner.stop().catch(console.error);
-          setIsScanning(false);
+          cleanupScanner();
         },
         () => {}
       );
@@ -94,15 +130,7 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
       toast.error("Impossibile avviare la fotocamera");
       setIsScanning(false);
     }
-  }, []);
-
-  const stopQrScanner = useCallback(() => {
-    if (scannerRef.current) {
-      scannerRef.current.stop().catch(() => {});
-      scannerRef.current = null;
-    }
-    setIsScanning(false);
-  }, []);
+  }, [cleanupScanner]);
 
   // ── Image capture ──────────────────────────────
   const handleImageCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -245,7 +273,7 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
           </DialogTitle>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v as any); if (v !== "qr") stopQrScanner(); }} className="flex-1 flex flex-col overflow-hidden">
+        <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v as any); if (v !== "qr") cleanupScanner(); }} className="flex-1 flex flex-col overflow-hidden">
           <TabsList className="mx-4 grid grid-cols-2">
             <TabsTrigger value="qr" className="gap-1.5">
               <QrCode className="h-3.5 w-3.5" /> QR Scanner
@@ -259,7 +287,8 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
           <TabsContent value="qr" className="flex-1 flex flex-col overflow-y-auto px-4 pb-4">
             <div className="flex flex-col items-center gap-3">
               <div
-                id="qr-reader"
+                id={qrReaderIdRef.current}
+                ref={qrReaderRef}
                 className="w-full max-w-[300px] aspect-square bg-muted rounded-lg overflow-hidden relative"
               >
                 {!isScanning && !qrResult && (
@@ -293,7 +322,7 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
               ) : (
                 <div className="flex gap-2">
                   {isScanning ? (
-                    <Button variant="destructive" size="sm" onClick={stopQrScanner}>
+                    <Button variant="destructive" size="sm" onClick={cleanupScanner}>
                       <X className="h-3.5 w-3.5 mr-1" /> Ferma
                     </Button>
                   ) : (
