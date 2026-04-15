@@ -307,7 +307,7 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
           </TabsContent>
 
           {/* ── Lens Tab ──────────────────────────── */}
-          <TabsContent value="lens" className="flex-1 flex flex-col min-h-0 px-4 pb-4 gap-3">
+          <TabsContent value="lens" className="flex-1 flex flex-col overflow-y-auto px-4 pb-4 gap-3">
             {/* Mode selector — 2 rows of 3 */}
             <div className="grid grid-cols-3 gap-1.5">
               {(Object.entries(MODE_CONFIG) as [LensMode, typeof MODE_CONFIG["ocr"]][]).map(([key, cfg]) => (
