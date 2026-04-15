@@ -346,26 +346,37 @@ const SicurLensDocScanner = ({ onInsertText, onClose }: DocScannerProps) => {
             </div>
           </div>
 
-          {/* Thumbnails */}
+          {/* Thumbnails with drag-and-drop reorder */}
           {pages.length > 1 && (
             <ScrollArea className="w-full">
               <div className="flex gap-1.5 pb-1">
                 {pages.map((p, idx) => (
-                  <button
+                  <div
                     key={idx}
+                    draggable
+                    onDragStart={() => handleDragStart(idx)}
+                    onDragOver={(e) => handleDragOver(e, idx)}
+                    onDrop={() => handleDrop(idx)}
+                    onDragEnd={handleDragEnd}
                     onClick={() => setCurrentPageIndex(idx)}
-                    className={`shrink-0 rounded border-2 overflow-hidden transition-colors ${
-                      idx === currentPageIndex ? "border-primary" : "border-transparent hover:border-muted-foreground/30"
-                    }`}
+                    className={`shrink-0 rounded border-2 overflow-hidden transition-all cursor-grab active:cursor-grabbing flex flex-col items-center ${
+                      idx === currentPageIndex
+                        ? "border-primary"
+                        : dragOverIndex === idx
+                        ? "border-primary/50 scale-105"
+                        : "border-transparent hover:border-muted-foreground/30"
+                    } ${dragIndex === idx ? "opacity-40" : ""}`}
                   >
                     <img
                       src={p.enhanced || p.original}
                       alt={`Pagina ${idx + 1}`}
-                      className="h-12 w-9 object-cover"
+                      className="h-12 w-9 object-cover pointer-events-none"
                     />
-                  </button>
+                    <span className="text-[9px] text-muted-foreground">{idx + 1}</span>
+                  </div>
                 ))}
               </div>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Trascina per riordinare</p>
             </ScrollArea>
           )}
 
