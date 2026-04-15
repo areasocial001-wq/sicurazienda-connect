@@ -234,10 +234,10 @@ export function CalendarEventDialog({
 
           <div>
             <Label>Collega a contatto CRM</Label>
-            <Select value={contactId} onValueChange={setContactId}>
+            <Select value={contactId || "__none__"} onValueChange={(v) => setContactId(v === "__none__" ? "" : v)}>
               <SelectTrigger><SelectValue placeholder="Nessuno" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Nessuno</SelectItem>
+                <SelectItem value="__none__">Nessuno</SelectItem>
                 {contacts.map((c) => (
                   <SelectItem key={c.id} value={c.id}>
                     {c.company || c.name}
@@ -249,10 +249,10 @@ export function CalendarEventDialog({
 
           <div>
             <Label>Collega a dipendente</Label>
-            <Select value={employeeId} onValueChange={setEmployeeId}>
+            <Select value={employeeId || "__none__"} onValueChange={(v) => setEmployeeId(v === "__none__" ? "" : v)}>
               <SelectTrigger><SelectValue placeholder="Nessuno" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Nessuno</SelectItem>
+                <SelectItem value="__none__">Nessuno</SelectItem>
                 {employees.map((e) => (
                   <SelectItem key={e.id} value={e.id}>
                     {e.last_name} {e.first_name}
