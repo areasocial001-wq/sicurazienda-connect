@@ -287,7 +287,8 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
           <TabsContent value="qr" className="flex-1 flex flex-col overflow-y-auto px-4 pb-4">
             <div className="flex flex-col items-center gap-3">
               <div
-                id="qr-reader"
+                id={qrReaderIdRef.current}
+                ref={qrReaderRef}
                 className="w-full max-w-[300px] aspect-square bg-muted rounded-lg overflow-hidden relative"
               >
                 {!isScanning && !qrResult && (
