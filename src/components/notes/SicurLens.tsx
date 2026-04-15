@@ -106,11 +106,14 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
   // ── QR Scanner ──────────────────────────────────
   const startQrScanner = useCallback(async () => {
     try {
+      // Ensure previous scanner is fully cleaned up
+      await cleanupScanner();
+
       const { Html5Qrcode } = await import("html5-qrcode");
       setIsScanning(true);
       setQrResult(null);
 
-      const scanner = new Html5Qrcode("qr-reader");
+      const scanner = new Html5Qrcode(qrReaderIdRef.current);
       scannerRef.current = scanner;
 
       await scanner.start(
@@ -118,8 +121,7 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
         { fps: 10, qrbox: { width: 250, height: 250 } },
         (decodedText) => {
           setQrResult(decodedText);
-          scanner.stop().catch(console.error);
-          setIsScanning(false);
+          cleanupScanner();
         },
         () => {}
       );
@@ -128,15 +130,7 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
       toast.error("Impossibile avviare la fotocamera");
       setIsScanning(false);
     }
-  }, []);
-
-  const stopQrScanner = useCallback(() => {
-    if (scannerRef.current) {
-      scannerRef.current.stop().catch(() => {});
-      scannerRef.current = null;
-    }
-    setIsScanning(false);
-  }, []);
+  }, [cleanupScanner]);
 
   // ── Image capture ──────────────────────────────
   const handleImageCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
