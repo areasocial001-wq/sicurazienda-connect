@@ -27,6 +27,7 @@ import EnexImportDialog from "@/components/notes/EnexImportDialog";
 
 const Notes = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const isMobileDevice = useIsMobile();
   // Treat tablets (< 1024px) as mobile for the 3-panel layout
   const [isTablet, setIsTablet] = useState(false);
