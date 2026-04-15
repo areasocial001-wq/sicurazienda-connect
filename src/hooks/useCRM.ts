@@ -2,7 +2,6 @@ import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { useToast } from './use-toast';
-import { useGoogleCalendar } from './useGoogleCalendar';
 
 export interface CRMContact {
   id: string;
@@ -48,7 +47,7 @@ export interface CRMInteraction {
 export function useCRM() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { isConnected: isGoogleConnected, createEvent: createGoogleEvent } = useGoogleCalendar(user?.id);
+  
   const [contacts, setContacts] = useState<CRMContact[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState({ loaded: 0, total: 0 });
@@ -148,20 +147,7 @@ export function useCRM() {
 
       if (error) throw error;
       
-      // Sync follow-up to Google Calendar if connected
-      if (contact.next_followup_at && isGoogleConnected) {
-        const followupDate = new Date(contact.next_followup_at);
-        const endDate = new Date(followupDate.getTime() + 60 * 60 * 1000); // 1 hour duration
-        
-        await createGoogleEvent({
-          title: `Follow-up: ${contact.name}${contact.company ? ` (${contact.company})` : ''}`,
-          description: `Follow-up CRM per ${contact.name}\n${contact.notes || ''}`,
-          start: followupDate.toISOString(),
-          end: endDate.toISOString(),
-          allDay: false,
-          location: '',
-        });
-      }
+      
       
       toast({ title: "Contatto aggiunto", description: `${contact.name} è stato aggiunto al CRM.` });
       await fetchContacts();
@@ -170,7 +156,7 @@ export function useCRM() {
       toast({ title: "Errore", description: error.message, variant: "destructive" });
       return null;
     }
-  }, [user, fetchContacts, toast, isGoogleConnected, createGoogleEvent]);
+  }, [user, fetchContacts, toast]);
 
   const updateContact = useCallback(async (id: string, updates: Partial<CRMContact>) => {
     try {
