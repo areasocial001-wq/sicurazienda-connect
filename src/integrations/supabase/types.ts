@@ -47,6 +47,78 @@ export type Database = {
         }
         Relationships: []
       }
+      calendar_events: {
+        Row: {
+          all_day: boolean
+          category: string
+          color: string | null
+          contact_id: string | null
+          created_at: string
+          created_by_name: string | null
+          description: string | null
+          employee_id: string | null
+          end_datetime: string
+          id: string
+          is_shared: boolean
+          location: string | null
+          start_datetime: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          all_day?: boolean
+          category?: string
+          color?: string | null
+          contact_id?: string | null
+          created_at?: string
+          created_by_name?: string | null
+          description?: string | null
+          employee_id?: string | null
+          end_datetime: string
+          id?: string
+          is_shared?: boolean
+          location?: string | null
+          start_datetime: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          all_day?: boolean
+          category?: string
+          color?: string | null
+          contact_id?: string | null
+          created_at?: string
+          created_by_name?: string | null
+          description?: string | null
+          employee_id?: string | null
+          end_datetime?: string
+          id?: string
+          is_shared?: boolean
+          location?: string | null
+          start_datetime?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_events_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "crm_employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contact_requests: {
         Row: {
           company: string | null
