@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import {
-  Calendar as CalendarIcon, Loader2, Plus,
+  Calendar as CalendarIcon, Loader2, Plus, Upload,
   LayoutGrid, CalendarDays, List, Clock,
   MapPin, Users, Share2, ChevronLeft, ChevronRight,
 } from 'lucide-react';
