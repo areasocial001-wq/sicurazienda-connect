@@ -379,7 +379,7 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
 
                 {/* Result */}
                 {hasResult && (
-                  <div className="flex-1 min-h-0 flex flex-col gap-2">
+                  <div className="flex flex-col gap-2">
                     <ScrollArea className="flex-1 max-h-48 border rounded-lg p-3">
                       {businessCard ? (
                         renderBusinessCardResult()
