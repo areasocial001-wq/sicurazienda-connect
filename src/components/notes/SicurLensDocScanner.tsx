@@ -419,7 +419,24 @@ const SicurLensDocScanner = ({ onInsertText, onClose }: DocScannerProps) => {
               />
               <span className="text-[10px] text-muted-foreground w-8 text-right">{currentPage?.contrast ?? 100}%</span>
             </div>
-          </div>
+            </div>
+
+            {/* Apply to all pages */}
+            {pages.length > 1 && (
+              <div className="flex items-center gap-1 pb-1">
+                <CopyCheck className="h-3 w-3 text-muted-foreground shrink-0" />
+                <span className="text-[10px] text-muted-foreground mr-1">Tutte:</span>
+                <Button variant="outline" size="sm" className="h-5 text-[10px] px-1.5" onClick={autoEnhanceAll}>
+                  Auto
+                </Button>
+                <Button variant="outline" size="sm" className="h-5 text-[10px] px-1.5" onClick={colorDocPresetAll}>
+                  Colori
+                </Button>
+                <Button variant="outline" size="sm" className="h-5 text-[10px] px-1.5" onClick={scanToGrayscaleAll}>
+                  B/N
+                </Button>
+              </div>
+            )}
 
           {/* Image preview */}
           <div className="relative">
