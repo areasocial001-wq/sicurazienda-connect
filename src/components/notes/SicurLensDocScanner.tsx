@@ -28,6 +28,8 @@ interface ScannedPage {
 const SicurLensDocScanner = ({ onInsertText, onClose }: DocScannerProps) => {
   const [pages, setPages] = useState<ScannedPage[]>([]);
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
