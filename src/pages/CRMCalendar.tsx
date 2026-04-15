@@ -612,6 +612,13 @@ export default function CRMCalendar() {
         onUpdate={updateEvent}
         onDelete={deleteEvent}
       />
+
+      <ICSImportDialog
+        open={icsImportOpen}
+        onOpenChange={setIcsImportOpen}
+        userId={user.id}
+        onImported={fetchEvents}
+      />
     </div>
   );
 }
