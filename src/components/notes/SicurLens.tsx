@@ -273,7 +273,7 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
           </DialogTitle>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v as any); if (v !== "qr") stopQrScanner(); }} className="flex-1 flex flex-col overflow-hidden">
+        <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v as any); if (v !== "qr") cleanupScanner(); }} className="flex-1 flex flex-col overflow-hidden">
           <TabsList className="mx-4 grid grid-cols-2">
             <TabsTrigger value="qr" className="gap-1.5">
               <QrCode className="h-3.5 w-3.5" /> QR Scanner
