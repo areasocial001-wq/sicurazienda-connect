@@ -237,7 +237,7 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[85vh] flex flex-col p-0 gap-0">
+      <DialogContent className="max-w-lg w-[95vw] max-h-[90vh] sm:max-h-[85vh] flex flex-col p-0 gap-0 overflow-hidden">
         <DialogHeader className="px-4 pt-4 pb-2">
           <DialogTitle className="flex items-center gap-2 text-lg">
             <ScanLine className="h-5 w-5 text-primary" />
@@ -245,7 +245,7 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
           </DialogTitle>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v as any); if (v !== "qr") stopQrScanner(); }} className="flex-1 flex flex-col min-h-0">
+        <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v as any); if (v !== "qr") stopQrScanner(); }} className="flex-1 flex flex-col overflow-hidden">
           <TabsList className="mx-4 grid grid-cols-2">
             <TabsTrigger value="qr" className="gap-1.5">
               <QrCode className="h-3.5 w-3.5" /> QR Scanner
@@ -256,8 +256,8 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
           </TabsList>
 
           {/* ── QR Tab ───────────────────────────── */}
-          <TabsContent value="qr" className="flex-1 flex flex-col min-h-0 px-4 pb-4">
-            <div className="flex-1 flex flex-col items-center gap-3">
+          <TabsContent value="qr" className="flex-1 flex flex-col overflow-y-auto px-4 pb-4">
+            <div className="flex flex-col items-center gap-3">
               <div
                 id="qr-reader"
                 className="w-full max-w-[300px] aspect-square bg-muted rounded-lg overflow-hidden relative"
@@ -307,7 +307,7 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
           </TabsContent>
 
           {/* ── Lens Tab ──────────────────────────── */}
-          <TabsContent value="lens" className="flex-1 flex flex-col min-h-0 px-4 pb-4 gap-3">
+          <TabsContent value="lens" className="flex-1 flex flex-col overflow-y-auto px-4 pb-4 gap-3">
             {/* Mode selector — 2 rows of 3 */}
             <div className="grid grid-cols-3 gap-1.5">
               {(Object.entries(MODE_CONFIG) as [LensMode, typeof MODE_CONFIG["ocr"]][]).map(([key, cfg]) => (
@@ -379,7 +379,7 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
 
                 {/* Result */}
                 {hasResult && (
-                  <div className="flex-1 min-h-0 flex flex-col gap-2">
+                  <div className="flex flex-col gap-2">
                     <ScrollArea className="flex-1 max-h-48 border rounded-lg p-3">
                       {businessCard ? (
                         renderBusinessCardResult()
