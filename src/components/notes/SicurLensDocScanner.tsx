@@ -170,9 +170,37 @@ const SicurLensDocScanner = ({ onInsertText, onClose }: DocScannerProps) => {
     setDragOverIndex(null);
   };
 
-  // Apply preset to ALL pages
+  // Apply preset to ALL pages (also regenerate enhanced images)
   const applyPresetToAll = (updates: Partial<ScannedPage>) => {
-    setPages((prev) => prev.map((p) => ({ ...p, ...updates })));
+    setPages((prev) => {
+      const updated = prev.map((p) => ({ ...p, ...updates, enhanced: null }));
+      // Schedule canvas re-render for all pages
+      updated.forEach((page, idx) => {
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+        const img = new window.Image();
+        img.onload = () => {
+          const b = page.brightness;
+          const c = page.contrast;
+          const r = page.rotation;
+          const g = page.grayscale;
+          const isRotated = r === 90 || r === 270;
+          canvas.width = isRotated ? img.height : img.width;
+          canvas.height = isRotated ? img.width : img.height;
+          ctx.save();
+          ctx.translate(canvas.width / 2, canvas.height / 2);
+          ctx.rotate((r * Math.PI) / 180);
+          ctx.filter = `brightness(${b}%) contrast(${c}%)${g ? " grayscale(100%)" : ""}`;
+          ctx.drawImage(img, -img.width / 2, -img.height / 2);
+          ctx.restore();
+          const enhanced = canvas.toDataURL("image/jpeg", 0.92);
+          setPages((p) => p.map((pg, i) => (i === idx ? { ...pg, enhanced } : pg)));
+        };
+        img.src = page.original;
+      });
+      return updated;
+    });
   };
 
   const autoEnhanceAll = () => {
