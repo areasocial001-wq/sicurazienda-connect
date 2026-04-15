@@ -50,7 +50,7 @@ interface DisplayEvent {
 export default function CRMCalendar() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
-  const { events: calendarEvents, loading, createEvent, updateEvent, deleteEvent } = useCalendarEvents(user?.id);
+  const { events: calendarEvents, loading, createEvent, updateEvent, deleteEvent, fetchEvents } = useCalendarEvents(user?.id);
   const { reminders } = useReminders();
 
   const [calendarView, setCalendarView] = useState<CalendarView>('month');
