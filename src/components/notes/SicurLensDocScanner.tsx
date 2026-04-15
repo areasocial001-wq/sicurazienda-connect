@@ -523,16 +523,19 @@ const SicurLensDocScanner = ({ onInsertText, onClose }: DocScannerProps) => {
             />
           </div>
 
-          {/* Primary action */}
-          <Button onClick={generatePDF} className="w-full">
-            <Download className="h-4 w-4 mr-2" />
-            Genera PDF {pages.length > 1 ? `(${pages.length} pagine)` : ""}
+          {/* Primary action - Preview */}
+          <Button onClick={() => generatePDF(false)} className="w-full">
+            <Eye className="h-4 w-4 mr-2" />
+            Anteprima PDF {pages.length > 1 ? `(${pages.length} pagine)` : ""}
           </Button>
 
           {/* Secondary actions */}
           <div className="flex gap-2">
+            <Button size="sm" variant="outline" className="flex-1" onClick={() => generatePDF(true)}>
+              <Download className="h-3.5 w-3.5 mr-1" /> Scarica PDF
+            </Button>
             <Button size="sm" variant="outline" className="flex-1" onClick={handleInsertImage}>
-              <ImageIcon className="h-3.5 w-3.5 mr-1" /> Inserisci nella nota
+              <ImageIcon className="h-3.5 w-3.5 mr-1" /> Nella nota
             </Button>
             <Button size="sm" variant="outline" onClick={shareDocument}>
               <Share2 className="h-3.5 w-3.5 mr-1" /> Condividi
@@ -541,8 +544,34 @@ const SicurLensDocScanner = ({ onInsertText, onClose }: DocScannerProps) => {
         </>
       )}
 
+      {/* PDF Preview Dialog */}
+      <Dialog open={pdfPreviewOpen} onOpenChange={(open) => { if (!open) closePdfPreview(); }}>
+        <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="text-sm">Anteprima PDF</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 min-h-0">
+            {pdfPreviewUrl && (
+              <iframe
+                src={pdfPreviewUrl}
+                className="w-full h-[65vh] rounded-lg border border-border"
+                title="Anteprima PDF"
+              />
+            )}
+          </div>
+          <div className="flex gap-2 justify-end pt-2">
+            <Button variant="outline" size="sm" onClick={closePdfPreview}>
+              Chiudi
+            </Button>
+            <Button size="sm" onClick={handleDownloadFromPreview}>
+              <Download className="h-3.5 w-3.5 mr-1" /> Scarica PDF
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <canvas ref={canvasRef} className="hidden" />
-      <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageCapture} />
+      <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleImageCapture} />
       <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleImageCapture} />
     </div>
   );
