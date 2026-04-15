@@ -21,6 +21,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useCalendarEvents, CalendarEvent } from '@/hooks/useCalendarEvents';
 import { CalendarEventDialog } from '@/components/calendar/CalendarEventDialog';
+import { ICSImportDialog } from '@/components/calendar/ICSImportDialog';
 import { useReminders } from '@/hooks/useReminders';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
