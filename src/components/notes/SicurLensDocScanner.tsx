@@ -437,6 +437,8 @@ const SicurLensDocScanner = ({ onInsertText, onClose }: DocScannerProps) => {
               />
               <span className="text-[10px] text-muted-foreground w-8 text-right">{currentPage?.contrast ?? 100}%</span>
             </div>
+          </div>
+
           {/* Image preview */}
           <div className="relative">
             <img
