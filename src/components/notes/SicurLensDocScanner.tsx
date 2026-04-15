@@ -7,9 +7,15 @@ import {
   Camera, Upload, X, Plus, GripVertical,
   ScanLine, FileText, Image as ImageIcon, Download,
   Share2, RotateCw, Sun, Contrast, Wand2, Palette,
-  Trash2, ChevronLeft, ChevronRight, CopyCheck,
+  Trash2, ChevronLeft, ChevronRight, CopyCheck, Eye,
 } from "lucide-react";
 import jsPDF from "jspdf";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface DocScannerProps {
   onInsertText: (html: string) => void;
@@ -30,6 +36,9 @@ const SicurLensDocScanner = ({ onInsertText, onClose }: DocScannerProps) => {
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null);
+  const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
+  const [pendingPdf, setPendingPdf] = useState<jsPDF | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
