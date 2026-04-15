@@ -518,6 +518,9 @@ export default function CRMCalendar() {
                 </TabsTrigger>
               </TabsList>
             </Tabs>
+            <Button size="sm" variant="outline" onClick={() => setIcsImportOpen(true)}>
+              <Upload className="h-4 w-4 mr-1" /> Importa ICS
+            </Button>
             <Button size="sm" onClick={() => openNewEvent()}>
               <Plus className="h-4 w-4 mr-1" /> Evento
             </Button>
