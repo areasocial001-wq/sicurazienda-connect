@@ -7,9 +7,15 @@ import {
   Camera, Upload, X, Plus, GripVertical,
   ScanLine, FileText, Image as ImageIcon, Download,
   Share2, RotateCw, Sun, Contrast, Wand2, Palette,
-  Trash2, ChevronLeft, ChevronRight, CopyCheck,
+  Trash2, ChevronLeft, ChevronRight, CopyCheck, Eye,
 } from "lucide-react";
 import jsPDF from "jspdf";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface DocScannerProps {
   onInsertText: (html: string) => void;
@@ -30,6 +36,9 @@ const SicurLensDocScanner = ({ onInsertText, onClose }: DocScannerProps) => {
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null);
+  const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
+  const [pendingPdf, setPendingPdf] = useState<jsPDF | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -38,22 +47,38 @@ const SicurLensDocScanner = ({ onInsertText, onClose }: DocScannerProps) => {
   const currentPage = pages[currentPageIndex] || null;
 
   const handleImageCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const newPage: ScannedPage = {
-        original: reader.result as string,
-        enhanced: null,
-        brightness: 100,
-        contrast: 100,
-        rotation: 0,
-        grayscale: false,
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const fileArray = Array.from(files);
+    let loaded = 0;
+    const newPages: ScannedPage[] = [];
+
+    fileArray.forEach((file, i) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        newPages[i] = {
+          original: reader.result as string,
+          enhanced: null,
+          brightness: 100,
+          contrast: 100,
+          rotation: 0,
+          grayscale: false,
+        };
+        loaded++;
+        if (loaded === fileArray.length) {
+          setPages((prev) => {
+            const updated = [...prev, ...newPages];
+            setCurrentPageIndex(updated.length - 1);
+            return updated;
+          });
+          if (fileArray.length > 1) {
+            toast.success(`${fileArray.length} immagini aggiunte`);
+          }
+        }
       };
-      setPages((prev) => [...prev, newPage]);
-      setCurrentPageIndex(pages.length); // go to the new page
-    };
-    reader.readAsDataURL(file);
+      reader.readAsDataURL(file);
+    });
     e.target.value = "";
   };
 
@@ -218,14 +243,13 @@ const SicurLensDocScanner = ({ onInsertText, onClose }: DocScannerProps) => {
     toast.success("Documento a colori applicato a tutte le pagine");
   };
 
-  // Generate multi-page PDF
-  const generatePDF = () => {
+  // Generate multi-page PDF (preview mode)
+  const generatePDF = (downloadDirectly = false) => {
     if (pages.length === 0) return;
 
     let processed = 0;
     const imageElements: { img: HTMLImageElement; data: string }[] = [];
 
-    // Load all images first, then generate PDF
     pages.forEach((page, idx) => {
       const imgData = page.enhanced || page.original;
       const img = new window.Image();
@@ -233,14 +257,14 @@ const SicurLensDocScanner = ({ onInsertText, onClose }: DocScannerProps) => {
         imageElements[idx] = { img, data: imgData };
         processed++;
         if (processed === pages.length) {
-          buildPDF(imageElements);
+          buildPDF(imageElements, downloadDirectly);
         }
       };
       img.src = imgData;
     });
   };
 
-  const buildPDF = (imageElements: { img: HTMLImageElement; data: string }[]) => {
+  const buildPDF = (imageElements: { img: HTMLImageElement; data: string }[], downloadDirectly: boolean) => {
     const first = imageElements[0];
     const orientation = first.img.width > first.img.height ? "landscape" : "portrait";
     const pdf = new jsPDF({ orientation, unit: "mm", format: "a4" });
@@ -275,8 +299,31 @@ const SicurLensDocScanner = ({ onInsertText, onClose }: DocScannerProps) => {
       pdf.addImage(data, "JPEG", x, y, drawW, drawH);
     });
 
-    pdf.save(`scansione_${new Date().toISOString().slice(0, 10)}_${Date.now()}.pdf`);
-    toast.success(`PDF generato con ${pages.length} pagin${pages.length === 1 ? "a" : "e"}`);
+    if (downloadDirectly) {
+      pdf.save(`scansione_${new Date().toISOString().slice(0, 10)}_${Date.now()}.pdf`);
+      toast.success(`PDF generato con ${pages.length} pagin${pages.length === 1 ? "a" : "e"}`);
+    } else {
+      // Show preview
+      const blobUrl = pdf.output("bloburl") as unknown as string;
+      setPendingPdf(pdf);
+      setPdfPreviewUrl(blobUrl);
+      setPdfPreviewOpen(true);
+    }
+  };
+
+  const handleDownloadFromPreview = () => {
+    if (pendingPdf) {
+      pendingPdf.save(`scansione_${new Date().toISOString().slice(0, 10)}_${Date.now()}.pdf`);
+      toast.success(`PDF generato con ${pages.length} pagin${pages.length === 1 ? "a" : "e"}`);
+    }
+    closePdfPreview();
+  };
+
+  const closePdfPreview = () => {
+    if (pdfPreviewUrl) URL.revokeObjectURL(pdfPreviewUrl);
+    setPdfPreviewUrl(null);
+    setPdfPreviewOpen(false);
+    setPendingPdf(null);
   };
 
   // Share current page
@@ -476,16 +523,19 @@ const SicurLensDocScanner = ({ onInsertText, onClose }: DocScannerProps) => {
             />
           </div>
 
-          {/* Primary action */}
-          <Button onClick={generatePDF} className="w-full">
-            <Download className="h-4 w-4 mr-2" />
-            Genera PDF {pages.length > 1 ? `(${pages.length} pagine)` : ""}
+          {/* Primary action - Preview */}
+          <Button onClick={() => generatePDF(false)} className="w-full">
+            <Eye className="h-4 w-4 mr-2" />
+            Anteprima PDF {pages.length > 1 ? `(${pages.length} pagine)` : ""}
           </Button>
 
           {/* Secondary actions */}
           <div className="flex gap-2">
+            <Button size="sm" variant="outline" className="flex-1" onClick={() => generatePDF(true)}>
+              <Download className="h-3.5 w-3.5 mr-1" /> Scarica PDF
+            </Button>
             <Button size="sm" variant="outline" className="flex-1" onClick={handleInsertImage}>
-              <ImageIcon className="h-3.5 w-3.5 mr-1" /> Inserisci nella nota
+              <ImageIcon className="h-3.5 w-3.5 mr-1" /> Nella nota
             </Button>
             <Button size="sm" variant="outline" onClick={shareDocument}>
               <Share2 className="h-3.5 w-3.5 mr-1" /> Condividi
@@ -494,8 +544,34 @@ const SicurLensDocScanner = ({ onInsertText, onClose }: DocScannerProps) => {
         </>
       )}
 
+      {/* PDF Preview Dialog */}
+      <Dialog open={pdfPreviewOpen} onOpenChange={(open) => { if (!open) closePdfPreview(); }}>
+        <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="text-sm">Anteprima PDF</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 min-h-0">
+            {pdfPreviewUrl && (
+              <iframe
+                src={pdfPreviewUrl}
+                className="w-full h-[65vh] rounded-lg border border-border"
+                title="Anteprima PDF"
+              />
+            )}
+          </div>
+          <div className="flex gap-2 justify-end pt-2">
+            <Button variant="outline" size="sm" onClick={closePdfPreview}>
+              Chiudi
+            </Button>
+            <Button size="sm" onClick={handleDownloadFromPreview}>
+              <Download className="h-3.5 w-3.5 mr-1" /> Scarica PDF
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <canvas ref={canvasRef} className="hidden" />
-      <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageCapture} />
+      <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleImageCapture} />
       <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleImageCapture} />
     </div>
   );
