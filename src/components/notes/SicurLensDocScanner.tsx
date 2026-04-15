@@ -4,10 +4,10 @@ import { Slider } from "@/components/ui/slider";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import {
-  Camera, Upload, X, Plus,
+  Camera, Upload, X, Plus, GripVertical,
   ScanLine, FileText, Image as ImageIcon, Download,
   Share2, RotateCw, Sun, Contrast, Wand2, Palette,
-  Trash2, ChevronLeft, ChevronRight,
+  Trash2, ChevronLeft, ChevronRight, CopyCheck,
 } from "lucide-react";
 import jsPDF from "jspdf";
 
@@ -28,6 +28,8 @@ interface ScannedPage {
 const SicurLensDocScanner = ({ onInsertText, onClose }: DocScannerProps) => {
   const [pages, setPages] = useState<ScannedPage[]>([]);
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -127,6 +129,93 @@ const SicurLensDocScanner = ({ onInsertText, onClose }: DocScannerProps) => {
   const removePage = () => {
     setPages((prev) => prev.filter((_, i) => i !== currentPageIndex));
     setCurrentPageIndex((prev) => Math.max(0, prev - 1));
+  };
+
+  // Drag-and-drop reorder
+  const handleDragStart = (idx: number) => {
+    setDragIndex(idx);
+  };
+
+  const handleDragOver = (e: React.DragEvent, idx: number) => {
+    e.preventDefault();
+    setDragOverIndex(idx);
+  };
+
+  const handleDrop = (idx: number) => {
+    if (dragIndex === null || dragIndex === idx) {
+      setDragIndex(null);
+      setDragOverIndex(null);
+      return;
+    }
+    setPages((prev) => {
+      const updated = [...prev];
+      const [moved] = updated.splice(dragIndex, 1);
+      updated.splice(idx, 0, moved);
+      return updated;
+    });
+    // Update currentPageIndex to follow the dragged page
+    if (currentPageIndex === dragIndex) {
+      setCurrentPageIndex(idx);
+    } else if (dragIndex < currentPageIndex && idx >= currentPageIndex) {
+      setCurrentPageIndex((prev) => prev - 1);
+    } else if (dragIndex > currentPageIndex && idx <= currentPageIndex) {
+      setCurrentPageIndex((prev) => prev + 1);
+    }
+    setDragIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDragEnd = () => {
+    setDragIndex(null);
+    setDragOverIndex(null);
+  };
+
+  // Apply preset to ALL pages (also regenerate enhanced images)
+  const applyPresetToAll = (updates: Partial<ScannedPage>) => {
+    setPages((prev) => {
+      const updated = prev.map((p) => ({ ...p, ...updates, enhanced: null }));
+      // Schedule canvas re-render for all pages
+      updated.forEach((page, idx) => {
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+        const img = new window.Image();
+        img.onload = () => {
+          const b = page.brightness;
+          const c = page.contrast;
+          const r = page.rotation;
+          const g = page.grayscale;
+          const isRotated = r === 90 || r === 270;
+          canvas.width = isRotated ? img.height : img.width;
+          canvas.height = isRotated ? img.width : img.height;
+          ctx.save();
+          ctx.translate(canvas.width / 2, canvas.height / 2);
+          ctx.rotate((r * Math.PI) / 180);
+          ctx.filter = `brightness(${b}%) contrast(${c}%)${g ? " grayscale(100%)" : ""}`;
+          ctx.drawImage(img, -img.width / 2, -img.height / 2);
+          ctx.restore();
+          const enhanced = canvas.toDataURL("image/jpeg", 0.92);
+          setPages((p) => p.map((pg, i) => (i === idx ? { ...pg, enhanced } : pg)));
+        };
+        img.src = page.original;
+      });
+      return updated;
+    });
+  };
+
+  const autoEnhanceAll = () => {
+    applyPresetToAll({ brightness: 110, contrast: 130, grayscale: false });
+    toast.success("Miglioramento applicato a tutte le pagine");
+  };
+
+  const scanToGrayscaleAll = () => {
+    applyPresetToAll({ brightness: 105, contrast: 150, grayscale: true });
+    toast.success("Scanner B/N applicato a tutte le pagine");
+  };
+
+  const colorDocPresetAll = () => {
+    applyPresetToAll({ brightness: 108, contrast: 120, grayscale: false });
+    toast.success("Documento a colori applicato a tutte le pagine");
   };
 
   // Generate multi-page PDF
@@ -285,26 +374,37 @@ const SicurLensDocScanner = ({ onInsertText, onClose }: DocScannerProps) => {
             </div>
           </div>
 
-          {/* Thumbnails */}
+          {/* Thumbnails with drag-and-drop reorder */}
           {pages.length > 1 && (
             <ScrollArea className="w-full">
               <div className="flex gap-1.5 pb-1">
                 {pages.map((p, idx) => (
-                  <button
+                  <div
                     key={idx}
+                    draggable
+                    onDragStart={() => handleDragStart(idx)}
+                    onDragOver={(e) => handleDragOver(e, idx)}
+                    onDrop={() => handleDrop(idx)}
+                    onDragEnd={handleDragEnd}
                     onClick={() => setCurrentPageIndex(idx)}
-                    className={`shrink-0 rounded border-2 overflow-hidden transition-colors ${
-                      idx === currentPageIndex ? "border-primary" : "border-transparent hover:border-muted-foreground/30"
-                    }`}
+                    className={`shrink-0 rounded border-2 overflow-hidden transition-all cursor-grab active:cursor-grabbing flex flex-col items-center ${
+                      idx === currentPageIndex
+                        ? "border-primary"
+                        : dragOverIndex === idx
+                        ? "border-primary/50 scale-105"
+                        : "border-transparent hover:border-muted-foreground/30"
+                    } ${dragIndex === idx ? "opacity-40" : ""}`}
                   >
                     <img
                       src={p.enhanced || p.original}
                       alt={`Pagina ${idx + 1}`}
-                      className="h-12 w-9 object-cover"
+                      className="h-12 w-9 object-cover pointer-events-none"
                     />
-                  </button>
+                    <span className="text-[9px] text-muted-foreground">{idx + 1}</span>
+                  </div>
                 ))}
               </div>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Trascina per riordinare</p>
             </ScrollArea>
           )}
 
@@ -327,6 +427,24 @@ const SicurLensDocScanner = ({ onInsertText, onClose }: DocScannerProps) => {
                 </Button>
               </div>
             </div>
+
+            {/* Apply to all pages */}
+            {pages.length > 1 && (
+              <div className="flex items-center gap-1 pb-1">
+                <CopyCheck className="h-3 w-3 text-muted-foreground shrink-0" />
+                <span className="text-[10px] text-muted-foreground mr-1">Tutte:</span>
+                <Button variant="outline" size="sm" className="h-5 text-[10px] px-1.5" onClick={autoEnhanceAll}>
+                  Auto
+                </Button>
+                <Button variant="outline" size="sm" className="h-5 text-[10px] px-1.5" onClick={colorDocPresetAll}>
+                  Colori
+                </Button>
+                <Button variant="outline" size="sm" className="h-5 text-[10px] px-1.5" onClick={scanToGrayscaleAll}>
+                  B/N
+                </Button>
+              </div>
+            )}
+
             <div className="flex items-center gap-2">
               <Sun className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
               <Slider
