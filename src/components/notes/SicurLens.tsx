@@ -321,7 +321,7 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
               ) : (
                 <div className="flex gap-2">
                   {isScanning ? (
-                    <Button variant="destructive" size="sm" onClick={stopQrScanner}>
+                    <Button variant="destructive" size="sm" onClick={cleanupScanner}>
                       <X className="h-3.5 w-3.5 mr-1" /> Ferma
                     </Button>
                   ) : (
