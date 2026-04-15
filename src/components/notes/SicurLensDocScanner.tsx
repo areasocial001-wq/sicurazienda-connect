@@ -47,22 +47,38 @@ const SicurLensDocScanner = ({ onInsertText, onClose }: DocScannerProps) => {
   const currentPage = pages[currentPageIndex] || null;
 
   const handleImageCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const newPage: ScannedPage = {
-        original: reader.result as string,
-        enhanced: null,
-        brightness: 100,
-        contrast: 100,
-        rotation: 0,
-        grayscale: false,
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const fileArray = Array.from(files);
+    let loaded = 0;
+    const newPages: ScannedPage[] = [];
+
+    fileArray.forEach((file, i) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        newPages[i] = {
+          original: reader.result as string,
+          enhanced: null,
+          brightness: 100,
+          contrast: 100,
+          rotation: 0,
+          grayscale: false,
+        };
+        loaded++;
+        if (loaded === fileArray.length) {
+          setPages((prev) => {
+            const updated = [...prev, ...newPages];
+            setCurrentPageIndex(updated.length - 1);
+            return updated;
+          });
+          if (fileArray.length > 1) {
+            toast.success(`${fileArray.length} immagini aggiunte`);
+          }
+        }
       };
-      setPages((prev) => [...prev, newPage]);
-      setCurrentPageIndex(pages.length); // go to the new page
-    };
-    reader.readAsDataURL(file);
+      reader.readAsDataURL(file);
+    });
     e.target.value = "";
   };
 
