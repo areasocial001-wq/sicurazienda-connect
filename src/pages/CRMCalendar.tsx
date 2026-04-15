@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import {
-  Calendar as CalendarIcon, Loader2, Plus,
+  Calendar as CalendarIcon, Loader2, Plus, Upload,
   LayoutGrid, CalendarDays, List, Clock,
   MapPin, Users, Share2, ChevronLeft, ChevronRight,
 } from 'lucide-react';
@@ -21,6 +21,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useCalendarEvents, CalendarEvent } from '@/hooks/useCalendarEvents';
 import { CalendarEventDialog } from '@/components/calendar/CalendarEventDialog';
+import { ICSImportDialog } from '@/components/calendar/ICSImportDialog';
 import { useReminders } from '@/hooks/useReminders';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
@@ -49,7 +50,7 @@ interface DisplayEvent {
 export default function CRMCalendar() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
-  const { events: calendarEvents, loading, createEvent, updateEvent, deleteEvent } = useCalendarEvents(user?.id);
+  const { events: calendarEvents, loading, createEvent, updateEvent, deleteEvent, fetchEvents } = useCalendarEvents(user?.id);
   const { reminders } = useReminders();
 
   const [calendarView, setCalendarView] = useState<CalendarView>('month');
@@ -58,6 +59,7 @@ export default function CRMCalendar() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
   const [dialogDefaultDate, setDialogDefaultDate] = useState<Date>(new Date());
+  const [icsImportOpen, setIcsImportOpen] = useState(false);
 
   // System data
   const [contacts, setContacts] = useState<any[]>([]);
@@ -516,6 +518,9 @@ export default function CRMCalendar() {
                 </TabsTrigger>
               </TabsList>
             </Tabs>
+            <Button size="sm" variant="outline" onClick={() => setIcsImportOpen(true)}>
+              <Upload className="h-4 w-4 mr-1" /> Importa ICS
+            </Button>
             <Button size="sm" onClick={() => openNewEvent()}>
               <Plus className="h-4 w-4 mr-1" /> Evento
             </Button>
@@ -606,6 +611,13 @@ export default function CRMCalendar() {
         onSave={createEvent}
         onUpdate={updateEvent}
         onDelete={deleteEvent}
+      />
+
+      <ICSImportDialog
+        open={icsImportOpen}
+        onOpenChange={setIcsImportOpen}
+        userId={user.id}
+        onImported={fetchEvents}
       />
     </div>
   );
