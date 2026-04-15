@@ -237,7 +237,7 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[85vh] flex flex-col p-0 gap-0">
+      <DialogContent className="max-w-lg w-[95vw] max-h-[90vh] sm:max-h-[85vh] flex flex-col p-0 gap-0 overflow-hidden">
         <DialogHeader className="px-4 pt-4 pb-2">
           <DialogTitle className="flex items-center gap-2 text-lg">
             <ScanLine className="h-5 w-5 text-primary" />
