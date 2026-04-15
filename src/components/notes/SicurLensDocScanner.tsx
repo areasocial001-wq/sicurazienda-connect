@@ -1,11 +1,13 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import {
-  Camera, Upload, X,
+  Camera, Upload, X, Plus,
   ScanLine, FileText, Image as ImageIcon, Download,
-  Share2, RotateCw, Sun, Contrast, Wand2,
+  Share2, RotateCw, Sun, Contrast, Wand2, Palette,
+  Trash2, ChevronLeft, ChevronRight,
 } from "lucide-react";
 import jsPDF from "jspdf";
 
@@ -14,44 +16,53 @@ interface DocScannerProps {
   onClose: () => void;
 }
 
-const SicurLensDocScanner = ({ onInsertText, onClose }: DocScannerProps) => {
-  const [capturedImage, setCapturedImage] = useState<string | null>(null);
-  const [enhancedImage, setEnhancedImage] = useState<string | null>(null);
-  const [pdfGenerated, setPdfGenerated] = useState(false);
+interface ScannedPage {
+  original: string;
+  enhanced: string | null;
+  brightness: number;
+  contrast: number;
+  rotation: number;
+  grayscale: boolean;
+}
 
-  // Enhancement controls
-  const [brightness, setBrightness] = useState(100);
-  const [contrast, setContrast] = useState(100);
-  const [rotation, setRotation] = useState(0);
-  const [grayscale, setGrayscale] = useState(false);
+const SicurLensDocScanner = ({ onInsertText, onClose }: DocScannerProps) => {
+  const [pages, setPages] = useState<ScannedPage[]>([]);
+  const [currentPageIndex, setCurrentPageIndex] = useState(0);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  const currentPage = pages[currentPageIndex] || null;
 
   const handleImageCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () => {
-      setCapturedImage(reader.result as string);
-      setEnhancedImage(null);
-      setPdfGenerated(false);
-      setBrightness(100);
-      setContrast(100);
-      setRotation(0);
-      setGrayscale(false);
+      const newPage: ScannedPage = {
+        original: reader.result as string,
+        enhanced: null,
+        brightness: 100,
+        contrast: 100,
+        rotation: 0,
+        grayscale: false,
+      };
+      setPages((prev) => [...prev, newPage]);
+      setCurrentPageIndex(pages.length); // go to the new page
     };
     reader.readAsDataURL(file);
     e.target.value = "";
   };
 
-  // Apply enhancements via canvas
+  // Apply enhancements via canvas for current page
   const applyEnhancements = useCallback(() => {
-    if (!capturedImage || !canvasRef.current) return;
+    if (!currentPage || !canvasRef.current) return;
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
+
+    const { original, brightness, contrast, rotation, grayscale } = currentPage;
 
     const img = new window.Image();
     img.onload = () => {
@@ -66,93 +77,122 @@ const SicurLensDocScanner = ({ onInsertText, onClose }: DocScannerProps) => {
       ctx.drawImage(img, -img.width / 2, -img.height / 2);
       ctx.restore();
 
-      setEnhancedImage(canvas.toDataURL("image/jpeg", 0.92));
+      const enhanced = canvas.toDataURL("image/jpeg", 0.92);
+      setPages((prev) =>
+        prev.map((p, i) => (i === currentPageIndex ? { ...p, enhanced } : p))
+      );
     };
-    img.src = capturedImage;
-  }, [capturedImage, brightness, contrast, rotation, grayscale]);
+    img.src = original;
+  }, [currentPage, currentPageIndex]);
 
   useEffect(() => {
-    if (capturedImage) applyEnhancements();
-  }, [capturedImage, brightness, contrast, rotation, grayscale, applyEnhancements]);
+    if (currentPage) applyEnhancements();
+  }, [
+    currentPage?.brightness,
+    currentPage?.contrast,
+    currentPage?.rotation,
+    currentPage?.grayscale,
+    currentPage?.original,
+    applyEnhancements,
+  ]);
 
+  // Update current page property
+  const updateCurrentPage = (updates: Partial<ScannedPage>) => {
+    setPages((prev) =>
+      prev.map((p, i) => (i === currentPageIndex ? { ...p, ...updates } : p))
+    );
+  };
+
+  // Presets
   const autoEnhance = () => {
-    setBrightness(110);
-    setContrast(130);
-    setGrayscale(false);
+    updateCurrentPage({ brightness: 110, contrast: 130, grayscale: false });
     toast.success("Miglioramento automatico applicato");
   };
 
   const scanToGrayscale = () => {
-    setBrightness(105);
-    setContrast(150);
-    setGrayscale(true);
+    updateCurrentPage({ brightness: 105, contrast: 150, grayscale: true });
     toast.success("Modalità scanner B/N applicata");
   };
 
-  // Generate and download clean PDF from enhanced image
+  const colorDocPreset = () => {
+    updateCurrentPage({ brightness: 108, contrast: 120, grayscale: false });
+    toast.success("Preset documento a colori applicato");
+  };
+
+  const rotatePage = () => {
+    if (!currentPage) return;
+    updateCurrentPage({ rotation: (currentPage.rotation + 90) % 360 });
+  };
+
+  const removePage = () => {
+    setPages((prev) => prev.filter((_, i) => i !== currentPageIndex));
+    setCurrentPageIndex((prev) => Math.max(0, prev - 1));
+  };
+
+  // Generate multi-page PDF
   const generatePDF = () => {
-    const imageToUse = enhancedImage || capturedImage;
-    if (!imageToUse) return;
+    if (pages.length === 0) return;
 
-    const img = new window.Image();
-    img.onload = () => {
-      // A4 dimensions in mm
-      const a4Width = 210;
-      const a4Height = 297;
-      const margin = 10;
-      const usableWidth = a4Width - margin * 2;
-      const usableHeight = a4Height - margin * 2;
+    let processed = 0;
+    const imageElements: { img: HTMLImageElement; data: string }[] = [];
 
-      const imgRatio = img.width / img.height;
-      const usableRatio = usableWidth / usableHeight;
+    // Load all images first, then generate PDF
+    pages.forEach((page, idx) => {
+      const imgData = page.enhanced || page.original;
+      const img = new window.Image();
+      img.onload = () => {
+        imageElements[idx] = { img, data: imgData };
+        processed++;
+        if (processed === pages.length) {
+          buildPDF(imageElements);
+        }
+      };
+      img.src = imgData;
+    });
+  };
 
-      let drawWidth: number;
-      let drawHeight: number;
+  const buildPDF = (imageElements: { img: HTMLImageElement; data: string }[]) => {
+    const first = imageElements[0];
+    const orientation = first.img.width > first.img.height ? "landscape" : "portrait";
+    const pdf = new jsPDF({ orientation, unit: "mm", format: "a4" });
 
-      if (imgRatio > usableRatio) {
-        // Image wider than usable area
-        drawWidth = usableWidth;
-        drawHeight = usableWidth / imgRatio;
-      } else {
-        // Image taller than usable area
-        drawHeight = usableHeight;
-        drawWidth = usableHeight * imgRatio;
+    imageElements.forEach(({ img, data }, idx) => {
+      if (idx > 0) {
+        const orient = img.width > img.height ? "landscape" : "portrait";
+        pdf.addPage("a4", orient);
       }
-
-      const orientation = img.width > img.height ? "landscape" : "portrait";
-      const pdf = new jsPDF({ orientation, unit: "mm", format: "a4" });
 
       const pageW = pdf.internal.pageSize.getWidth();
       const pageH = pdf.internal.pageSize.getHeight();
+      const margin = 8;
+      const effW = pageW - margin * 2;
+      const effH = pageH - margin * 2;
+      const imgRatio = img.width / img.height;
 
-      // Recalculate for actual page orientation
-      const effUsableW = pageW - margin * 2;
-      const effUsableH = pageH - margin * 2;
+      let drawW: number;
+      let drawH: number;
 
-      if (imgRatio > effUsableW / effUsableH) {
-        drawWidth = effUsableW;
-        drawHeight = effUsableW / imgRatio;
+      if (imgRatio > effW / effH) {
+        drawW = effW;
+        drawH = effW / imgRatio;
       } else {
-        drawHeight = effUsableH;
-        drawWidth = effUsableH * imgRatio;
+        drawH = effH;
+        drawW = effH * imgRatio;
       }
 
-      // Center the image
-      const x = (pageW - drawWidth) / 2;
-      const y = (pageH - drawHeight) / 2;
+      const x = (pageW - drawW) / 2;
+      const y = (pageH - drawH) / 2;
 
-      pdf.addImage(imageToUse, "JPEG", x, y, drawWidth, drawHeight);
-      pdf.save(`scansione_${new Date().toISOString().slice(0, 10)}_${Date.now()}.pdf`);
+      pdf.addImage(data, "JPEG", x, y, drawW, drawH);
+    });
 
-      setPdfGenerated(true);
-      toast.success("PDF generato e scaricato");
-    };
-    img.src = imageToUse;
+    pdf.save(`scansione_${new Date().toISOString().slice(0, 10)}_${Date.now()}.pdf`);
+    toast.success(`PDF generato con ${pages.length} pagin${pages.length === 1 ? "a" : "e"}`);
   };
 
-  // Share via Web Share API
+  // Share current page
   const shareDocument = async () => {
-    const imageToUse = enhancedImage || capturedImage;
+    const imageToUse = currentPage?.enhanced || currentPage?.original;
     if (!imageToUse) return;
 
     try {
@@ -178,25 +218,30 @@ const SicurLensDocScanner = ({ onInsertText, onClose }: DocScannerProps) => {
   };
 
   const handleInsertImage = () => {
-    const imageToUse = enhancedImage || capturedImage;
-    if (!imageToUse) return;
-    onInsertText(`<img src="${imageToUse}" alt="Documento scansionato" style="max-width:100%" />`);
-    toast.success("Immagine inserita nella nota");
+    if (pages.length === 0) return;
+    const images = pages
+      .map((p) => {
+        const src = p.enhanced || p.original;
+        return `<img src="${src}" alt="Documento scansionato" style="max-width:100%; margin-bottom:8px" />`;
+      })
+      .join("");
+    onInsertText(images);
+    toast.success("Immagini inserite nella nota");
     onClose();
   };
 
-  const displayImage = enhancedImage || capturedImage;
+  const displayImage = currentPage?.enhanced || currentPage?.original;
 
   return (
     <div className="flex flex-col gap-3">
-      {/* Capture area */}
-      {!capturedImage ? (
+      {pages.length === 0 ? (
+        /* Empty state */
         <div className="flex flex-col items-center gap-3 py-6">
           <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-2">
             <ScanLine className="h-8 w-8 text-primary" />
           </div>
           <p className="text-sm text-muted-foreground text-center max-w-xs">
-            Scatta una foto al documento o carica un'immagine per generare un PDF pulito e migliorato digitalmente
+            Scatta una foto al documento o carica un'immagine. Puoi aggiungere più pagine per creare un unico PDF.
           </p>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={() => cameraInputRef.current?.click()}>
@@ -209,56 +254,98 @@ const SicurLensDocScanner = ({ onInsertText, onClose }: DocScannerProps) => {
         </div>
       ) : (
         <>
+          {/* Page navigator */}
+          <div className="flex items-center justify-between bg-muted/50 rounded-lg px-3 py-1.5">
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost" size="icon" className="h-6 w-6"
+                onClick={() => setCurrentPageIndex((i) => Math.max(0, i - 1))}
+                disabled={currentPageIndex === 0}
+              >
+                <ChevronLeft className="h-3.5 w-3.5" />
+              </Button>
+              <span className="text-xs font-medium min-w-[60px] text-center">
+                Pag. {currentPageIndex + 1} / {pages.length}
+              </span>
+              <Button
+                variant="ghost" size="icon" className="h-6 w-6"
+                onClick={() => setCurrentPageIndex((i) => Math.min(pages.length - 1, i + 1))}
+                disabled={currentPageIndex === pages.length - 1}
+              >
+                <ChevronRight className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+            <div className="flex items-center gap-1">
+              <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => cameraInputRef.current?.click()}>
+                <Plus className="h-3 w-3" /> Aggiungi
+              </Button>
+              <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={removePage} title="Rimuovi pagina">
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Thumbnails */}
+          {pages.length > 1 && (
+            <ScrollArea className="w-full">
+              <div className="flex gap-1.5 pb-1">
+                {pages.map((p, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setCurrentPageIndex(idx)}
+                    className={`shrink-0 rounded border-2 overflow-hidden transition-colors ${
+                      idx === currentPageIndex ? "border-primary" : "border-transparent hover:border-muted-foreground/30"
+                    }`}
+                  >
+                    <img
+                      src={p.enhanced || p.original}
+                      alt={`Pagina ${idx + 1}`}
+                      className="h-12 w-9 object-cover"
+                    />
+                  </button>
+                ))}
+              </div>
+            </ScrollArea>
+          )}
+
           {/* Enhancement controls */}
           <div className="space-y-2 p-3 bg-muted/50 rounded-lg">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-xs font-medium text-foreground">Regolazioni immagine</span>
+              <span className="text-xs font-medium text-foreground">Regolazioni</span>
               <div className="flex gap-1">
-                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={autoEnhance} title="Miglioramento automatico">
+                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={autoEnhance} title="Miglioramento auto">
                   <Wand2 className="h-3.5 w-3.5" />
+                </Button>
+                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={colorDocPreset} title="Documento a colori">
+                  <Palette className="h-3.5 w-3.5" />
                 </Button>
                 <Button variant="ghost" size="icon" className="h-6 w-6" onClick={scanToGrayscale} title="Scanner B/N">
                   <FileText className="h-3.5 w-3.5" />
                 </Button>
-                <Button
-                  variant="ghost" size="icon" className="h-6 w-6"
-                  onClick={() => setRotation((r) => (r + 90) % 360)}
-                  title="Ruota 90°"
-                >
+                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={rotatePage} title="Ruota 90°">
                   <RotateCw className="h-3.5 w-3.5" />
-                </Button>
-                <Button
-                  variant="ghost" size="icon" className="h-6 w-6"
-                  onClick={() => {
-                    setCapturedImage(null);
-                    setEnhancedImage(null);
-                    setPdfGenerated(false);
-                  }}
-                  title="Rimuovi"
-                >
-                  <X className="h-3.5 w-3.5" />
                 </Button>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <Sun className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
               <Slider
-                value={[brightness]}
-                onValueChange={([v]) => setBrightness(v)}
+                value={[currentPage?.brightness ?? 100]}
+                onValueChange={([v]) => updateCurrentPage({ brightness: v })}
                 min={50} max={200} step={5}
                 className="flex-1"
               />
-              <span className="text-[10px] text-muted-foreground w-8 text-right">{brightness}%</span>
+              <span className="text-[10px] text-muted-foreground w-8 text-right">{currentPage?.brightness ?? 100}%</span>
             </div>
             <div className="flex items-center gap-2">
               <Contrast className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
               <Slider
-                value={[contrast]}
-                onValueChange={([v]) => setContrast(v)}
+                value={[currentPage?.contrast ?? 100]}
+                onValueChange={([v]) => updateCurrentPage({ contrast: v })}
                 min={50} max={250} step={5}
                 className="flex-1"
               />
-              <span className="text-[10px] text-muted-foreground w-8 text-right">{contrast}%</span>
+              <span className="text-[10px] text-muted-foreground w-8 text-right">{currentPage?.contrast ?? 100}%</span>
             </div>
           </div>
 
@@ -266,14 +353,15 @@ const SicurLensDocScanner = ({ onInsertText, onClose }: DocScannerProps) => {
           <div className="relative">
             <img
               src={displayImage!}
-              alt="Documento"
-              className="w-full max-h-52 object-contain rounded-lg bg-muted"
+              alt={`Pagina ${currentPageIndex + 1}`}
+              className="w-full max-h-48 object-contain rounded-lg bg-muted"
             />
           </div>
 
-          {/* Actions */}
+          {/* Primary action */}
           <Button onClick={generatePDF} className="w-full">
-            <Download className="h-4 w-4 mr-2" /> Genera PDF
+            <Download className="h-4 w-4 mr-2" />
+            Genera PDF {pages.length > 1 ? `(${pages.length} pagine)` : ""}
           </Button>
 
           {/* Secondary actions */}
