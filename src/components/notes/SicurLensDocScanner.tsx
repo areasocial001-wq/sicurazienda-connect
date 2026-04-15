@@ -243,14 +243,13 @@ const SicurLensDocScanner = ({ onInsertText, onClose }: DocScannerProps) => {
     toast.success("Documento a colori applicato a tutte le pagine");
   };
 
-  // Generate multi-page PDF
-  const generatePDF = () => {
+  // Generate multi-page PDF (preview mode)
+  const generatePDF = (downloadDirectly = false) => {
     if (pages.length === 0) return;
 
     let processed = 0;
     const imageElements: { img: HTMLImageElement; data: string }[] = [];
 
-    // Load all images first, then generate PDF
     pages.forEach((page, idx) => {
       const imgData = page.enhanced || page.original;
       const img = new window.Image();
@@ -258,14 +257,14 @@ const SicurLensDocScanner = ({ onInsertText, onClose }: DocScannerProps) => {
         imageElements[idx] = { img, data: imgData };
         processed++;
         if (processed === pages.length) {
-          buildPDF(imageElements);
+          buildPDF(imageElements, downloadDirectly);
         }
       };
       img.src = imgData;
     });
   };
 
-  const buildPDF = (imageElements: { img: HTMLImageElement; data: string }[]) => {
+  const buildPDF = (imageElements: { img: HTMLImageElement; data: string }[], downloadDirectly: boolean) => {
     const first = imageElements[0];
     const orientation = first.img.width > first.img.height ? "landscape" : "portrait";
     const pdf = new jsPDF({ orientation, unit: "mm", format: "a4" });
@@ -300,8 +299,31 @@ const SicurLensDocScanner = ({ onInsertText, onClose }: DocScannerProps) => {
       pdf.addImage(data, "JPEG", x, y, drawW, drawH);
     });
 
-    pdf.save(`scansione_${new Date().toISOString().slice(0, 10)}_${Date.now()}.pdf`);
-    toast.success(`PDF generato con ${pages.length} pagin${pages.length === 1 ? "a" : "e"}`);
+    if (downloadDirectly) {
+      pdf.save(`scansione_${new Date().toISOString().slice(0, 10)}_${Date.now()}.pdf`);
+      toast.success(`PDF generato con ${pages.length} pagin${pages.length === 1 ? "a" : "e"}`);
+    } else {
+      // Show preview
+      const blobUrl = pdf.output("bloburl") as unknown as string;
+      setPendingPdf(pdf);
+      setPdfPreviewUrl(blobUrl);
+      setPdfPreviewOpen(true);
+    }
+  };
+
+  const handleDownloadFromPreview = () => {
+    if (pendingPdf) {
+      pendingPdf.save(`scansione_${new Date().toISOString().slice(0, 10)}_${Date.now()}.pdf`);
+      toast.success(`PDF generato con ${pages.length} pagin${pages.length === 1 ? "a" : "e"}`);
+    }
+    closePdfPreview();
+  };
+
+  const closePdfPreview = () => {
+    if (pdfPreviewUrl) URL.revokeObjectURL(pdfPreviewUrl);
+    setPdfPreviewUrl(null);
+    setPdfPreviewOpen(false);
+    setPendingPdf(null);
   };
 
   // Share current page
