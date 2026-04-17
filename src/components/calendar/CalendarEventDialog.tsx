@@ -12,9 +12,12 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { CalendarEvent, CalendarEventInput } from '@/hooks/useCalendarEvents';
 import { supabase } from '@/integrations/supabase/client';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Check, ChevronsUpDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 
 interface CalendarEventDialogProps {
@@ -40,6 +43,88 @@ const COLORS = [
   '#3B82F6', '#EF4444', '#10B981', '#F59E0B',
   '#8B5CF6', '#EC4899', '#06B6D4', '#F97316',
 ];
+
+interface ComboboxItem {
+  value: string;
+  label: string;
+  searchText: string;
+}
+
+function SearchableCombobox({
+  items,
+  value,
+  onChange,
+  placeholder,
+  searchPlaceholder,
+  emptyText,
+}: {
+  items: ComboboxItem[];
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+  searchPlaceholder: string;
+  emptyText: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const selected = items.find((i) => i.value === value);
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className="w-full justify-between font-normal"
+        >
+          <span className={cn("truncate", !selected && "text-muted-foreground")}>
+            {selected ? selected.label : placeholder}
+          </span>
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[--radix-popover-trigger-width] p-0 bg-popover z-50" align="start">
+        <Command
+          filter={(itemValue, search) => {
+            const item = items.find((i) => i.value === itemValue);
+            if (!item) return 0;
+            return item.searchText.toLowerCase().includes(search.toLowerCase()) ? 1 : 0;
+          }}
+        >
+          <CommandInput placeholder={searchPlaceholder} />
+          <CommandList>
+            <CommandEmpty>{emptyText}</CommandEmpty>
+            <CommandGroup>
+              <CommandItem
+                value=""
+                onSelect={() => {
+                  onChange("");
+                  setOpen(false);
+                }}
+              >
+                <Check className={cn("mr-2 h-4 w-4", !value ? "opacity-100" : "opacity-0")} />
+                {placeholder}
+              </CommandItem>
+              {items.map((item) => (
+                <CommandItem
+                  key={item.value}
+                  value={item.value}
+                  onSelect={() => {
+                    onChange(item.value);
+                    setOpen(false);
+                  }}
+                >
+                  <Check className={cn("mr-2 h-4 w-4", value === item.value ? "opacity-100" : "opacity-0")} />
+                  <span className="truncate">{item.label}</span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 export function CalendarEventDialog({
   open, onOpenChange, event, defaultDate, onSave, onUpdate, onDelete,
@@ -239,32 +324,34 @@ export function CalendarEventDialog({
 
           <div>
             <Label>Collega a contatto CRM</Label>
-            <Select value={contactId || "__none__"} onValueChange={(v) => setContactId(v === "__none__" ? "" : v)}>
-              <SelectTrigger><SelectValue placeholder="Nessuno" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none__">Nessuno</SelectItem>
-                {contacts.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.company || c.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <SearchableCombobox
+              items={contacts.map((c) => ({
+                value: c.id,
+                label: c.company || c.name,
+                searchText: `${c.company || ''} ${c.name || ''}`.trim(),
+              }))}
+              value={contactId}
+              onChange={setContactId}
+              placeholder="Nessuno"
+              searchPlaceholder="Cerca contatto..."
+              emptyText="Nessun contatto trovato"
+            />
           </div>
 
           <div>
             <Label>Collega a dipendente</Label>
-            <Select value={employeeId || "__none__"} onValueChange={(v) => setEmployeeId(v === "__none__" ? "" : v)}>
-              <SelectTrigger><SelectValue placeholder="Nessuno" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none__">Nessuno</SelectItem>
-                {employees.map((e) => (
-                  <SelectItem key={e.id} value={e.id}>
-                    {e.last_name} {e.first_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <SearchableCombobox
+              items={employees.map((e) => ({
+                value: e.id,
+                label: `${e.last_name} ${e.first_name}`,
+                searchText: `${e.last_name} ${e.first_name} ${e.first_name} ${e.last_name}`,
+              }))}
+              value={employeeId}
+              onChange={setEmployeeId}
+              placeholder="Nessuno"
+              searchPlaceholder="Cerca dipendente..."
+              emptyText="Nessun dipendente trovato"
+            />
           </div>
 
           <div className="flex items-center gap-3">
