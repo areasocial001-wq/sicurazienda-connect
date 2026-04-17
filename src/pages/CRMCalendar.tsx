@@ -608,7 +608,15 @@ export default function CRMCalendar() {
         onOpenChange={setDialogOpen}
         event={editingEvent}
         defaultDate={dialogDefaultDate}
-        onSave={createEvent}
+        onSave={async (input) => {
+          const created = await createEvent(input);
+          if (created) {
+            const eventDate = new Date(created.start_datetime);
+            setCurrentDate(eventDate);
+            setSelectedDate(eventDate);
+          }
+          return created;
+        }}
         onUpdate={updateEvent}
         onDelete={deleteEvent}
       />
