@@ -242,32 +242,34 @@ export function CalendarEventDialog({
 
           <div>
             <Label>Collega a contatto CRM</Label>
-            <Select value={contactId || "__none__"} onValueChange={(v) => setContactId(v === "__none__" ? "" : v)}>
-              <SelectTrigger><SelectValue placeholder="Nessuno" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none__">Nessuno</SelectItem>
-                {contacts.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.company || c.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <SearchableCombobox
+              items={contacts.map((c) => ({
+                value: c.id,
+                label: c.company || c.name,
+                searchText: `${c.company || ''} ${c.name || ''}`.trim(),
+              }))}
+              value={contactId}
+              onChange={setContactId}
+              placeholder="Nessuno"
+              searchPlaceholder="Cerca contatto..."
+              emptyText="Nessun contatto trovato"
+            />
           </div>
 
           <div>
             <Label>Collega a dipendente</Label>
-            <Select value={employeeId || "__none__"} onValueChange={(v) => setEmployeeId(v === "__none__" ? "" : v)}>
-              <SelectTrigger><SelectValue placeholder="Nessuno" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none__">Nessuno</SelectItem>
-                {employees.map((e) => (
-                  <SelectItem key={e.id} value={e.id}>
-                    {e.last_name} {e.first_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <SearchableCombobox
+              items={employees.map((e) => ({
+                value: e.id,
+                label: `${e.last_name} ${e.first_name}`,
+                searchText: `${e.last_name} ${e.first_name} ${e.first_name} ${e.last_name}`,
+              }))}
+              value={employeeId}
+              onChange={setEmployeeId}
+              placeholder="Nessuno"
+              searchPlaceholder="Cerca dipendente..."
+              emptyText="Nessun dipendente trovato"
+            />
           </div>
 
           <div className="flex items-center gap-3">
