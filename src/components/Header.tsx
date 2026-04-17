@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import AuthModal from "@/components/AuthModal";
 import { NotificationBell } from "@/components/NotificationBell";
-import { User, LogOut, FileText, QrCode, BookOpen, Users, NotebookPen, GraduationCap, FolderOpen } from "lucide-react";
+import { User, LogOut, FileText, QrCode, BookOpen, Users, NotebookPen, GraduationCap, FolderOpen, Calendar } from "lucide-react";
 
 const Header = () => {
   const { user, signOut } = useAuth();
@@ -79,6 +79,10 @@ const Header = () => {
                     <DropdownMenuItem onClick={() => navigate("/crm")} className="cursor-pointer">
                       <Users className="h-4 w-4 mr-2" />
                       CRM Contatti
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate("/crm/calendar")} className="cursor-pointer">
+                      <Calendar className="h-4 w-4 mr-2" />
+                      Calendario
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => navigate("/notes")} className="cursor-pointer">
                       <NotebookPen className="h-4 w-4 mr-2" />
