@@ -95,12 +95,17 @@ export function CalendarEventDialog({
       setIsShared(event.is_shared);
     } else {
       const d = defaultDate || new Date();
+      // If defaultDate has a meaningful time (not midnight), use it as start time
+      const hasTime = d.getHours() !== 0 || d.getMinutes() !== 0;
+      const startH = hasTime ? format(d, 'HH:mm') : '09:00';
+      const endDt = hasTime ? new Date(d.getTime() + 60 * 60 * 1000) : null;
+      const endH = endDt ? format(endDt, 'HH:mm') : '10:00';
       setTitle('');
       setDescription('');
       setStartDate(format(d, 'yyyy-MM-dd'));
-      setStartTime('09:00');
-      setEndDate(format(d, 'yyyy-MM-dd'));
-      setEndTime('10:00');
+      setStartTime(startH);
+      setEndDate(format(endDt || d, 'yyyy-MM-dd'));
+      setEndTime(endH);
       setAllDay(false);
       setLocation('');
       setColor('#3B82F6');
