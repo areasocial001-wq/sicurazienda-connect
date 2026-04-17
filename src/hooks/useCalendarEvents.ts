@@ -48,28 +48,45 @@ export function useCalendarEvents(userId: string | undefined) {
     try {
       const { data, error } = await supabase
         .from('calendar_events')
-        .select(`
-          *,
-          crm_contacts:contact_id(name, company),
-          crm_employees:employee_id(first_name, last_name)
-        `)
+        .select('*')
         .order('start_datetime', { ascending: true });
 
       if (error) throw error;
 
-      const mapped: CalendarEvent[] = (data || []).map((e: any) => ({
-        ...e,
-        contact_name: e.crm_contacts
-          ? (e.crm_contacts.company || e.crm_contacts.name)
-          : null,
-        employee_name: e.crm_employees
-          ? `${e.crm_employees.first_name} ${e.crm_employees.last_name}`
-          : null,
-      }));
+      const rawEvents = data || [];
+      const contactIds = Array.from(new Set(rawEvents.map((e: any) => e.contact_id).filter(Boolean)));
+      const employeeIds = Array.from(new Set(rawEvents.map((e: any) => e.employee_id).filter(Boolean)));
+
+      const [contactsRes, employeesRes] = await Promise.all([
+        contactIds.length
+          ? supabase.from('crm_contacts').select('id, name, company').in('id', contactIds)
+          : Promise.resolve({ data: [], error: null }),
+        employeeIds.length
+          ? supabase.from('crm_employees').select('id, first_name, last_name').in('id', employeeIds)
+          : Promise.resolve({ data: [], error: null }),
+      ]);
+
+      if (contactsRes.error) throw contactsRes.error;
+      if (employeesRes.error) throw employeesRes.error;
+
+      const contactsById = new Map((contactsRes.data || []).map((contact: any) => [contact.id, contact]));
+      const employeesById = new Map((employeesRes.data || []).map((employee: any) => [employee.id, employee]));
+
+      const mapped: CalendarEvent[] = rawEvents.map((e: any) => {
+        const contact = e.contact_id ? contactsById.get(e.contact_id) : null;
+        const employee = e.employee_id ? employeesById.get(e.employee_id) : null;
+
+        return {
+          ...e,
+          contact_name: contact ? (contact.company || contact.name) : null,
+          employee_name: employee ? `${employee.first_name} ${employee.last_name}` : null,
+        };
+      });
 
       setEvents(mapped);
     } catch (error: any) {
       console.error('Error fetching calendar events:', error);
+      toast.error('Errore nel caricamento del calendario');
     } finally {
       setLoading(false);
     }
