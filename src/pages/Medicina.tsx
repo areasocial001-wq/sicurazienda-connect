@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { useMedicina } from '@/hooks/useMedicina';
 import { useUserRole } from '@/hooks/useUserRole';
 import { Navigate } from 'react-router-dom';
-import { Plus, Stethoscope, ClipboardList, CalendarClock, MapPinned, FileText, AlertTriangle, Pencil, Trash2, ShieldAlert, Loader2, Search, FolderLock, Gavel } from 'lucide-react';
+import { Plus, Stethoscope, ClipboardList, CalendarClock, MapPinned, FileText, AlertTriangle, Pencil, Trash2, ShieldAlert, Loader2, Search, FolderLock, Gavel, CalendarDays } from 'lucide-react';
 import { DoctorDialog } from '@/components/medicina/DoctorDialog';
 import { ProtocolDialog } from '@/components/medicina/ProtocolDialog';
 import { VisitDialog } from '@/components/medicina/VisitDialog';
@@ -19,6 +19,8 @@ import { InspectionDialog } from '@/components/medicina/InspectionDialog';
 import { AnnualReportDialog } from '@/components/medicina/AnnualReportDialog';
 import { HealthFolderPanel } from '@/components/medicina/HealthFolderPanel';
 import { JudgmentDialog, JUDGMENT_OPTIONS } from '@/components/medicina/JudgmentDialog';
+import { MedicalCalendar } from '@/components/medicina/MedicalCalendar';
+import { useCRM } from '@/hooks/useCRM';
 import { format, differenceInDays, parseISO } from 'date-fns';
 import { it } from 'date-fns/locale';
 
