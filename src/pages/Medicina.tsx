@@ -323,6 +323,7 @@ const Medicina = () => {
                           <TableCell>{statusBadge(v.status)}</TableCell>
                           <TableCell>
                             <div className="flex gap-1">
+                              <Button size="icon" variant="ghost" title="Aggiungi giudizio" onClick={() => { setEditingJudgment(null); setDefaultJudgmentVisitId(v.id); setJudgmentOpen(true); }}><Gavel className="h-4 w-4" /></Button>
                               <Button size="icon" variant="ghost" onClick={() => { setEditingVisit(v); setVisitOpen(true); }}><Pencil className="h-4 w-4" /></Button>
                               <Button size="icon" variant="ghost" onClick={() => m.deleteVisit(v.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                             </div>
