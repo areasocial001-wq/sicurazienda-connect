@@ -11,7 +11,8 @@ import { Input } from '@/components/ui/input';
 import { useMedicina } from '@/hooks/useMedicina';
 import { useUserRole } from '@/hooks/useUserRole';
 import { Navigate } from 'react-router-dom';
-import { Plus, Stethoscope, ClipboardList, CalendarClock, MapPinned, FileText, AlertTriangle, Pencil, Trash2, ShieldAlert, Loader2, Search, FolderLock, Gavel, CalendarDays, Euro, BarChart3, Download } from 'lucide-react';
+import { Plus, Stethoscope, ClipboardList, CalendarClock, MapPinned, FileText, AlertTriangle, Pencil, Trash2, ShieldAlert, Loader2, Search, FolderLock, Gavel, CalendarDays, Euro, BarChart3, Download, Database } from 'lucide-react';
+import { MedicalCRMImporter } from '@/components/medicina/MedicalCRMImporter';
 import { DoctorDialog } from '@/components/medicina/DoctorDialog';
 import { DoctorBilling } from '@/components/medicina/DoctorBilling';
 import { MedicalAnalytics } from '@/components/medicina/MedicalAnalytics';
@@ -147,6 +148,7 @@ const Medicina = () => {
             <TabsTrigger value="analytics" className="gap-1"><BarChart3 className="h-4 w-4" />Statistiche</TabsTrigger>
             <TabsTrigger value="billing" className="gap-1"><Euro className="h-4 w-4" />Fatturazione</TabsTrigger>
             <TabsTrigger value="export" className="gap-1"><Download className="h-4 w-4" />Esporta</TabsTrigger>
+            <TabsTrigger value="import" className="gap-1"><Database className="h-4 w-4" />Importa CRM</TabsTrigger>
           </TabsList>
 
           <TabsContent value="analytics" className="space-y-4">
@@ -159,6 +161,10 @@ const Medicina = () => {
 
           <TabsContent value="export" className="space-y-4">
             <MedicalDataExport visits={m.visits} judgments={m.judgments} inspections={m.inspections} doctors={m.doctors} />
+          </TabsContent>
+
+          <TabsContent value="import" className="space-y-4">
+            <MedicalCRMImporter onImportComplete={() => window.location.reload()} />
           </TabsContent>
 
           {/* AGENDA */}
