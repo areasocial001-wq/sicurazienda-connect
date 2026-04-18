@@ -254,9 +254,60 @@ export function useMedicina() {
   const updateProtocol = async (id: string, p: Partial<MedicalProtocol>) => { const r = await updateRow('medical_protocols', id, p); if (r) await fetchProtocols(); return r; };
   const deleteProtocol = async (id: string) => { const ok = await deleteRow('medical_protocols', id); if (ok) await fetchProtocols(); return ok; };
 
+  // Sync visit → CRM employee activity (silent)
+  const syncVisitToCRM = async (visit: any) => {
+    if (!user || !visit?.employee_id) return;
+    try {
+      const examsArr = Array.isArray(visit.exams_performed) ? visit.exams_performed : [];
+      const examNames = examsArr.map((e: any) => e?.name || e).filter(Boolean).join(', ');
+      const activityName = examNames
+        ? `Visita Medica (${examsArr.length} esami: ${examNames.slice(0, 100)}${examNames.length > 100 ? '...' : ''})`
+        : `Visita Medica ${visit.visit_type || ''}`.trim();
+      const execDate = visit.execution_date || null;
+      const expDate = visit.next_due_date || null;
+      const status = visit.status === 'completed' ? 'completed' : visit.status === 'scheduled' ? 'scheduled' : null;
+      const dateKey = execDate || visit.scheduled_date;
+      if (!dateKey) return;
+
+      const { data: existing } = await (supabase as any)
+        .from('crm_employee_activities')
+        .select('id')
+        .eq('employee_id', visit.employee_id)
+        .or(`execution_date.eq.${dateKey},expiry_date.eq.${dateKey}`)
+        .ilike('activity_name', '%visita medica%')
+        .limit(1);
+
+      const payload = {
+        employee_id: visit.employee_id,
+        activity_name: activityName,
+        activity_type: 'visita',
+        execution_date: execDate,
+        expiry_date: expDate,
+        status,
+        notes: visit.notes ? `${visit.notes}\n[sync da Medicina]` : '[sync da Medicina]',
+      };
+
+      if (existing && existing.length > 0) {
+        await (supabase as any).from('crm_employee_activities').update(payload).eq('id', existing[0].id);
+      } else {
+        await (supabase as any).from('crm_employee_activities').insert({ ...payload, user_id: user.id });
+      }
+    } catch (e) {
+      console.error('[syncVisitToCRM] failed', e);
+    }
+  };
+
   // Visits
-  const createVisit = async (p: Partial<MedicalVisit>) => { const r = await insertRow('medical_visits', p); if (r) await fetchVisits(); return r; };
-  const updateVisit = async (id: string, p: Partial<MedicalVisit>) => { const r = await updateRow('medical_visits', id, p); if (r) await fetchVisits(); return r; };
+  const createVisit = async (p: Partial<MedicalVisit>) => {
+    const r = await insertRow('medical_visits', p);
+    if (r) { await syncVisitToCRM(r); await fetchVisits(); }
+    return r;
+  };
+  const updateVisit = async (id: string, p: Partial<MedicalVisit>) => {
+    const r = await updateRow('medical_visits', id, p);
+    if (r) { await syncVisitToCRM(r); await fetchVisits(); }
+    return r;
+  };
   const deleteVisit = async (id: string) => { const ok = await deleteRow('medical_visits', id); if (ok) await fetchVisits(); return ok; };
 
   // Judgments
