@@ -261,6 +261,7 @@ export function useMedicina() {
 
   // Judgments
   const createJudgment = async (p: Partial<MedicalJudgment>) => { const r = await insertRow('medical_judgments', p); if (r) await fetchJudgments(); return r; };
+  const updateJudgment = async (id: string, p: Partial<MedicalJudgment>) => { const r = await updateRow('medical_judgments', id, p); if (r) await fetchJudgments(); return r; };
   const deleteJudgment = async (id: string) => { const ok = await deleteRow('medical_judgments', id); if (ok) await fetchJudgments(); return ok; };
 
   // Inspections
@@ -281,7 +282,7 @@ export function useMedicina() {
     createDoctor, updateDoctor, deleteDoctor,
     createProtocol, updateProtocol, deleteProtocol,
     createVisit, updateVisit, deleteVisit,
-    createJudgment, deleteJudgment,
+    createJudgment, updateJudgment, deleteJudgment,
     createInspection, updateInspection, deleteInspection,
     createAnnualReport, updateAnnualReport, deleteAnnualReport,
   };
