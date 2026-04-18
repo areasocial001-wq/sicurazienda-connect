@@ -192,6 +192,9 @@ export function MedicalCalendar({ visits, inspections, contacts = [], locations 
                     );
                   }
                   const i = it.data;
+                  const ctc = contacts.find((c) => c.id === i.contact_id);
+                  const ctcLabel = ctc ? (ctc.company || ctc.name) : null;
+                  const locLabel = locations.find((l) => l.id === i.location_id)?.name || null;
                   return (
                     <button
                       key={`i-${i.id}-${idx}`}
@@ -202,8 +205,8 @@ export function MedicalCalendar({ visits, inspections, contacts = [], locations 
                         <MapPinned className="h-4 w-4 mt-0.5 text-accent-foreground shrink-0" />
                         <div className="flex-1 min-w-0">
                           <div className="font-medium text-sm">Sopralluogo</div>
-                          {i.contact_name && <div className="text-xs text-muted-foreground truncate">{i.contact_name}</div>}
-                          {i.location_name && <div className="text-xs text-muted-foreground truncate">{i.location_name}</div>}
+                          {ctcLabel && <div className="text-xs text-muted-foreground truncate">{ctcLabel}</div>}
+                          {locLabel && <div className="text-xs text-muted-foreground truncate">{locLabel}</div>}
                           <Badge variant="outline" className="mt-1 text-[10px]">{i.status}</Badge>
                         </div>
                       </div>
