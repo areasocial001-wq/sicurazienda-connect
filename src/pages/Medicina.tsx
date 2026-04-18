@@ -510,6 +510,15 @@ const Medicina = () => {
         <VisitDialog open={visitOpen} onOpenChange={setVisitOpen} visit={editingVisit} doctors={m.doctors} protocols={m.protocols} onSave={(d) => editingVisit ? m.updateVisit(editingVisit.id, d) : m.createVisit(d)} />
         <InspectionDialog open={inspOpen} onOpenChange={setInspOpen} inspection={editingInsp} doctors={m.doctors} onSave={(d) => editingInsp ? m.updateInspection(editingInsp.id, d) : m.createInspection(d)} />
         <AnnualReportDialog open={reportOpen} onOpenChange={setReportOpen} report={editingReport} doctors={m.doctors} onSave={(d) => editingReport ? m.updateAnnualReport(editingReport.id, d) : m.createAnnualReport(d)} />
+        <JudgmentDialog
+          open={judgmentOpen}
+          onOpenChange={setJudgmentOpen}
+          judgment={editingJudgment}
+          doctors={m.doctors}
+          visits={m.visits}
+          defaultVisitId={defaultJudgmentVisitId}
+          onSave={(d) => editingJudgment ? m.updateJudgment(editingJudgment.id, d) : m.createJudgment(d)}
+        />
       </main>
       <BottomNav />
     </div>
