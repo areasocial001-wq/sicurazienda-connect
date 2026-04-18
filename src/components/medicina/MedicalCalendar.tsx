@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { ChevronLeft, ChevronRight, Stethoscope, MapPinned, CalendarDays } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Stethoscope, MapPinned, CalendarDays, AlertTriangle } from 'lucide-react';
 import {
   addMonths,
   subMonths,
@@ -33,7 +33,8 @@ interface MedicalCalendarProps {
 
 type CalendarItem =
   | { kind: 'visit'; date: string; data: MedicalVisit }
-  | { kind: 'inspection'; date: string; data: MedicalInspection };
+  | { kind: 'inspection'; date: string; data: MedicalInspection }
+  | { kind: 'due'; date: string; data: MedicalVisit };
 
 const visitTypeLabel = (t: string) => ({
   preventiva: 'Preventiva',
@@ -59,6 +60,10 @@ export function MedicalCalendar({ visits, inspections, contacts = [], locations 
     visits.forEach((v) => {
       const date = v.execution_date || v.scheduled_date;
       if (date) list.push({ kind: 'visit', date, data: v });
+      // Aggiungi scadenza sorveglianza (next_due_date) come evento separato
+      if (v.next_due_date && v.next_due_date !== date) {
+        list.push({ kind: 'due', date: v.next_due_date, data: v });
+      }
     });
     inspections.forEach((i) => {
       if (i.inspection_date) list.push({ kind: 'inspection', date: i.inspection_date, data: i });
@@ -83,6 +88,7 @@ export function MedicalCalendar({ visits, inspections, contacts = [], locations 
 
   const monthVisitCount = items.filter((i) => i.kind === 'visit' && isSameMonth(parseISO(i.date), currentMonth)).length;
   const monthInspCount = items.filter((i) => i.kind === 'inspection' && isSameMonth(parseISO(i.date), currentMonth)).length;
+  const monthDueCount = items.filter((i) => i.kind === 'due' && isSameMonth(parseISO(i.date), currentMonth)).length;
 
   return (
     <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
@@ -95,6 +101,7 @@ export function MedicalCalendar({ visits, inspections, contacts = [], locations 
             <div className="flex gap-1.5 text-xs">
               <Badge variant="outline" className="gap-1"><Stethoscope className="h-3 w-3" />{monthVisitCount}</Badge>
               <Badge variant="outline" className="gap-1"><MapPinned className="h-3 w-3" />{monthInspCount}</Badge>
+              <Badge variant="outline" className="gap-1 border-destructive/40 text-destructive"><AlertTriangle className="h-3 w-3" />{monthDueCount}</Badge>
             </div>
           </div>
           <div className="flex gap-1">
@@ -123,6 +130,7 @@ export function MedicalCalendar({ visits, inspections, contacts = [], locations 
               const isSelected = selectedDay && isSameDay(day, selectedDay);
               const visitCount = dayItems.filter((i) => i.kind === 'visit').length;
               const inspCount = dayItems.filter((i) => i.kind === 'inspection').length;
+              const dueCount = dayItems.filter((i) => i.kind === 'due').length;
 
               return (
                 <button
@@ -147,6 +155,11 @@ export function MedicalCalendar({ visits, inspections, contacts = [], locations 
                     {inspCount > 0 && (
                       <Badge className="h-4 px-1 text-[10px] gap-0.5 bg-accent text-accent-foreground">
                         <MapPinned className="h-2.5 w-2.5" />{inspCount}
+                      </Badge>
+                    )}
+                    {dueCount > 0 && (
+                      <Badge variant="destructive" className="h-4 px-1 text-[10px] gap-0.5">
+                        <AlertTriangle className="h-2.5 w-2.5" />{dueCount}
                       </Badge>
                     )}
                   </div>
@@ -186,6 +199,25 @@ export function MedicalCalendar({ visits, inspections, contacts = [], locations 
                             <div className="text-xs text-muted-foreground">{visitTypeLabel(v.visit_type)}</div>
                             {v.contact_name && <div className="text-xs text-muted-foreground truncate">{v.contact_name}</div>}
                             {v.doctor_name && <div className="text-xs mt-1">{v.doctor_name}</div>}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  }
+                  if (it.kind === 'due') {
+                    const v = it.data;
+                    return (
+                      <button
+                        key={`d-${v.id}-${idx}`}
+                        onClick={() => onVisitClick?.(v)}
+                        className="w-full text-left p-3 rounded-md border border-destructive/40 bg-destructive/5 hover:bg-destructive/10 transition-colors"
+                      >
+                        <div className="flex items-start gap-2">
+                          <AlertTriangle className="h-4 w-4 mt-0.5 text-destructive shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-sm">Scadenza: {v.employee_name || 'Dipendente'}</div>
+                            <div className="text-xs text-muted-foreground">{visitTypeLabel(v.visit_type)} — da rinnovare</div>
+                            {v.contact_name && <div className="text-xs text-muted-foreground truncate">{v.contact_name}</div>}
                           </div>
                         </div>
                       </button>
