@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import AuthModal from "@/components/AuthModal";
 import { NotificationBell } from "@/components/NotificationBell";
-import { User, LogOut, FileText, QrCode, BookOpen, Users, NotebookPen, GraduationCap, FolderOpen, Calendar } from "lucide-react";
+import { User, LogOut, FileText, QrCode, BookOpen, Users, NotebookPen, GraduationCap, FolderOpen, Calendar, Stethoscope } from "lucide-react";
 
 const Header = () => {
   const { user, signOut } = useAuth();
@@ -91,6 +91,10 @@ const Header = () => {
                     <DropdownMenuItem onClick={() => navigate("/corsi")} className="cursor-pointer">
                       <GraduationCap className="h-4 w-4 mr-2" />
                       Gestione Corsi
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate("/medicina")} className="cursor-pointer">
+                      <Stethoscope className="h-4 w-4 mr-2" />
+                      Medicina del Lavoro
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => navigate("/qr-history")} className="cursor-pointer">
                       <QrCode className="h-4 w-4 mr-2" />
