@@ -11,12 +11,13 @@ import { Input } from '@/components/ui/input';
 import { useMedicina } from '@/hooks/useMedicina';
 import { useUserRole } from '@/hooks/useUserRole';
 import { Navigate } from 'react-router-dom';
-import { Plus, Stethoscope, ClipboardList, CalendarClock, MapPinned, FileText, AlertTriangle, Pencil, Trash2, ShieldAlert, Loader2, Search } from 'lucide-react';
+import { Plus, Stethoscope, ClipboardList, CalendarClock, MapPinned, FileText, AlertTriangle, Pencil, Trash2, ShieldAlert, Loader2, Search, FolderLock } from 'lucide-react';
 import { DoctorDialog } from '@/components/medicina/DoctorDialog';
 import { ProtocolDialog } from '@/components/medicina/ProtocolDialog';
 import { VisitDialog } from '@/components/medicina/VisitDialog';
 import { InspectionDialog } from '@/components/medicina/InspectionDialog';
 import { AnnualReportDialog } from '@/components/medicina/AnnualReportDialog';
+import { HealthFolderPanel } from '@/components/medicina/HealthFolderPanel';
 import { format, differenceInDays, parseISO } from 'date-fns';
 import { it } from 'date-fns/locale';
 
@@ -127,9 +128,15 @@ const Medicina = () => {
             <TabsTrigger value="visits" className="gap-1"><CalendarClock className="h-4 w-4" />Visite</TabsTrigger>
             <TabsTrigger value="protocols" className="gap-1"><ClipboardList className="h-4 w-4" />Protocolli</TabsTrigger>
             <TabsTrigger value="doctors" className="gap-1"><Stethoscope className="h-4 w-4" />Medici</TabsTrigger>
+            <TabsTrigger value="health-files" className="gap-1"><FolderLock className="h-4 w-4" />Cartella Sanitaria</TabsTrigger>
             <TabsTrigger value="inspections" className="gap-1"><MapPinned className="h-4 w-4" />Sopralluoghi</TabsTrigger>
             <TabsTrigger value="reports" className="gap-1"><FileText className="h-4 w-4" />Relazioni 3B</TabsTrigger>
           </TabsList>
+
+          {/* HEALTH FILES */}
+          <TabsContent value="health-files" className="space-y-4">
+            <HealthFolderPanel />
+          </TabsContent>
 
           {/* DASHBOARD */}
           <TabsContent value="dashboard" className="space-y-4">
