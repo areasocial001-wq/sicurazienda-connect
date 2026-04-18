@@ -164,7 +164,7 @@ const Medicina = () => {
           </TabsContent>
 
           <TabsContent value="import" className="space-y-4">
-            <MedicalCRMImporter onImportComplete={() => m.refetch?.()} />
+            <MedicalCRMImporter onImportComplete={() => window.location.reload()} />
           </TabsContent>
 
           {/* AGENDA */}
