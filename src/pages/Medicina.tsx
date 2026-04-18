@@ -51,6 +51,7 @@ const Medicina = () => {
   const [editingJudgment, setEditingJudgment] = useState<any>(null);
   const [defaultJudgmentVisitId, setDefaultJudgmentVisitId] = useState<string | null>(null);
   const [judgmentSearch, setJudgmentSearch] = useState('');
+  const [protocolSearch, setProtocolSearch] = useState('');
 
   const upcomingVisits = useMemo(() => {
     const today = new Date();
