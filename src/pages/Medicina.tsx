@@ -490,6 +490,18 @@ const Medicina = () => {
                         <TableCell><Badge variant="outline">{r.status}</Badge></TableCell>
                         <TableCell>
                           <div className="flex gap-1">
+                            <Button size="icon" variant="ghost" title="Genera PDF Allegato 3B" onClick={async () => {
+                              const { generateAndDownloadAnnualReport } = await import('@/components/medicina/annualReportPDF');
+                              const { data: branding } = await (await import('@/integrations/supabase/client')).supabase
+                                .from('course_branding_settings').select('*').limit(1).maybeSingle();
+                              const { data: contact } = r.contact_id ? await (await import('@/integrations/supabase/client')).supabase
+                                .from('crm_contacts').select('id, name, company, address, vat_number, fiscal_code').eq('id', r.contact_id).maybeSingle() : { data: null } as any;
+                              const doctor = m.doctors.find((d) => d.id === r.doctor_id);
+                              await generateAndDownloadAnnualReport({
+                                report: r, doctor, contact: contact as any, branding: branding as any,
+                                visits: m.visits, judgments: m.judgments,
+                              });
+                            }}><FileText className="h-4 w-4" /></Button>
                             <Button size="icon" variant="ghost" onClick={() => { setEditingReport(r); setReportOpen(true); }}><Pencil className="h-4 w-4" /></Button>
                             <Button size="icon" variant="ghost" onClick={() => m.deleteAnnualReport(r.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                           </div>
