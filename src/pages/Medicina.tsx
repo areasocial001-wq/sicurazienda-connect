@@ -27,6 +27,7 @@ import { it } from 'date-fns/locale';
 const Medicina = () => {
   const { isAdmin, isMedicina, loading: roleLoading } = useUserRole();
   const m = useMedicina();
+  const { contacts } = useCRM();
   const [tab, setTab] = useState('dashboard');
   const [search, setSearch] = useState('');
 
