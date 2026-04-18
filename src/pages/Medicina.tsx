@@ -140,10 +140,10 @@ const Medicina = () => {
                   <CardTitle className="text-3xl text-destructive">{expired.length}</CardTitle>
                 </CardHeader>
               </Card>
-              <Card className="border-yellow-500/40">
+              <Card className="border-secondary/40">
                 <CardHeader className="pb-2">
                   <CardDescription>In scadenza ≤ 30gg</CardDescription>
-                  <CardTitle className="text-3xl text-yellow-600">{next30.length}</CardTitle>
+                  <CardTitle className="text-3xl text-secondary">{next30.length}</CardTitle>
                 </CardHeader>
               </Card>
               <Card>
