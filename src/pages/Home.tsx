@@ -13,7 +13,8 @@ import {
   Phone, 
   Mail,
   MapPin,
-  Clock
+  Clock,
+  Stethoscope
 } from "lucide-react";
 
 const Home = () => {
@@ -69,6 +70,13 @@ const Home = () => {
             description="Gestione clienti e documenti"
             icon={Contact}
             onClick={() => navigate("/crm")}
+          />
+          
+          <ServiceCard
+            title="Medicina del Lavoro"
+            description="Sorveglianza sanitaria e visite mediche"
+            icon={Stethoscope}
+            onClick={() => navigate("/medicina")}
           />
           
           <ServiceCard

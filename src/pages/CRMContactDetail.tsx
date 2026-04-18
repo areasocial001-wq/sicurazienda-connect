@@ -5,7 +5,7 @@ import { it } from 'date-fns/locale';
 import { 
   ArrowLeft, Building, Mail, Phone, User, Calendar, 
   Tag, Loader2, Edit, MessageSquare, Brain, Sparkles,
-  MapPin, Globe, FileText, Clock, TrendingUp, ListTodo, Briefcase, NotebookPen
+  MapPin, Globe, FileText, Clock, TrendingUp, ListTodo, Briefcase, NotebookPen, Stethoscope
 } from 'lucide-react';
 import Header from '@/components/Header';
 import BottomNav from '@/components/BottomNav';
@@ -25,6 +25,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ContactMedicalSurveillance } from '@/components/medicina/ContactMedicalSurveillance';
 import {
   Dialog,
   DialogContent,
@@ -302,6 +303,10 @@ export default function CRMContactDetail() {
               <NotebookPen className="h-4 w-4" />
               Note
             </TabsTrigger>
+            <TabsTrigger value="medicina" className="flex items-center gap-1">
+              <Stethoscope className="h-4 w-4" />
+              Sorveglianza
+            </TabsTrigger>
             <TabsTrigger value="interactions">Interazioni</TabsTrigger>
           </TabsList>
 
@@ -513,6 +518,11 @@ export default function CRMContactDetail() {
           {/* Notes Tab */}
           <TabsContent value="notes" className="space-y-4">
             <ContactNotes contactId={contact.id} />
+          </TabsContent>
+
+          {/* Medicina del Lavoro Tab */}
+          <TabsContent value="medicina">
+            <ContactMedicalSurveillance contactId={contact.id} />
           </TabsContent>
 
           {/* Interactions Tab */}
