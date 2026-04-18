@@ -25,7 +25,11 @@ export const ProtocolDialog = ({ open, onOpenChange, protocol, onSave }: Props) 
     if (protocol) {
       setForm(protocol);
       setRisksText((protocol.risks ?? []).join(', '));
-      setExamsText(Array.isArray(protocol.exams) ? protocol.exams.join('\n') : '');
+      setExamsText(
+        Array.isArray(protocol.exams)
+          ? protocol.exams.map((e: any) => (typeof e === 'string' ? e : e?.name ?? '')).filter(Boolean).join('\n')
+          : ''
+      );
     } else {
       setForm({ is_active: true, periodicity_months: 12 });
       setRisksText('');
