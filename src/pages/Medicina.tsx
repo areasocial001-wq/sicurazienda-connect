@@ -51,6 +51,7 @@ const Medicina = () => {
   const [editingJudgment, setEditingJudgment] = useState<any>(null);
   const [defaultJudgmentVisitId, setDefaultJudgmentVisitId] = useState<string | null>(null);
   const [judgmentSearch, setJudgmentSearch] = useState('');
+  const [protocolSearch, setProtocolSearch] = useState('');
 
   const upcomingVisits = useMemo(() => {
     const today = new Date();
@@ -398,44 +399,66 @@ const Medicina = () => {
 
           {/* PROTOCOLS */}
           <TabsContent value="protocols" className="space-y-4">
-            <div className="flex justify-end">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div className="relative flex-1 max-w-sm">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input className="pl-8" placeholder="Cerca per nome, mansione, rischio o esame..." value={protocolSearch} onChange={(e) => setProtocolSearch(e.target.value)} />
+              </div>
               <Button onClick={() => { setEditingProtocol(null); setProtocolOpen(true); }}>
                 <Plus className="h-4 w-4 mr-1" /> Nuovo protocollo
               </Button>
             </div>
-            <div className="grid gap-3 md:grid-cols-2">
-              {m.protocols.map((p) => (
-                <Card key={p.id}>
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <CardTitle className="text-base">{p.name}</CardTitle>
-                        <CardDescription>{p.job_role || '—'} · ogni {p.periodicity_months || '—'} mesi</CardDescription>
-                      </div>
-                      <div className="flex gap-1">
-                        <Button size="icon" variant="ghost" onClick={() => { setEditingProtocol(p); setProtocolOpen(true); }}><Pencil className="h-4 w-4" /></Button>
-                        <Button size="icon" variant="ghost" onClick={() => m.deleteProtocol(p.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    {p.risks && p.risks.length > 0 && (
-                      <div className="flex flex-wrap gap-1">
-                        {p.risks.map((r, i) => <Badge key={i} variant="outline">{r}</Badge>)}
-                      </div>
-                    )}
-                    {Array.isArray(p.exams) && p.exams.length > 0 && (
-                      <ul className="text-sm list-disc pl-5 text-muted-foreground">
-                        {p.exams.map((e: any, i: number) => (
-                          <li key={i}>{typeof e === 'string' ? e : e?.name ?? JSON.stringify(e)}{typeof e === 'object' && e?.frequency_months ? ` (ogni ${e.frequency_months} mesi)` : ''}</li>
-                        ))}
-                      </ul>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-              {m.protocols.length === 0 && <p className="text-muted-foreground text-sm">Nessun protocollo configurato.</p>}
-            </div>
+            {(() => {
+              const s = protocolSearch.trim().toLowerCase();
+              const filtered = !s ? m.protocols : m.protocols.filter((p) => {
+                const examsText = Array.isArray(p.exams)
+                  ? p.exams.map((e: any) => (typeof e === 'string' ? e : e?.name ?? '')).join(' ')
+                  : '';
+                return (
+                  (p.name || '').toLowerCase().includes(s) ||
+                  (p.job_role || '').toLowerCase().includes(s) ||
+                  (p.description || '').toLowerCase().includes(s) ||
+                  (p.risks || []).some((r) => r.toLowerCase().includes(s)) ||
+                  examsText.toLowerCase().includes(s)
+                );
+              });
+              return (
+                <div className="grid gap-3 md:grid-cols-2">
+                  {filtered.map((p) => (
+                    <Card key={p.id}>
+                      <CardHeader>
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <CardTitle className="text-base">{p.name}</CardTitle>
+                            <CardDescription>{p.job_role || '—'} · ogni {p.periodicity_months || '—'} mesi</CardDescription>
+                          </div>
+                          <div className="flex gap-1">
+                            <Button size="icon" variant="ghost" onClick={() => { setEditingProtocol(p); setProtocolOpen(true); }}><Pencil className="h-4 w-4" /></Button>
+                            <Button size="icon" variant="ghost" onClick={() => m.deleteProtocol(p.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-2">
+                        {p.risks && p.risks.length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {p.risks.map((r, i) => <Badge key={i} variant="outline">{r}</Badge>)}
+                          </div>
+                        )}
+                        {Array.isArray(p.exams) && p.exams.length > 0 && (
+                          <ul className="text-sm list-disc pl-5 text-muted-foreground">
+                            {p.exams.map((e: any, i: number) => (
+                              <li key={i}>{typeof e === 'string' ? e : e?.name ?? JSON.stringify(e)}{typeof e === 'object' && e?.frequency_months ? ` (ogni ${e.frequency_months} mesi)` : ''}</li>
+                            ))}
+                          </ul>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
+                  {m.protocols.length === 0 && <p className="text-muted-foreground text-sm">Nessun protocollo configurato.</p>}
+                  {m.protocols.length > 0 && filtered.length === 0 && <p className="text-muted-foreground text-sm">Nessun protocollo corrisponde alla ricerca.</p>}
+                </div>
+              );
+            })()}
           </TabsContent>
 
           {/* DOCTORS */}
