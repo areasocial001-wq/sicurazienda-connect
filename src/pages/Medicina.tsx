@@ -148,6 +148,7 @@ const Medicina = () => {
             <TabsTrigger value="analytics" className="gap-1"><BarChart3 className="h-4 w-4" />Statistiche</TabsTrigger>
             <TabsTrigger value="billing" className="gap-1"><Euro className="h-4 w-4" />Fatturazione</TabsTrigger>
             <TabsTrigger value="export" className="gap-1"><Download className="h-4 w-4" />Esporta</TabsTrigger>
+            <TabsTrigger value="import" className="gap-1"><Database className="h-4 w-4" />Importa CRM</TabsTrigger>
           </TabsList>
 
           <TabsContent value="analytics" className="space-y-4">
@@ -160,6 +161,10 @@ const Medicina = () => {
 
           <TabsContent value="export" className="space-y-4">
             <MedicalDataExport visits={m.visits} judgments={m.judgments} inspections={m.inspections} doctors={m.doctors} />
+          </TabsContent>
+
+          <TabsContent value="import" className="space-y-4">
+            <MedicalCRMImporter onImportComplete={() => m.refetch?.()} />
           </TabsContent>
 
           {/* AGENDA */}
