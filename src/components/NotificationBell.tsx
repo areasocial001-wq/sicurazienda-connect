@@ -28,6 +28,9 @@ const typeIcons: Record<string, React.ComponentType<{ className?: string }>> = {
   qr_download: QrCode,
   qr_expiry: QrCode,
   employee_activity_expiry: GraduationCap,
+  medical_visit_due: Stethoscope,
+  medical_judgment_expiry: Stethoscope,
+  medical_protocol_review: Stethoscope,
 };
 
 const typeLabels: Record<string, string> = {
@@ -39,6 +42,9 @@ const typeLabels: Record<string, string> = {
   qr_download: 'Download QR',
   qr_expiry: 'QR in scadenza',
   employee_activity_expiry: 'Attività dipendente',
+  medical_visit_due: 'Visita medica',
+  medical_judgment_expiry: 'Idoneità in scadenza',
+  medical_protocol_review: 'Protocollo da revisionare',
 };
 
 const snoozeOptions: { value: SnoozeOption; label: string }[] = [
