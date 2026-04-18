@@ -1209,6 +1209,396 @@ export type Database = {
         }
         Relationships: []
       }
+      medical_annual_reports: {
+        Row: {
+          allegato_3b_data: Json | null
+          contact_id: string | null
+          content: string | null
+          created_at: string
+          doctor_id: string | null
+          fit_count: number | null
+          fit_with_limitations_count: number | null
+          id: string
+          notes: string | null
+          reference_year: number
+          report_date: string | null
+          report_file_path: string | null
+          sent_at: string | null
+          status: string
+          total_workers: number | null
+          unfit_count: number | null
+          updated_at: string
+          user_id: string
+          visits_performed: number | null
+        }
+        Insert: {
+          allegato_3b_data?: Json | null
+          contact_id?: string | null
+          content?: string | null
+          created_at?: string
+          doctor_id?: string | null
+          fit_count?: number | null
+          fit_with_limitations_count?: number | null
+          id?: string
+          notes?: string | null
+          reference_year: number
+          report_date?: string | null
+          report_file_path?: string | null
+          sent_at?: string | null
+          status?: string
+          total_workers?: number | null
+          unfit_count?: number | null
+          updated_at?: string
+          user_id: string
+          visits_performed?: number | null
+        }
+        Update: {
+          allegato_3b_data?: Json | null
+          contact_id?: string | null
+          content?: string | null
+          created_at?: string
+          doctor_id?: string | null
+          fit_count?: number | null
+          fit_with_limitations_count?: number | null
+          id?: string
+          notes?: string | null
+          reference_year?: number
+          report_date?: string | null
+          report_file_path?: string | null
+          sent_at?: string | null
+          status?: string
+          total_workers?: number | null
+          unfit_count?: number | null
+          updated_at?: string
+          user_id?: string
+          visits_performed?: number | null
+        }
+        Relationships: []
+      }
+      medical_doctors: {
+        Row: {
+          created_at: string
+          email: string | null
+          facility_address: string | null
+          facility_name: string | null
+          first_name: string
+          fiscal_code: string | null
+          hourly_rate: number | null
+          id: string
+          is_active: boolean
+          last_name: string
+          medical_order: string | null
+          notes: string | null
+          order_number: string | null
+          pec: string | null
+          phone: string | null
+          updated_at: string
+          user_id: string
+          visit_rate: number | null
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          facility_address?: string | null
+          facility_name?: string | null
+          first_name: string
+          fiscal_code?: string | null
+          hourly_rate?: number | null
+          id?: string
+          is_active?: boolean
+          last_name: string
+          medical_order?: string | null
+          notes?: string | null
+          order_number?: string | null
+          pec?: string | null
+          phone?: string | null
+          updated_at?: string
+          user_id: string
+          visit_rate?: number | null
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          facility_address?: string | null
+          facility_name?: string | null
+          first_name?: string
+          fiscal_code?: string | null
+          hourly_rate?: number | null
+          id?: string
+          is_active?: boolean
+          last_name?: string
+          medical_order?: string | null
+          notes?: string | null
+          order_number?: string | null
+          pec?: string | null
+          phone?: string | null
+          updated_at?: string
+          user_id?: string
+          visit_rate?: number | null
+        }
+        Relationships: []
+      }
+      medical_health_files: {
+        Row: {
+          contact_id: string | null
+          created_at: string
+          description: string | null
+          document_date: string | null
+          document_type: string
+          employee_id: string
+          file_name: string
+          file_path: string
+          file_size: number | null
+          file_type: string | null
+          id: string
+          updated_at: string
+          uploaded_by: string
+          user_id: string
+          visit_id: string | null
+        }
+        Insert: {
+          contact_id?: string | null
+          created_at?: string
+          description?: string | null
+          document_date?: string | null
+          document_type?: string
+          employee_id: string
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          updated_at?: string
+          uploaded_by: string
+          user_id: string
+          visit_id?: string | null
+        }
+        Update: {
+          contact_id?: string | null
+          created_at?: string
+          description?: string | null
+          document_date?: string | null
+          document_type?: string
+          employee_id?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          updated_at?: string
+          uploaded_by?: string
+          user_id?: string
+          visit_id?: string | null
+        }
+        Relationships: []
+      }
+      medical_inspections: {
+        Row: {
+          contact_id: string | null
+          created_at: string
+          doctor_id: string | null
+          findings: string | null
+          id: string
+          inspection_date: string
+          location_id: string | null
+          notes: string | null
+          participants: string | null
+          recommendations: string | null
+          report_file_path: string | null
+          status: string
+          topics: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          contact_id?: string | null
+          created_at?: string
+          doctor_id?: string | null
+          findings?: string | null
+          id?: string
+          inspection_date: string
+          location_id?: string | null
+          notes?: string | null
+          participants?: string | null
+          recommendations?: string | null
+          report_file_path?: string | null
+          status?: string
+          topics?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          contact_id?: string | null
+          created_at?: string
+          doctor_id?: string | null
+          findings?: string | null
+          id?: string
+          inspection_date?: string
+          location_id?: string | null
+          notes?: string | null
+          participants?: string | null
+          recommendations?: string | null
+          report_file_path?: string | null
+          status?: string
+          topics?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      medical_judgments: {
+        Row: {
+          created_at: string
+          doctor_id: string | null
+          employee_id: string | null
+          id: string
+          judgment: string
+          judgment_date: string
+          limitations: string | null
+          notes: string | null
+          prescriptions: string | null
+          updated_at: string
+          user_id: string
+          valid_until: string | null
+          visit_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          doctor_id?: string | null
+          employee_id?: string | null
+          id?: string
+          judgment?: string
+          judgment_date?: string
+          limitations?: string | null
+          notes?: string | null
+          prescriptions?: string | null
+          updated_at?: string
+          user_id: string
+          valid_until?: string | null
+          visit_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          doctor_id?: string | null
+          employee_id?: string | null
+          id?: string
+          judgment?: string
+          judgment_date?: string
+          limitations?: string | null
+          notes?: string | null
+          prescriptions?: string | null
+          updated_at?: string
+          user_id?: string
+          valid_until?: string | null
+          visit_id?: string | null
+        }
+        Relationships: []
+      }
+      medical_protocols: {
+        Row: {
+          contact_id: string | null
+          created_at: string
+          description: string | null
+          exams: Json | null
+          id: string
+          is_active: boolean
+          job_role: string | null
+          name: string
+          periodicity_months: number | null
+          risks: string[] | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          contact_id?: string | null
+          created_at?: string
+          description?: string | null
+          exams?: Json | null
+          id?: string
+          is_active?: boolean
+          job_role?: string | null
+          name: string
+          periodicity_months?: number | null
+          risks?: string[] | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          contact_id?: string | null
+          created_at?: string
+          description?: string | null
+          exams?: Json | null
+          id?: string
+          is_active?: boolean
+          job_role?: string | null
+          name?: string
+          periodicity_months?: number | null
+          risks?: string[] | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      medical_visits: {
+        Row: {
+          contact_id: string | null
+          cost: number | null
+          created_at: string
+          doctor_id: string | null
+          employee_id: string | null
+          exams_performed: Json | null
+          execution_date: string | null
+          id: string
+          location: string | null
+          next_due_date: string | null
+          notes: string | null
+          protocol_id: string | null
+          scheduled_date: string | null
+          status: string
+          updated_at: string
+          user_id: string
+          visit_type: string
+        }
+        Insert: {
+          contact_id?: string | null
+          cost?: number | null
+          created_at?: string
+          doctor_id?: string | null
+          employee_id?: string | null
+          exams_performed?: Json | null
+          execution_date?: string | null
+          id?: string
+          location?: string | null
+          next_due_date?: string | null
+          notes?: string | null
+          protocol_id?: string | null
+          scheduled_date?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+          visit_type?: string
+        }
+        Update: {
+          contact_id?: string | null
+          cost?: number | null
+          created_at?: string
+          doctor_id?: string | null
+          employee_id?: string | null
+          exams_performed?: Json | null
+          execution_date?: string | null
+          id?: string
+          location?: string | null
+          next_due_date?: string | null
+          notes?: string | null
+          protocol_id?: string | null
+          scheduled_date?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+          visit_type?: string
+        }
+        Relationships: []
+      }
       message_templates: {
         Row: {
           content: string
