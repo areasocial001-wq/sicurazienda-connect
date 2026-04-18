@@ -144,6 +144,82 @@ const Medicina = () => {
             <HealthFolderPanel />
           </TabsContent>
 
+          {/* JUDGMENTS */}
+          <TabsContent value="judgments" className="space-y-4">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div className="relative flex-1 max-w-sm">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input className="pl-8" placeholder="Cerca per dipendente o esito..." value={judgmentSearch} onChange={(e) => setJudgmentSearch(e.target.value)} />
+              </div>
+              <Button onClick={() => { setEditingJudgment(null); setDefaultJudgmentVisitId(null); setJudgmentOpen(true); }}>
+                <Plus className="h-4 w-4 mr-1" /> Nuovo giudizio
+              </Button>
+            </div>
+            <Card>
+              <CardContent className="p-0">
+                <ScrollArea className="h-[600px]">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Data</TableHead>
+                        <TableHead>Dipendente</TableHead>
+                        <TableHead>Esito</TableHead>
+                        <TableHead>Limitazioni</TableHead>
+                        <TableHead>Valido fino al</TableHead>
+                        <TableHead>Medico</TableHead>
+                        <TableHead className="w-20"></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {m.judgments
+                        .map((j) => {
+                          const visit = m.visits.find((v) => v.id === j.visit_id);
+                          const empName = visit?.employee_name || (() => {
+                            const v2 = m.visits.find((v) => v.employee_id === j.employee_id);
+                            return v2?.employee_name;
+                          })() || '—';
+                          const docName = m.doctors.find((d) => d.id === j.doctor_id);
+                          return { ...j, _empName: empName, _docName: docName ? `Dr. ${docName.first_name} ${docName.last_name}` : '—' };
+                        })
+                        .filter((j) => {
+                          if (!judgmentSearch) return true;
+                          const s = judgmentSearch.toLowerCase();
+                          return j._empName.toLowerCase().includes(s) || j.judgment.toLowerCase().includes(s);
+                        })
+                        .map((j) => {
+                          const opt = JUDGMENT_OPTIONS.find((o) => o.value === j.judgment);
+                          const expired = j.valid_until && new Date(j.valid_until) < new Date();
+                          return (
+                            <TableRow key={j.id}>
+                              <TableCell>{format(parseISO(j.judgment_date), 'dd/MM/yyyy', { locale: it })}</TableCell>
+                              <TableCell className="font-medium">{j._empName}</TableCell>
+                              <TableCell><span className={opt?.color}>{opt?.label || j.judgment}</span></TableCell>
+                              <TableCell className="max-w-[200px] truncate text-sm" title={j.limitations || ''}>{j.limitations || '—'}</TableCell>
+                              <TableCell>
+                                {j.valid_until ? (
+                                  <Badge variant={expired ? 'destructive' : 'outline'}>
+                                    {format(parseISO(j.valid_until), 'dd/MM/yyyy', { locale: it })}
+                                  </Badge>
+                                ) : '—'}
+                              </TableCell>
+                              <TableCell className="text-sm">{j._docName}</TableCell>
+                              <TableCell>
+                                <div className="flex gap-1">
+                                  <Button size="icon" variant="ghost" onClick={() => { setEditingJudgment(j); setJudgmentOpen(true); }}><Pencil className="h-4 w-4" /></Button>
+                                  <Button size="icon" variant="ghost" onClick={() => { if (confirm('Eliminare il giudizio?')) m.deleteJudgment(j.id); }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      {m.judgments.length === 0 && <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Nessun giudizio registrato</TableCell></TableRow>}
+                    </TableBody>
+                  </Table>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           {/* DASHBOARD */}
           <TabsContent value="dashboard" className="space-y-4">
             <div className="grid gap-4 md:grid-cols-3">
