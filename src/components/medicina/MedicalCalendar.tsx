@@ -25,6 +25,8 @@ import type { MedicalVisit, MedicalInspection } from '@/hooks/useMedicina';
 interface MedicalCalendarProps {
   visits: MedicalVisit[];
   inspections: MedicalInspection[];
+  contacts?: Array<{ id: string; name: string; company?: string | null }>;
+  locations?: Array<{ id: string; name: string }>;
   onVisitClick?: (visit: MedicalVisit) => void;
   onInspectionClick?: (inspection: MedicalInspection) => void;
 }
