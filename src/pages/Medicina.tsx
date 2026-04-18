@@ -11,8 +11,11 @@ import { Input } from '@/components/ui/input';
 import { useMedicina } from '@/hooks/useMedicina';
 import { useUserRole } from '@/hooks/useUserRole';
 import { Navigate } from 'react-router-dom';
-import { Plus, Stethoscope, ClipboardList, CalendarClock, MapPinned, FileText, AlertTriangle, Pencil, Trash2, ShieldAlert, Loader2, Search, FolderLock, Gavel, CalendarDays } from 'lucide-react';
+import { Plus, Stethoscope, ClipboardList, CalendarClock, MapPinned, FileText, AlertTriangle, Pencil, Trash2, ShieldAlert, Loader2, Search, FolderLock, Gavel, CalendarDays, Euro, BarChart3, Download } from 'lucide-react';
 import { DoctorDialog } from '@/components/medicina/DoctorDialog';
+import { DoctorBilling } from '@/components/medicina/DoctorBilling';
+import { MedicalAnalytics } from '@/components/medicina/MedicalAnalytics';
+import { MedicalDataExport } from '@/components/medicina/MedicalDataExport';
 import { ProtocolDialog } from '@/components/medicina/ProtocolDialog';
 import { VisitDialog } from '@/components/medicina/VisitDialog';
 import { InspectionDialog } from '@/components/medicina/InspectionDialog';
@@ -141,7 +144,22 @@ const Medicina = () => {
             <TabsTrigger value="judgments" className="gap-1"><Gavel className="h-4 w-4" />Idoneità</TabsTrigger>
             <TabsTrigger value="inspections" className="gap-1"><MapPinned className="h-4 w-4" />Sopralluoghi</TabsTrigger>
             <TabsTrigger value="reports" className="gap-1"><FileText className="h-4 w-4" />Relazioni 3B</TabsTrigger>
+            <TabsTrigger value="analytics" className="gap-1"><BarChart3 className="h-4 w-4" />Statistiche</TabsTrigger>
+            <TabsTrigger value="billing" className="gap-1"><Euro className="h-4 w-4" />Fatturazione</TabsTrigger>
+            <TabsTrigger value="export" className="gap-1"><Download className="h-4 w-4" />Esporta</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="analytics" className="space-y-4">
+            <MedicalAnalytics visits={m.visits} judgments={m.judgments} />
+          </TabsContent>
+
+          <TabsContent value="billing" className="space-y-4">
+            <DoctorBilling doctors={m.doctors} visits={m.visits} inspections={m.inspections} />
+          </TabsContent>
+
+          <TabsContent value="export" className="space-y-4">
+            <MedicalDataExport visits={m.visits} judgments={m.judgments} inspections={m.inspections} doctors={m.doctors} />
+          </TabsContent>
 
           {/* AGENDA */}
           <TabsContent value="agenda" className="space-y-4">
