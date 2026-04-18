@@ -271,7 +271,161 @@ serve(async (req) => {
       }
     }
 
-    // Check for upcoming Google Calendar events
+    // ============ MEDICINA DEL LAVORO ============
+    // Get users with medicina or admin role to limit reminders to authorized staff
+    const { data: medicinaUsers } = await supabase
+      .from('user_roles')
+      .select('user_id')
+      .in('role', ['medicina', 'admin']);
+    const medicinaUserIds = new Set((medicinaUsers || []).map((u: any) => u.user_id));
+
+    // Check medical visits scheduled or due in the next 30 days
+    const { data: upcomingVisits, error: visitsError } = await supabase
+      .from('medical_visits')
+      .select(`
+        id, visit_type, scheduled_date, next_due_date, status, user_id,
+        employee:crm_employees(first_name, last_name),
+        contact:crm_contacts(name, company)
+      `)
+      .or(`and(scheduled_date.gte.${now.toISOString().split('T')[0]},scheduled_date.lte.${thirtyDaysFromNow.toISOString().split('T')[0]}),and(next_due_date.gte.${now.toISOString().split('T')[0]},next_due_date.lte.${thirtyDaysFromNow.toISOString().split('T')[0]})`);
+
+    if (visitsError) {
+      console.error('Error fetching upcoming medical visits:', visitsError);
+    } else {
+      console.log(`Found ${upcomingVisits?.length || 0} medical visits due soon`);
+      for (const visit of upcomingVisits || []) {
+        if (!medicinaUserIds.has(visit.user_id)) continue;
+        const targetDate = visit.scheduled_date || visit.next_due_date;
+        if (!targetDate) continue;
+
+        const { data: existingReminder } = await supabase
+          .from('reminders')
+          .select('id')
+          .eq('reference_id', visit.id)
+          .eq('reference_type', 'medical_visit')
+          .eq('is_completed', false)
+          .maybeSingle();
+
+        if (!existingReminder) {
+          const dueDate = new Date(targetDate);
+          const daysUntil = Math.ceil((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+          const isUrgent = daysUntil <= 7;
+          const emp = visit.employee as any;
+          const empName = emp ? `${emp.first_name} ${emp.last_name}` : 'Dipendente';
+          const company = (visit.contact as any)?.company || (visit.contact as any)?.name || '';
+
+          remindersToCreate.push({
+            user_id: visit.user_id,
+            title: isUrgent
+              ? `⚠️ URGENTE: Visita ${visit.visit_type} - ${empName} tra ${daysUntil}g`
+              : `🏥 Visita ${visit.visit_type} - ${empName} tra ${daysUntil}g`,
+            description: `Visita medica (${visit.visit_type}) per ${empName}${company ? ` (${company})` : ''} prevista il ${dueDate.toLocaleDateString('it-IT')}. Stato: ${visit.status}.`,
+            type: 'medical_visit_due',
+            reference_id: visit.id,
+            reference_type: 'medical_visit',
+            due_date: targetDate,
+          });
+        }
+      }
+    }
+
+    // Check medical judgments expiring (valid_until) in the next 30 days
+    const { data: expiringJudgments, error: judgmentsError } = await supabase
+      .from('medical_judgments')
+      .select(`
+        id, judgment, valid_until, user_id,
+        employee:crm_employees(first_name, last_name, contact_id, crm_contacts(name, company))
+      `)
+      .not('valid_until', 'is', null)
+      .lte('valid_until', thirtyDaysFromNow.toISOString().split('T')[0])
+      .gte('valid_until', now.toISOString().split('T')[0]);
+
+    if (judgmentsError) {
+      console.error('Error fetching expiring medical judgments:', judgmentsError);
+    } else {
+      console.log(`Found ${expiringJudgments?.length || 0} medical judgments expiring soon`);
+      for (const j of expiringJudgments || []) {
+        if (!medicinaUserIds.has(j.user_id)) continue;
+
+        const { data: existingReminder } = await supabase
+          .from('reminders')
+          .select('id')
+          .eq('reference_id', j.id)
+          .eq('reference_type', 'medical_judgment')
+          .eq('is_completed', false)
+          .maybeSingle();
+
+        if (!existingReminder) {
+          const expiry = new Date(j.valid_until);
+          const daysUntil = Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+          const isUrgent = daysUntil <= 7;
+          const emp = j.employee as any;
+          const empName = emp ? `${emp.first_name} ${emp.last_name}` : 'Dipendente';
+          const company = emp?.crm_contacts?.company || emp?.crm_contacts?.name || '';
+
+          remindersToCreate.push({
+            user_id: j.user_id,
+            title: isUrgent
+              ? `⚠️ URGENTE: Idoneità ${empName} scade tra ${daysUntil}g`
+              : `📋 Idoneità ${empName} scade tra ${daysUntil}g`,
+            description: `Il giudizio di idoneità "${j.judgment}" per ${empName}${company ? ` (${company})` : ''} scade il ${expiry.toLocaleDateString('it-IT')}. Pianifica una nuova visita.`,
+            type: 'medical_judgment_expiry',
+            reference_id: j.id,
+            reference_type: 'medical_judgment',
+            due_date: j.valid_until,
+          });
+        }
+      }
+    }
+
+    // Check medical protocols for periodic review (active protocols with periodicity)
+    // Reminder triggered when no visit has been recorded for the periodicity window
+    const { data: activeProtocols, error: protocolsError } = await supabase
+      .from('medical_protocols')
+      .select('id, name, periodicity_months, contact_id, user_id, updated_at')
+      .eq('is_active', true)
+      .not('periodicity_months', 'is', null);
+
+    if (protocolsError) {
+      console.error('Error fetching medical protocols:', protocolsError);
+    } else {
+      console.log(`Checking ${activeProtocols?.length || 0} active medical protocols for review`);
+      for (const p of activeProtocols || []) {
+        if (!medicinaUserIds.has(p.user_id)) continue;
+        if (!p.periodicity_months) continue;
+
+        const reviewDate = new Date(p.updated_at);
+        reviewDate.setMonth(reviewDate.getMonth() + p.periodicity_months);
+        const daysUntilReview = Math.ceil((reviewDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+        // Notify only if review is due within 30 days or already overdue (up to 60 days late)
+        if (daysUntilReview > 30 || daysUntilReview < -60) continue;
+
+        const { data: existingReminder } = await supabase
+          .from('reminders')
+          .select('id')
+          .eq('reference_id', p.id)
+          .eq('reference_type', 'medical_protocol')
+          .eq('is_completed', false)
+          .maybeSingle();
+
+        if (!existingReminder) {
+          const isOverdue = daysUntilReview < 0;
+          remindersToCreate.push({
+            user_id: p.user_id,
+            title: isOverdue
+              ? `⚠️ Protocollo "${p.name}" da revisionare (scaduto da ${Math.abs(daysUntilReview)}g)`
+              : `📋 Protocollo "${p.name}" da revisionare tra ${daysUntilReview}g`,
+            description: `Il protocollo sanitario "${p.name}" richiede una revisione periodica (ogni ${p.periodicity_months} mesi). ${isOverdue ? 'Revisione in ritardo.' : 'Pianifica la revisione.'}`,
+            type: 'medical_protocol_review',
+            reference_id: p.id,
+            reference_type: 'medical_protocol',
+            due_date: reviewDate.toISOString().split('T')[0],
+          });
+        }
+      }
+    }
+
     let calendarRemindersCreated = 0;
     const { data: calendarTokens } = await supabase
       .from('google_calendar_tokens')
