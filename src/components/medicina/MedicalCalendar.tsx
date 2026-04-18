@@ -44,7 +44,7 @@ const visitTypeLabel = (t: string) => ({
   cessazione: 'Cessazione',
 }[t] || t);
 
-export function MedicalCalendar({ visits, inspections, onVisitClick, onInspectionClick }: MedicalCalendarProps) {
+export function MedicalCalendar({ visits, inspections, contacts = [], locations = [], onVisitClick, onInspectionClick }: MedicalCalendarProps) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<Date | null>(new Date());
 
