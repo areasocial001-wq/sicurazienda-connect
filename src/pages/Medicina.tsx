@@ -169,6 +169,10 @@ const Medicina = () => {
             <MedicalCRMImporter onImportComplete={() => window.location.reload()} />
           </TabsContent>
 
+          <TabsContent value="import-excel" className="space-y-4">
+            <AgendaExcelImporter />
+          </TabsContent>
+
           {/* AGENDA */}
           <TabsContent value="agenda" className="space-y-4">
             <div className="flex items-center justify-between gap-2 flex-wrap">
