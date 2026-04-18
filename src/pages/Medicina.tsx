@@ -420,7 +420,9 @@ const Medicina = () => {
                     )}
                     {Array.isArray(p.exams) && p.exams.length > 0 && (
                       <ul className="text-sm list-disc pl-5 text-muted-foreground">
-                        {p.exams.map((e: string, i: number) => <li key={i}>{e}</li>)}
+                        {p.exams.map((e: any, i: number) => (
+                          <li key={i}>{typeof e === 'string' ? e : e?.name ?? JSON.stringify(e)}{typeof e === 'object' && e?.frequency_months ? ` (ogni ${e.frequency_months} mesi)` : ''}</li>
+                        ))}
                       </ul>
                     )}
                   </CardContent>
