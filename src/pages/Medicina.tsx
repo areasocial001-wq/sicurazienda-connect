@@ -133,6 +133,7 @@ const Medicina = () => {
         <Tabs value={tab} onValueChange={setTab} className="space-y-4">
           <TabsList className="flex-wrap h-auto">
             <TabsTrigger value="dashboard" className="gap-1"><AlertTriangle className="h-4 w-4" />Scadenze</TabsTrigger>
+            <TabsTrigger value="agenda" className="gap-1"><CalendarDays className="h-4 w-4" />Agenda</TabsTrigger>
             <TabsTrigger value="visits" className="gap-1"><CalendarClock className="h-4 w-4" />Visite</TabsTrigger>
             <TabsTrigger value="protocols" className="gap-1"><ClipboardList className="h-4 w-4" />Protocolli</TabsTrigger>
             <TabsTrigger value="doctors" className="gap-1"><Stethoscope className="h-4 w-4" />Medici</TabsTrigger>
@@ -141,6 +142,28 @@ const Medicina = () => {
             <TabsTrigger value="inspections" className="gap-1"><MapPinned className="h-4 w-4" />Sopralluoghi</TabsTrigger>
             <TabsTrigger value="reports" className="gap-1"><FileText className="h-4 w-4" />Relazioni 3B</TabsTrigger>
           </TabsList>
+
+          {/* AGENDA */}
+          <TabsContent value="agenda" className="space-y-4">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div className="text-sm text-muted-foreground">Pianifica visite e sopralluoghi su calendario mensile.</div>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => { setEditingInsp(null); setInspOpen(true); }}>
+                  <MapPinned className="h-4 w-4 mr-1" /> Nuovo sopralluogo
+                </Button>
+                <Button onClick={() => { setEditingVisit(null); setVisitOpen(true); }}>
+                  <Plus className="h-4 w-4 mr-1" /> Nuova visita
+                </Button>
+              </div>
+            </div>
+            <MedicalCalendar
+              visits={m.visits}
+              inspections={m.inspections}
+              contacts={contacts.map((c) => ({ id: c.id, name: c.name, company: c.company }))}
+              onVisitClick={(v) => { setEditingVisit(v); setVisitOpen(true); }}
+              onInspectionClick={(i) => { setEditingInsp(i); setInspOpen(true); }}
+            />
+          </TabsContent>
 
           {/* HEALTH FILES */}
           <TabsContent value="health-files" className="space-y-4">
