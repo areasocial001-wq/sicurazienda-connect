@@ -7,6 +7,7 @@ import { Plus, Stethoscope, Pencil, Trash2 } from 'lucide-react';
 import { useMedicina } from '@/hooks/useMedicina';
 import { useUserRole } from '@/hooks/useUserRole';
 import { VisitDialog } from '@/components/medicina/VisitDialog';
+import { HealthFolderPanel } from '@/components/medicina/HealthFolderPanel';
 import { format, differenceInDays, parseISO } from 'date-fns';
 import { it } from 'date-fns/locale';
 
@@ -44,6 +45,7 @@ export const ContactMedicalSurveillance = ({ contactId }: Props) => {
   }[t] || t);
 
   return (
+    <div className="space-y-4">
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
@@ -118,5 +120,8 @@ export const ContactMedicalSurveillance = ({ contactId }: Props) => {
         onSave={(d) => editing ? m.updateVisit(editing.id, d) : m.createVisit(d)}
       />
     </Card>
+
+    <HealthFolderPanel contactId={contactId} />
+    </div>
   );
 };
