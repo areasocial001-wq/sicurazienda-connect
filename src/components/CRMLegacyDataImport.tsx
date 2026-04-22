@@ -418,6 +418,8 @@ export function CRMLegacyDataImport({ onImportComplete }: CRMLegacyDataImportPro
   const runImport = async () => {
     if (!user) return;
     setImporting(true);
+    const importErrors: ImportError[] = [];
+    setErrors([]);
     let totalDone = 0;
     const totalOps =
       (importCompanies ? companies.length : 0) +
@@ -460,24 +462,32 @@ export function CRMLegacyDataImport({ onImportComplete }: CRMLegacyDataImportPro
 
           try {
             if (c.match_status === 'update' && c.matched_id) {
-              await supabase.from('crm_contacts').update(payload).eq('id', c.matched_id);
+              const { error } = await supabase.from('crm_contacts').update(payload).eq('id', c.matched_id);
+              if (error) throw error;
               companyIdByExt.set(c.external_id, c.matched_id);
               if (c.vat_number) companyIdByVat.set(c.vat_number, c.matched_id);
               companyIdByName.set(c.name.toLowerCase(), c.matched_id);
             } else {
-              const { data } = await supabase
+              const { data, error } = await supabase
                 .from('crm_contacts')
                 .insert({ ...payload, user_id: user.id, status: 'client' })
                 .select('id')
                 .single();
+              if (error) throw error;
               if (data?.id) {
                 companyIdByExt.set(c.external_id, data.id);
                 if (c.vat_number) companyIdByVat.set(c.vat_number, data.id);
                 companyIdByName.set(c.name.toLowerCase(), data.id);
               }
             }
-          } catch (err) {
+          } catch (err: any) {
             console.error('Errore azienda', c.name, err);
+            importErrors.push({
+              type: 'company',
+              identifier: `${c.name}${c.vat_number ? ` (P.IVA ${c.vat_number})` : ''}`,
+              operation: c.match_status === 'update' ? 'update' : 'insert',
+              message: err?.message || String(err),
+            });
           }
           totalDone++;
         }
@@ -525,14 +535,22 @@ export function CRMLegacyDataImport({ onImportComplete }: CRMLegacyDataImportPro
 
           try {
             if (e.match_status === 'update' && e.matched_id) {
-              await supabase.from('crm_employees').update(payload).eq('id', e.matched_id);
+              const { error } = await supabase.from('crm_employees').update(payload).eq('id', e.matched_id);
+              if (error) throw error;
             } else {
-              await supabase
+              const { error } = await supabase
                 .from('crm_employees')
                 .insert({ ...payload, user_id: user.id });
+              if (error) throw error;
             }
-          } catch (err) {
+          } catch (err: any) {
             console.error('Errore dipendente', e.fiscal_code, err);
+            importErrors.push({
+              type: 'employee',
+              identifier: `${e.last_name} ${e.first_name} (CF ${e.fiscal_code})`,
+              operation: e.match_status === 'update' ? 'update' : 'insert',
+              message: err?.message || String(err),
+            });
           }
           totalDone++;
         }
@@ -541,9 +559,16 @@ export function CRMLegacyDataImport({ onImportComplete }: CRMLegacyDataImportPro
     }
 
     setImporting(false);
-    toast.success('Importazione completata');
+    setErrors(importErrors);
+    if (importErrors.length) {
+      toast.warning(`Import completato con ${importErrors.length} errori — controlla il tab Errori`);
+    } else {
+      toast.success('Importazione completata');
+    }
     onImportComplete?.();
-    setTimeout(() => handleClose(), 1500);
+    if (!importErrors.length) {
+      setTimeout(() => handleClose(), 1500);
+    }
   };
 
   const compStats = {
