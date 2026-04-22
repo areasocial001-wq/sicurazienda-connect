@@ -142,6 +142,7 @@ export function ContactLocationsEmployees({ contactId }: ContactLocationsEmploye
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [activityFilters, setActivityFilters] = useState<Record<string, ActivityFilters>>({});
   const [employeeFilters, setEmployeeFilters] = useState<Record<string, EmployeeFilters>>({});
+  const [employeeSorts, setEmployeeSorts] = useState<Record<string, EmployeeSort>>({});
 
   useEffect(() => {
     fetchData();
@@ -231,7 +232,7 @@ export function ContactLocationsEmployees({ contactId }: ContactLocationsEmploye
     const query = (searchQueries[locationId] || '').toLowerCase().trim();
     const filters = getEmployeeFilters(locationId);
 
-    return locationEmployees.filter(e => {
+    const filtered = locationEmployees.filter(e => {
       // Text search: name + CF
       const matchesQuery = !query ||
         `${e.first_name} ${e.last_name}`.toLowerCase().includes(query) ||
@@ -246,6 +247,46 @@ export function ContactLocationsEmployees({ contactId }: ContactLocationsEmploye
 
       return matchesQuery && matchesRole && matchesStatus;
     });
+
+    const sort = getEmployeeSort(locationId);
+    const dir = sort.direction === 'asc' ? 1 : -1;
+    const compareStrings = (a?: string | null, b?: string | null) => {
+      const aEmpty = !a;
+      const bEmpty = !b;
+      if (aEmpty && bEmpty) return 0;
+      if (aEmpty) return 1; // empties always last
+      if (bEmpty) return -1;
+      return a!.localeCompare(b!) * dir;
+    };
+
+    return [...filtered].sort((a, b) => {
+      switch (sort.field) {
+        case 'fiscal_code':
+          return compareStrings(a.fiscal_code, b.fiscal_code);
+        case 'hire_date':
+          return compareStrings(a.hire_date, b.hire_date);
+        case 'termination_date':
+          return compareStrings(a.termination_date, b.termination_date);
+        case 'name':
+        default:
+          return compareStrings(
+            `${a.last_name} ${a.first_name}`,
+            `${b.last_name} ${b.first_name}`
+          );
+      }
+    });
+  };
+
+  const getEmployeeSort = (locationId: string): EmployeeSort => {
+    return employeeSorts[locationId] || { field: 'name', direction: 'asc' };
+  };
+
+  const setEmployeeSort = (locationId: string, field: EmployeeSortField) => {
+    const current = getEmployeeSort(locationId);
+    const next: EmployeeSort = current.field === field
+      ? { field, direction: current.direction === 'asc' ? 'desc' : 'asc' }
+      : { field, direction: 'asc' };
+    setEmployeeSorts(prev => ({ ...prev, [locationId]: next }));
   };
 
   const getEmployeeFilters = (locationId: string): EmployeeFilters => {
