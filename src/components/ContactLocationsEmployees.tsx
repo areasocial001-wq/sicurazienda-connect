@@ -104,6 +104,11 @@ interface ActivityFilters {
   statuses: string[];
 }
 
+interface EmployeeFilters {
+  roles: string[];
+  statuses: ('active' | 'inactive')[];
+}
+
 interface PendingDelete {
   activityId: string;
   activityName: string;
@@ -129,6 +134,7 @@ export function ContactLocationsEmployees({ contactId }: ContactLocationsEmploye
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [activityFilters, setActivityFilters] = useState<Record<string, ActivityFilters>>({});
+  const [employeeFilters, setEmployeeFilters] = useState<Record<string, EmployeeFilters>>({});
 
   useEffect(() => {
     fetchData();
@@ -216,13 +222,56 @@ export function ContactLocationsEmployees({ contactId }: ContactLocationsEmploye
   const getFilteredEmployeesForLocation = (locationId: string) => {
     const locationEmployees = getEmployeesForLocation(locationId);
     const query = (searchQueries[locationId] || '').toLowerCase().trim();
-    
-    if (!query) return locationEmployees;
-    
-    return locationEmployees.filter(e => 
-      `${e.first_name} ${e.last_name}`.toLowerCase().includes(query) ||
-      `${e.last_name} ${e.first_name}`.toLowerCase().includes(query)
-    );
+    const filters = getEmployeeFilters(locationId);
+
+    return locationEmployees.filter(e => {
+      // Text search: name + CF
+      const matchesQuery = !query ||
+        `${e.first_name} ${e.last_name}`.toLowerCase().includes(query) ||
+        `${e.last_name} ${e.first_name}`.toLowerCase().includes(query) ||
+        (e.fiscal_code || '').toLowerCase().includes(query);
+
+      const matchesRole = filters.roles.length === 0 ||
+        (e.role && filters.roles.includes(e.role));
+
+      const empStatus: 'active' | 'inactive' = e.termination_date || e.status === 'inactive' ? 'inactive' : 'active';
+      const matchesStatus = filters.statuses.length === 0 || filters.statuses.includes(empStatus);
+
+      return matchesQuery && matchesRole && matchesStatus;
+    });
+  };
+
+  const getEmployeeFilters = (locationId: string): EmployeeFilters => {
+    return employeeFilters[locationId] || { roles: [], statuses: [] };
+  };
+
+  const toggleEmployeeRoleFilter = (locationId: string, role: string) => {
+    const current = getEmployeeFilters(locationId);
+    const next = current.roles.includes(role)
+      ? current.roles.filter(r => r !== role)
+      : [...current.roles, role];
+    setEmployeeFilters(prev => ({ ...prev, [locationId]: { ...current, roles: next } }));
+  };
+
+  const toggleEmployeeStatusFilter = (locationId: string, status: 'active' | 'inactive') => {
+    const current = getEmployeeFilters(locationId);
+    const next = current.statuses.includes(status)
+      ? current.statuses.filter(s => s !== status)
+      : [...current.statuses, status];
+    setEmployeeFilters(prev => ({ ...prev, [locationId]: { ...current, statuses: next } }));
+  };
+
+  const getRolesForLocation = (locationId: string): string[] => {
+    const set = new Set<string>();
+    getEmployeesForLocation(locationId).forEach(e => {
+      if (e.role) set.add(e.role);
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  };
+
+  const getActiveEmployeeFiltersCount = (locationId: string) => {
+    const f = getEmployeeFilters(locationId);
+    return f.roles.length + f.statuses.length;
   };
 
   const getActivitiesForEmployee = (employeeId: string) => {
