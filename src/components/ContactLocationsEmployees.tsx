@@ -742,6 +742,56 @@ export function ContactLocationsEmployees({ contactId }: ContactLocationsEmploye
                               </DropdownMenuCheckboxItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
+                          {/* Employee sort */}
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="gap-1 text-xs h-8"
+                              >
+                                {getEmployeeSort(location.id).direction === 'asc' ? (
+                                  <ArrowUp className="h-3 w-3" />
+                                ) : (
+                                  <ArrowDown className="h-3 w-3" />
+                                )}
+                                Ordina
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-56">
+                              <DropdownMenuLabel>Ordina dipendenti per</DropdownMenuLabel>
+                              {([
+                                { field: 'name' as const, label: 'Nome' },
+                                { field: 'fiscal_code' as const, label: 'Codice Fiscale' },
+                                { field: 'hire_date' as const, label: 'Data assunzione' },
+                                { field: 'termination_date' as const, label: 'Data cessazione' },
+                              ]).map(opt => {
+                                const sort = getEmployeeSort(location.id);
+                                const active = sort.field === opt.field;
+                                return (
+                                  <DropdownMenuCheckboxItem
+                                    key={opt.field}
+                                    checked={active}
+                                    onCheckedChange={() => setEmployeeSort(location.id, opt.field)}
+                                    onSelect={(e) => e.preventDefault()}
+                                  >
+                                    <span className="flex items-center justify-between gap-2 w-full">
+                                      <span>{opt.label}</span>
+                                      {active ? (
+                                        sort.direction === 'asc' ? (
+                                          <ArrowUp className="h-3 w-3 text-muted-foreground" />
+                                        ) : (
+                                          <ArrowDown className="h-3 w-3 text-muted-foreground" />
+                                        )
+                                      ) : (
+                                        <ArrowUpDown className="h-3 w-3 text-muted-foreground/40" />
+                                      )}
+                                    </span>
+                                  </DropdownMenuCheckboxItem>
+                                );
+                              })}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                           <Button
                             variant="outline"
                             size="sm"
