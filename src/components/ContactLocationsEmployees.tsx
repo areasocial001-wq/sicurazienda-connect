@@ -557,7 +557,7 @@ export function ContactLocationsEmployees({ contactId }: ContactLocationsEmploye
                           <div className="relative flex-1">
                             <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                             <Input
-                              placeholder="Cerca dipendente..."
+                              placeholder="Cerca per nome o CF..."
                               value={searchQuery}
                               onChange={(e) => updateSearchQuery(location.id, e.target.value)}
                               className="pl-8 h-8 text-sm"
@@ -573,6 +573,60 @@ export function ContactLocationsEmployees({ contactId }: ContactLocationsEmploye
                               </Button>
                             )}
                           </div>
+                          {/* Employee filters: role + status */}
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="gap-1 text-xs h-8"
+                              >
+                                <Users className="h-3 w-3" />
+                                Dipendenti
+                                {getActiveEmployeeFiltersCount(location.id) > 0 && (
+                                  <Badge variant="secondary" className="ml-1 h-4 px-1 text-[10px]">
+                                    {getActiveEmployeeFiltersCount(location.id)}
+                                  </Badge>
+                                )}
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-56 max-h-80 overflow-y-auto">
+                              <DropdownMenuLabel>Stato</DropdownMenuLabel>
+                              <DropdownMenuCheckboxItem
+                                checked={getEmployeeFilters(location.id).statuses.includes('active')}
+                                onCheckedChange={() => toggleEmployeeStatusFilter(location.id, 'active')}
+                              >
+                                <span className="flex items-center gap-2">
+                                  <CheckCircle className="h-3 w-3 text-green-600" />
+                                  Attivo
+                                </span>
+                              </DropdownMenuCheckboxItem>
+                              <DropdownMenuCheckboxItem
+                                checked={getEmployeeFilters(location.id).statuses.includes('inactive')}
+                                onCheckedChange={() => toggleEmployeeStatusFilter(location.id, 'inactive')}
+                              >
+                                <span className="flex items-center gap-2">
+                                  <CalendarX className="h-3 w-3 text-red-600" />
+                                  Inattivo / Cessato
+                                </span>
+                              </DropdownMenuCheckboxItem>
+                              {getRolesForLocation(location.id).length > 0 && (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuLabel>Mansione</DropdownMenuLabel>
+                                  {getRolesForLocation(location.id).map(role => (
+                                    <DropdownMenuCheckboxItem
+                                      key={role}
+                                      checked={getEmployeeFilters(location.id).roles.includes(role)}
+                                      onCheckedChange={() => toggleEmployeeRoleFilter(location.id, role)}
+                                    >
+                                      <span className="truncate">{role}</span>
+                                    </DropdownMenuCheckboxItem>
+                                  ))}
+                                </>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button
@@ -581,7 +635,7 @@ export function ContactLocationsEmployees({ contactId }: ContactLocationsEmploye
                                 className="gap-1 text-xs h-8"
                               >
                                 <Filter className="h-3 w-3" />
-                                Filtri
+                                Attività
                                 {getActiveFiltersCount(location.id) > 0 && (
                                   <Badge variant="secondary" className="ml-1 h-4 px-1 text-[10px]">
                                     {getActiveFiltersCount(location.id)}
