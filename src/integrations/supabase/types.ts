@@ -631,22 +631,34 @@ export type Database = {
       }
       crm_contacts: {
         Row: {
+          activity_end_date: string | null
+          activity_start_date: string | null
           address: string | null
+          ateco_code: string | null
+          ateco_letter: string | null
+          city: string | null
           client_user_id: string | null
           code: string | null
           company: string | null
           created_at: string
           email: string | null
+          external_id: string | null
           fiscal_code: string | null
           id: string
           last_contact_at: string | null
+          legal_form: string | null
+          legal_name: string | null
           name: string
           next_followup_at: string | null
           notes: string | null
           owner_name: string | null
           pec: string | null
+          pec_fe: string | null
           phone: string | null
+          postal_code: string | null
+          province: string | null
           rating: string | null
+          region: string | null
           role: string | null
           sdi_code: string | null
           source: string | null
@@ -658,22 +670,34 @@ export type Database = {
           website: string | null
         }
         Insert: {
+          activity_end_date?: string | null
+          activity_start_date?: string | null
           address?: string | null
+          ateco_code?: string | null
+          ateco_letter?: string | null
+          city?: string | null
           client_user_id?: string | null
           code?: string | null
           company?: string | null
           created_at?: string
           email?: string | null
+          external_id?: string | null
           fiscal_code?: string | null
           id?: string
           last_contact_at?: string | null
+          legal_form?: string | null
+          legal_name?: string | null
           name: string
           next_followup_at?: string | null
           notes?: string | null
           owner_name?: string | null
           pec?: string | null
+          pec_fe?: string | null
           phone?: string | null
+          postal_code?: string | null
+          province?: string | null
           rating?: string | null
+          region?: string | null
           role?: string | null
           sdi_code?: string | null
           source?: string | null
@@ -685,22 +709,34 @@ export type Database = {
           website?: string | null
         }
         Update: {
+          activity_end_date?: string | null
+          activity_start_date?: string | null
           address?: string | null
+          ateco_code?: string | null
+          ateco_letter?: string | null
+          city?: string | null
           client_user_id?: string | null
           code?: string | null
           company?: string | null
           created_at?: string
           email?: string | null
+          external_id?: string | null
           fiscal_code?: string | null
           id?: string
           last_contact_at?: string | null
+          legal_form?: string | null
+          legal_name?: string | null
           name?: string
           next_followup_at?: string | null
           notes?: string | null
           owner_name?: string | null
           pec?: string | null
+          pec_fe?: string | null
           phone?: string | null
+          postal_code?: string | null
+          province?: string | null
           rating?: string | null
+          region?: string | null
           role?: string | null
           sdi_code?: string | null
           source?: string | null
@@ -842,9 +878,12 @@ export type Database = {
       }
       crm_employees: {
         Row: {
+          birth_date: string | null
+          birth_place: string | null
           contact_id: string | null
           created_at: string
           email: string | null
+          external_id: string | null
           first_name: string
           fiscal_code: string | null
           hire_date: string | null
@@ -855,13 +894,17 @@ export type Database = {
           phone: string | null
           role: string | null
           status: string | null
+          termination_date: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          birth_date?: string | null
+          birth_place?: string | null
           contact_id?: string | null
           created_at?: string
           email?: string | null
+          external_id?: string | null
           first_name: string
           fiscal_code?: string | null
           hire_date?: string | null
@@ -872,13 +915,17 @@ export type Database = {
           phone?: string | null
           role?: string | null
           status?: string | null
+          termination_date?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          birth_date?: string | null
+          birth_place?: string | null
           contact_id?: string | null
           created_at?: string
           email?: string | null
+          external_id?: string | null
           first_name?: string
           fiscal_code?: string | null
           hire_date?: string | null
@@ -889,6 +936,7 @@ export type Database = {
           phone?: string | null
           role?: string | null
           status?: string | null
+          termination_date?: string | null
           updated_at?: string
           user_id?: string
         }
