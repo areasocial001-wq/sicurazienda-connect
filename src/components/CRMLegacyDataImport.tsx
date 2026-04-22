@@ -294,10 +294,32 @@ export function CRMLegacyDataImport({ onImportComplete }: CRMLegacyDataImportPro
 
       if (formazioneSheet) {
         const rows: any[] = XLSX.utils.sheet_to_json(wb.Sheets[formazioneSheet], { defval: null });
-        for (const r of rows) {
+        rows.forEach((r, idx) => {
           const cf = normalizeCF(r['CODICE FISCALE'] || r['Codice Fiscale']);
-          if (!cf || cf.length < 11) continue;
-          if (empMap.has(cf)) continue; // primo record vince per anagrafica
+          if (!cf) {
+            const cognome = cleanStr(r['Cognome']);
+            const nome = cleanStr(r['Nome']);
+            // Solo righe con almeno cognome o nome valgono come "scartate" (altrimenti riga vuota)
+            if (cognome || nome) {
+              parseSkipped.push({
+                source: 'formazione',
+                rowIndex: idx + 2,
+                reason: 'Codice Fiscale mancante',
+                preview: [cognome, nome, cleanStr(r['NOME AZIENDA'])].filter(Boolean).join(' | '),
+              });
+            }
+            return;
+          }
+          if (cf.length < 11) {
+            parseSkipped.push({
+              source: 'formazione',
+              rowIndex: idx + 2,
+              reason: `Codice Fiscale non valido (${cf.length} caratteri)`,
+              preview: `${cf} - ${cleanStr(r['Cognome']) || ''} ${cleanStr(r['Nome']) || ''}`.trim(),
+            });
+            return;
+          }
+          if (empMap.has(cf)) return; // primo record vince per anagrafica
 
           const idDip = cleanStr(r['ID DIPENDENTE']);
           const idAz = cleanStr(r['ID AZIENDA']);
@@ -322,7 +344,7 @@ export function CRMLegacyDataImport({ onImportComplete }: CRMLegacyDataImportPro
             vat_number: piva,
             match_status: 'create',
           });
-        }
+        });
       }
 
       // Date assunzione/cessazione: foglio lavoratori
@@ -373,13 +395,17 @@ export function CRMLegacyDataImport({ onImportComplete }: CRMLegacyDataImportPro
           e.match_status = 'update';
           e.matched_id = m.id;
           e.match_reason = 'CF';
+        } else {
+          e.match_reason = 'no match (CF non presente)';
         }
       }
 
       setCompanies(parsedCompanies);
       setEmployees(parsedEmployees);
+      setSkipped(parseSkipped);
+      setErrors([]);
       toast.success(
-        `Pronti: ${parsedCompanies.length} aziende, ${parsedEmployees.length} dipendenti`
+        `Pronti: ${parsedCompanies.length} aziende, ${parsedEmployees.length} dipendenti${parseSkipped.length ? ` · ${parseSkipped.length} righe scartate` : ''}`
       );
     } catch (err: any) {
       console.error(err);
