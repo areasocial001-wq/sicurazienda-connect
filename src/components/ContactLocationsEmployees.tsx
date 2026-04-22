@@ -733,11 +733,50 @@ export function ContactLocationsEmployees({ contactId }: ContactLocationsEmploye
                                   >
                                     <CollapsibleTrigger asChild>
                                       <div className="p-2 border rounded hover:bg-muted/30 cursor-pointer transition-colors">
-                                        <div className="flex items-center justify-between">
-                                          <span className="font-medium text-sm">
-                                            {employee.last_name} {employee.first_name}
-                                          </span>
-                                          <div className="flex items-center gap-2">
+                                        <div className="flex items-center justify-between gap-2">
+                                          <div className="flex flex-col min-w-0 flex-1">
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                              <span className="font-medium text-sm">
+                                                {employee.last_name} {employee.first_name}
+                                              </span>
+                                              {(employee.termination_date || employee.status === 'inactive') ? (
+                                                <Badge variant="outline" className="text-[10px] h-4 px-1 border-red-300 text-red-700 dark:text-red-400">
+                                                  Inattivo
+                                                </Badge>
+                                              ) : (
+                                                <Badge variant="outline" className="text-[10px] h-4 px-1 border-green-300 text-green-700 dark:text-green-400">
+                                                  Attivo
+                                                </Badge>
+                                              )}
+                                              {employee.role && (
+                                                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                                  <Briefcase className="h-3 w-3" />
+                                                  {employee.role}
+                                                </span>
+                                              )}
+                                            </div>
+                                            <div className="flex items-center gap-3 text-[11px] text-muted-foreground mt-0.5 flex-wrap">
+                                              {employee.fiscal_code && (
+                                                <span className="font-mono flex items-center gap-1">
+                                                  <IdCard className="h-3 w-3" />
+                                                  {employee.fiscal_code}
+                                                </span>
+                                              )}
+                                              {employee.hire_date && (
+                                                <span className="flex items-center gap-1">
+                                                  <CalendarCheck className="h-3 w-3 text-green-600" />
+                                                  Ass. {format(new Date(employee.hire_date), 'dd/MM/yy')}
+                                                </span>
+                                              )}
+                                              {employee.termination_date && (
+                                                <span className="flex items-center gap-1">
+                                                  <CalendarX className="h-3 w-3 text-red-600" />
+                                                  Cess. {format(new Date(employee.termination_date), 'dd/MM/yy')}
+                                                </span>
+                                              )}
+                                            </div>
+                                          </div>
+                                          <div className="flex items-center gap-2 flex-shrink-0">
                                             {expiringCount > 0 && (
                                               <Badge variant="destructive" className="text-xs">
                                                 <AlertTriangle className="h-3 w-3 mr-1" />
