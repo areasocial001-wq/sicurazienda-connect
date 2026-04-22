@@ -209,12 +209,21 @@ export function CRMLegacyDataImport({ onImportComplete }: CRMLegacyDataImportPro
 
       // ----- AZIENDE -----
       const parsedCompanies: CompanyRow[] = [];
+      const parseSkipped: SkippedRow[] = [];
       if (aziendeSheet) {
         const rows: any[] = XLSX.utils.sheet_to_json(wb.Sheets[aziendeSheet], { defval: null });
-        for (const r of rows) {
+        rows.forEach((r, idx) => {
           const id = cleanStr(r['ID AZIENDA']);
           const name = cleanStr(r['NOME AZIENDA']);
-          if (!id || !name) continue;
+          if (!id || !name) {
+            parseSkipped.push({
+              source: 'aziende',
+              rowIndex: idx + 2,
+              reason: !id && !name ? 'ID AZIENDA e NOME AZIENDA mancanti' : !id ? 'ID AZIENDA mancante' : 'NOME AZIENDA mancante',
+              preview: [id, name, cleanStr(r['PARTITA IVA'])].filter(Boolean).join(' | ') || '(riga vuota)',
+            });
+            return;
+          }
           parsedCompanies.push({
             external_id: id,
             name,
@@ -238,7 +247,7 @@ export function CRMLegacyDataImport({ onImportComplete }: CRMLegacyDataImportPro
             notes: cleanStr(r['NOTE']),
             match_status: 'create',
           });
-        }
+        });
 
         // Match con DB
         const { data: existing } = await supabase
@@ -256,17 +265,25 @@ export function CRMLegacyDataImport({ onImportComplete }: CRMLegacyDataImportPro
         });
 
         for (const c of parsedCompanies) {
-          let m = c.external_id ? byExt.get(c.external_id) : null;
-          if (!m && c.vat_number) m = byVat.get(c.vat_number);
-          if (!m) m = byName.get(c.name.toLowerCase());
+          // Match in cascata, traccia il criterio effettivamente usato
+          let m: any = null;
+          let reason: string | undefined;
+          if (c.external_id && byExt.has(c.external_id)) {
+            m = byExt.get(c.external_id);
+            reason = 'ID legacy';
+          } else if (c.vat_number && byVat.has(c.vat_number)) {
+            m = byVat.get(c.vat_number);
+            reason = 'P.IVA';
+          } else if (byName.has(c.name.toLowerCase().trim())) {
+            m = byName.get(c.name.toLowerCase().trim());
+            reason = 'Nome';
+          }
           if (m) {
             c.match_status = 'update';
             c.matched_id = m.id;
-            c.match_reason = c.external_id && byExt.get(c.external_id)
-              ? 'ID legacy'
-              : c.vat_number && byVat.get(c.vat_number)
-              ? 'P.IVA'
-              : 'Nome';
+            c.match_reason = reason;
+          } else {
+            c.match_reason = c.vat_number ? 'no match (cercato per ID/P.IVA/Nome)' : 'no match (P.IVA mancante)';
           }
         }
       }
