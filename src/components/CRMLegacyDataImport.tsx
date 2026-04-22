@@ -686,6 +686,12 @@ export function CRMLegacyDataImport({ onImportComplete }: CRMLegacyDataImportPro
                 <TabsList>
                   <TabsTrigger value="employees">Dipendenti</TabsTrigger>
                   <TabsTrigger value="companies">Aziende</TabsTrigger>
+                  <TabsTrigger value="skipped">
+                    Scartati {skipped.length > 0 && `(${skipped.length})`}
+                  </TabsTrigger>
+                  <TabsTrigger value="errors">
+                    Errori {errors.length > 0 && `(${errors.length})`}
+                  </TabsTrigger>
                 </TabsList>
                 <TabsContent value="employees">
                   <ScrollArea className="h-[320px] border rounded-md">
