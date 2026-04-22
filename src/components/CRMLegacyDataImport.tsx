@@ -39,6 +39,8 @@ import {
   UserCheck,
   UserPlus,
   Building2,
+  XCircle,
+  AlertTriangle,
 } from 'lucide-react';
 
 interface CRMLegacyDataImportProps {
@@ -89,6 +91,22 @@ interface EmployeeRow {
   match_status: 'update' | 'create' | 'skip';
   matched_id?: string;
   match_reason?: string;
+}
+
+// Righe scartate al parsing (dati incompleti / non validi)
+interface SkippedRow {
+  source: 'aziende' | 'formazione' | 'lavoratori';
+  rowIndex: number;
+  reason: string;
+  preview: string;
+}
+
+// Errori durante l'import effettivo verso il DB
+interface ImportError {
+  type: 'company' | 'employee';
+  identifier: string;
+  operation: 'insert' | 'update';
+  message: string;
 }
 
 function toIsoDate(value: any): string | null {
@@ -144,6 +162,8 @@ export function CRMLegacyDataImport({ onImportComplete }: CRMLegacyDataImportPro
   const [progress, setProgress] = useState({ done: 0, total: 0 });
   const [companies, setCompanies] = useState<CompanyRow[]>([]);
   const [employees, setEmployees] = useState<EmployeeRow[]>([]);
+  const [skipped, setSkipped] = useState<SkippedRow[]>([]);
+  const [errors, setErrors] = useState<ImportError[]>([]);
   const [importCompanies, setImportCompanies] = useState(true);
   const [importEmployees, setImportEmployees] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -151,6 +171,8 @@ export function CRMLegacyDataImport({ onImportComplete }: CRMLegacyDataImportPro
   const resetState = () => {
     setCompanies([]);
     setEmployees([]);
+    setSkipped([]);
+    setErrors([]);
     setProgress({ done: 0, total: 0 });
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
@@ -187,12 +209,21 @@ export function CRMLegacyDataImport({ onImportComplete }: CRMLegacyDataImportPro
 
       // ----- AZIENDE -----
       const parsedCompanies: CompanyRow[] = [];
+      const parseSkipped: SkippedRow[] = [];
       if (aziendeSheet) {
         const rows: any[] = XLSX.utils.sheet_to_json(wb.Sheets[aziendeSheet], { defval: null });
-        for (const r of rows) {
+        rows.forEach((r, idx) => {
           const id = cleanStr(r['ID AZIENDA']);
           const name = cleanStr(r['NOME AZIENDA']);
-          if (!id || !name) continue;
+          if (!id || !name) {
+            parseSkipped.push({
+              source: 'aziende',
+              rowIndex: idx + 2,
+              reason: !id && !name ? 'ID AZIENDA e NOME AZIENDA mancanti' : !id ? 'ID AZIENDA mancante' : 'NOME AZIENDA mancante',
+              preview: [id, name, cleanStr(r['PARTITA IVA'])].filter(Boolean).join(' | ') || '(riga vuota)',
+            });
+            return;
+          }
           parsedCompanies.push({
             external_id: id,
             name,
@@ -216,7 +247,7 @@ export function CRMLegacyDataImport({ onImportComplete }: CRMLegacyDataImportPro
             notes: cleanStr(r['NOTE']),
             match_status: 'create',
           });
-        }
+        });
 
         // Match con DB
         const { data: existing } = await supabase
@@ -234,17 +265,25 @@ export function CRMLegacyDataImport({ onImportComplete }: CRMLegacyDataImportPro
         });
 
         for (const c of parsedCompanies) {
-          let m = c.external_id ? byExt.get(c.external_id) : null;
-          if (!m && c.vat_number) m = byVat.get(c.vat_number);
-          if (!m) m = byName.get(c.name.toLowerCase());
+          // Match in cascata, traccia il criterio effettivamente usato
+          let m: any = null;
+          let reason: string | undefined;
+          if (c.external_id && byExt.has(c.external_id)) {
+            m = byExt.get(c.external_id);
+            reason = 'ID legacy';
+          } else if (c.vat_number && byVat.has(c.vat_number)) {
+            m = byVat.get(c.vat_number);
+            reason = 'P.IVA';
+          } else if (byName.has(c.name.toLowerCase().trim())) {
+            m = byName.get(c.name.toLowerCase().trim());
+            reason = 'Nome';
+          }
           if (m) {
             c.match_status = 'update';
             c.matched_id = m.id;
-            c.match_reason = c.external_id && byExt.get(c.external_id)
-              ? 'ID legacy'
-              : c.vat_number && byVat.get(c.vat_number)
-              ? 'P.IVA'
-              : 'Nome';
+            c.match_reason = reason;
+          } else {
+            c.match_reason = c.vat_number ? 'no match (cercato per ID/P.IVA/Nome)' : 'no match (P.IVA mancante)';
           }
         }
       }
@@ -255,10 +294,32 @@ export function CRMLegacyDataImport({ onImportComplete }: CRMLegacyDataImportPro
 
       if (formazioneSheet) {
         const rows: any[] = XLSX.utils.sheet_to_json(wb.Sheets[formazioneSheet], { defval: null });
-        for (const r of rows) {
+        rows.forEach((r, idx) => {
           const cf = normalizeCF(r['CODICE FISCALE'] || r['Codice Fiscale']);
-          if (!cf || cf.length < 11) continue;
-          if (empMap.has(cf)) continue; // primo record vince per anagrafica
+          if (!cf) {
+            const cognome = cleanStr(r['Cognome']);
+            const nome = cleanStr(r['Nome']);
+            // Solo righe con almeno cognome o nome valgono come "scartate" (altrimenti riga vuota)
+            if (cognome || nome) {
+              parseSkipped.push({
+                source: 'formazione',
+                rowIndex: idx + 2,
+                reason: 'Codice Fiscale mancante',
+                preview: [cognome, nome, cleanStr(r['NOME AZIENDA'])].filter(Boolean).join(' | '),
+              });
+            }
+            return;
+          }
+          if (cf.length < 11) {
+            parseSkipped.push({
+              source: 'formazione',
+              rowIndex: idx + 2,
+              reason: `Codice Fiscale non valido (${cf.length} caratteri)`,
+              preview: `${cf} - ${cleanStr(r['Cognome']) || ''} ${cleanStr(r['Nome']) || ''}`.trim(),
+            });
+            return;
+          }
+          if (empMap.has(cf)) return; // primo record vince per anagrafica
 
           const idDip = cleanStr(r['ID DIPENDENTE']);
           const idAz = cleanStr(r['ID AZIENDA']);
@@ -283,7 +344,7 @@ export function CRMLegacyDataImport({ onImportComplete }: CRMLegacyDataImportPro
             vat_number: piva,
             match_status: 'create',
           });
-        }
+        });
       }
 
       // Date assunzione/cessazione: foglio lavoratori
@@ -334,13 +395,17 @@ export function CRMLegacyDataImport({ onImportComplete }: CRMLegacyDataImportPro
           e.match_status = 'update';
           e.matched_id = m.id;
           e.match_reason = 'CF';
+        } else {
+          e.match_reason = 'no match (CF non presente)';
         }
       }
 
       setCompanies(parsedCompanies);
       setEmployees(parsedEmployees);
+      setSkipped(parseSkipped);
+      setErrors([]);
       toast.success(
-        `Pronti: ${parsedCompanies.length} aziende, ${parsedEmployees.length} dipendenti`
+        `Pronti: ${parsedCompanies.length} aziende, ${parsedEmployees.length} dipendenti${parseSkipped.length ? ` · ${parseSkipped.length} righe scartate` : ''}`
       );
     } catch (err: any) {
       console.error(err);
@@ -353,6 +418,8 @@ export function CRMLegacyDataImport({ onImportComplete }: CRMLegacyDataImportPro
   const runImport = async () => {
     if (!user) return;
     setImporting(true);
+    const importErrors: ImportError[] = [];
+    setErrors([]);
     let totalDone = 0;
     const totalOps =
       (importCompanies ? companies.length : 0) +
@@ -395,24 +462,32 @@ export function CRMLegacyDataImport({ onImportComplete }: CRMLegacyDataImportPro
 
           try {
             if (c.match_status === 'update' && c.matched_id) {
-              await supabase.from('crm_contacts').update(payload).eq('id', c.matched_id);
+              const { error } = await supabase.from('crm_contacts').update(payload).eq('id', c.matched_id);
+              if (error) throw error;
               companyIdByExt.set(c.external_id, c.matched_id);
               if (c.vat_number) companyIdByVat.set(c.vat_number, c.matched_id);
               companyIdByName.set(c.name.toLowerCase(), c.matched_id);
             } else {
-              const { data } = await supabase
+              const { data, error } = await supabase
                 .from('crm_contacts')
                 .insert({ ...payload, user_id: user.id, status: 'client' })
                 .select('id')
                 .single();
+              if (error) throw error;
               if (data?.id) {
                 companyIdByExt.set(c.external_id, data.id);
                 if (c.vat_number) companyIdByVat.set(c.vat_number, data.id);
                 companyIdByName.set(c.name.toLowerCase(), data.id);
               }
             }
-          } catch (err) {
+          } catch (err: any) {
             console.error('Errore azienda', c.name, err);
+            importErrors.push({
+              type: 'company',
+              identifier: `${c.name}${c.vat_number ? ` (P.IVA ${c.vat_number})` : ''}`,
+              operation: c.match_status === 'update' ? 'update' : 'insert',
+              message: err?.message || String(err),
+            });
           }
           totalDone++;
         }
@@ -460,14 +535,22 @@ export function CRMLegacyDataImport({ onImportComplete }: CRMLegacyDataImportPro
 
           try {
             if (e.match_status === 'update' && e.matched_id) {
-              await supabase.from('crm_employees').update(payload).eq('id', e.matched_id);
+              const { error } = await supabase.from('crm_employees').update(payload).eq('id', e.matched_id);
+              if (error) throw error;
             } else {
-              await supabase
+              const { error } = await supabase
                 .from('crm_employees')
                 .insert({ ...payload, user_id: user.id });
+              if (error) throw error;
             }
-          } catch (err) {
+          } catch (err: any) {
             console.error('Errore dipendente', e.fiscal_code, err);
+            importErrors.push({
+              type: 'employee',
+              identifier: `${e.last_name} ${e.first_name} (CF ${e.fiscal_code})`,
+              operation: e.match_status === 'update' ? 'update' : 'insert',
+              message: err?.message || String(err),
+            });
           }
           totalDone++;
         }
@@ -476,9 +559,16 @@ export function CRMLegacyDataImport({ onImportComplete }: CRMLegacyDataImportPro
     }
 
     setImporting(false);
-    toast.success('Importazione completata');
+    setErrors(importErrors);
+    if (importErrors.length) {
+      toast.warning(`Import completato con ${importErrors.length} errori — controlla il tab Errori`);
+    } else {
+      toast.success('Importazione completata');
+    }
     onImportComplete?.();
-    setTimeout(() => handleClose(), 1500);
+    if (!importErrors.length) {
+      setTimeout(() => handleClose(), 1500);
+    }
   };
 
   const compStats = {
@@ -596,6 +686,12 @@ export function CRMLegacyDataImport({ onImportComplete }: CRMLegacyDataImportPro
                 <TabsList>
                   <TabsTrigger value="employees">Dipendenti</TabsTrigger>
                   <TabsTrigger value="companies">Aziende</TabsTrigger>
+                  <TabsTrigger value="skipped">
+                    Scartati {skipped.length > 0 && `(${skipped.length})`}
+                  </TabsTrigger>
+                  <TabsTrigger value="errors">
+                    Errori {errors.length > 0 && `(${errors.length})`}
+                  </TabsTrigger>
                 </TabsList>
                 <TabsContent value="employees">
                   <ScrollArea className="h-[320px] border rounded-md">
@@ -633,11 +729,11 @@ export function CRMLegacyDataImport({ onImportComplete }: CRMLegacyDataImportPro
                             <TableCell className="text-xs">{e.termination_date || '-'}</TableCell>
                             <TableCell>
                               {e.match_status === 'update' ? (
-                                <Badge variant="secondary" className="text-xs">
-                                  <CheckCircle className="h-3 w-3 mr-1" /> Match {e.match_reason}
+                                <Badge variant="secondary" className="text-xs" title={`Aggiorna record esistente — match per ${e.match_reason}`}>
+                                  <CheckCircle className="h-3 w-3 mr-1" /> Aggiorna · {e.match_reason}
                                 </Badge>
                               ) : (
-                                <Badge variant="outline" className="text-xs">
+                                <Badge variant="outline" className="text-xs" title={e.match_reason || 'Nuovo dipendente'}>
                                   <UserPlus className="h-3 w-3 mr-1" /> Nuovo
                                 </Badge>
                               )}
@@ -680,11 +776,11 @@ export function CRMLegacyDataImport({ onImportComplete }: CRMLegacyDataImportPro
                             </TableCell>
                             <TableCell>
                               {c.match_status === 'update' ? (
-                                <Badge variant="secondary" className="text-xs">
-                                  <CheckCircle className="h-3 w-3 mr-1" /> Match {c.match_reason}
+                                <Badge variant="secondary" className="text-xs" title={`Aggiorna record esistente — match per ${c.match_reason}`}>
+                                  <CheckCircle className="h-3 w-3 mr-1" /> Aggiorna · {c.match_reason}
                                 </Badge>
                               ) : (
-                                <Badge variant="outline" className="text-xs">
+                                <Badge variant="outline" className="text-xs" title={c.match_reason || 'Nuova azienda'}>
                                   <UserPlus className="h-3 w-3 mr-1" /> Nuova
                                 </Badge>
                               )}
@@ -696,6 +792,116 @@ export function CRMLegacyDataImport({ onImportComplete }: CRMLegacyDataImportPro
                     {companies.length > 200 && (
                       <p className="text-xs text-center text-muted-foreground p-2">
                         Mostrate prime 200 di {companies.length}
+                      </p>
+                    )}
+                  </ScrollArea>
+                </TabsContent>
+                <TabsContent value="skipped">
+                  <ScrollArea className="h-[320px] border rounded-md">
+                    {skipped.length === 0 ? (
+                      <div className="p-8 text-center text-sm text-muted-foreground">
+                        <CheckCircle className="h-6 w-6 mx-auto mb-2 text-primary" />
+                        Nessuna riga scartata in fase di parsing
+                      </div>
+                    ) : (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Foglio</TableHead>
+                            <TableHead>Riga</TableHead>
+                            <TableHead>Motivo</TableHead>
+                            <TableHead>Anteprima dati</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {skipped.slice(0, 300).map((s, i) => (
+                            <TableRow key={i}>
+                              <TableCell className="text-xs">
+                                <Badge variant="outline" className="text-xs capitalize">
+                                  {s.source}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-xs font-mono">{s.rowIndex}</TableCell>
+                              <TableCell className="text-xs">
+                                <span className="inline-flex items-center gap-1 text-muted-foreground">
+                                  <AlertTriangle className="h-3 w-3" />
+                                  {s.reason}
+                                </span>
+                              </TableCell>
+                              <TableCell className="text-xs text-muted-foreground truncate max-w-[280px]">
+                                {s.preview}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    )}
+                    {skipped.length > 300 && (
+                      <p className="text-xs text-center text-muted-foreground p-2">
+                        Mostrate prime 300 di {skipped.length}
+                      </p>
+                    )}
+                  </ScrollArea>
+                </TabsContent>
+                <TabsContent value="errors">
+                  <ScrollArea className="h-[320px] border rounded-md">
+                    {errors.length === 0 ? (
+                      <div className="p-8 text-center text-sm text-muted-foreground">
+                        {importing ? (
+                          <>
+                            <Loader2 className="h-6 w-6 mx-auto mb-2 animate-spin" />
+                            Import in corso...
+                          </>
+                        ) : progress.done === 0 ? (
+                          <>
+                            <AlertCircle className="h-6 w-6 mx-auto mb-2 opacity-50" />
+                            Gli errori dell'import compariranno qui dopo l'avvio
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle className="h-6 w-6 mx-auto mb-2 text-primary" />
+                            Nessun errore durante l'import
+                          </>
+                        )}
+                      </div>
+                    ) : (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Tipo</TableHead>
+                            <TableHead>Operazione</TableHead>
+                            <TableHead>Identificativo</TableHead>
+                            <TableHead>Errore</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {errors.slice(0, 300).map((er, i) => (
+                            <TableRow key={i}>
+                              <TableCell className="text-xs">
+                                <Badge variant="outline" className="text-xs">
+                                  {er.type === 'company' ? (
+                                    <><Building2 className="h-3 w-3 mr-1" />Azienda</>
+                                  ) : (
+                                    <><UserCheck className="h-3 w-3 mr-1" />Dipendente</>
+                                  )}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-xs capitalize">{er.operation}</TableCell>
+                              <TableCell className="text-xs">{er.identifier}</TableCell>
+                              <TableCell className="text-xs">
+                                <span className="inline-flex items-start gap-1 text-destructive">
+                                  <XCircle className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                                  <span className="break-all">{er.message}</span>
+                                </span>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    )}
+                    {errors.length > 300 && (
+                      <p className="text-xs text-center text-muted-foreground p-2">
+                        Mostrati primi 300 di {errors.length}
                       </p>
                     )}
                   </ScrollArea>
