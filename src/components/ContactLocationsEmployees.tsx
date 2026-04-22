@@ -5,7 +5,7 @@ import {
   MapPin, Users, ChevronDown, ChevronUp, Loader2, 
   Building, Phone, Mail, Calendar, AlertTriangle,
   CheckCircle, Clock, Search, ChevronsUpDown, Pencil, X, Download, Trash2, Filter,
-  IdCard, Cake, Briefcase, CalendarCheck, CalendarX
+  IdCard, Cake, Briefcase, CalendarCheck, CalendarX, ArrowUpDown, ArrowUp, ArrowDown
 } from 'lucide-react';
 import { AddEmployeeActivityDialog } from './AddEmployeeActivityDialog';
 import { EditEmployeeActivityDialog } from './EditEmployeeActivityDialog';
@@ -107,6 +107,13 @@ interface ActivityFilters {
 interface EmployeeFilters {
   roles: string[];
   statuses: ('active' | 'inactive')[];
+}
+
+type EmployeeSortField = 'name' | 'fiscal_code' | 'hire_date' | 'termination_date';
+type SortDirection = 'asc' | 'desc';
+interface EmployeeSort {
+  field: EmployeeSortField;
+  direction: SortDirection;
 }
 
 interface PendingDelete {
