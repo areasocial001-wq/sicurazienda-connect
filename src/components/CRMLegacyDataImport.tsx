@@ -162,6 +162,8 @@ export function CRMLegacyDataImport({ onImportComplete }: CRMLegacyDataImportPro
   const [progress, setProgress] = useState({ done: 0, total: 0 });
   const [companies, setCompanies] = useState<CompanyRow[]>([]);
   const [employees, setEmployees] = useState<EmployeeRow[]>([]);
+  const [skipped, setSkipped] = useState<SkippedRow[]>([]);
+  const [errors, setErrors] = useState<ImportError[]>([]);
   const [importCompanies, setImportCompanies] = useState(true);
   const [importEmployees, setImportEmployees] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -169,6 +171,8 @@ export function CRMLegacyDataImport({ onImportComplete }: CRMLegacyDataImportPro
   const resetState = () => {
     setCompanies([]);
     setEmployees([]);
+    setSkipped([]);
+    setErrors([]);
     setProgress({ done: 0, total: 0 });
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
