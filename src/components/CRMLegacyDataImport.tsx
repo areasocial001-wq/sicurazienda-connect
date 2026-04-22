@@ -796,6 +796,116 @@ export function CRMLegacyDataImport({ onImportComplete }: CRMLegacyDataImportPro
                     )}
                   </ScrollArea>
                 </TabsContent>
+                <TabsContent value="skipped">
+                  <ScrollArea className="h-[320px] border rounded-md">
+                    {skipped.length === 0 ? (
+                      <div className="p-8 text-center text-sm text-muted-foreground">
+                        <CheckCircle className="h-6 w-6 mx-auto mb-2 text-green-600" />
+                        Nessuna riga scartata in fase di parsing
+                      </div>
+                    ) : (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Foglio</TableHead>
+                            <TableHead>Riga</TableHead>
+                            <TableHead>Motivo</TableHead>
+                            <TableHead>Anteprima dati</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {skipped.slice(0, 300).map((s, i) => (
+                            <TableRow key={i}>
+                              <TableCell className="text-xs">
+                                <Badge variant="outline" className="text-xs capitalize">
+                                  {s.source}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-xs font-mono">{s.rowIndex}</TableCell>
+                              <TableCell className="text-xs">
+                                <span className="inline-flex items-center gap-1 text-amber-700 dark:text-amber-500">
+                                  <AlertTriangle className="h-3 w-3" />
+                                  {s.reason}
+                                </span>
+                              </TableCell>
+                              <TableCell className="text-xs text-muted-foreground truncate max-w-[280px]">
+                                {s.preview}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    )}
+                    {skipped.length > 300 && (
+                      <p className="text-xs text-center text-muted-foreground p-2">
+                        Mostrate prime 300 di {skipped.length}
+                      </p>
+                    )}
+                  </ScrollArea>
+                </TabsContent>
+                <TabsContent value="errors">
+                  <ScrollArea className="h-[320px] border rounded-md">
+                    {errors.length === 0 ? (
+                      <div className="p-8 text-center text-sm text-muted-foreground">
+                        {importing ? (
+                          <>
+                            <Loader2 className="h-6 w-6 mx-auto mb-2 animate-spin" />
+                            Import in corso...
+                          </>
+                        ) : progress.done === 0 ? (
+                          <>
+                            <AlertCircle className="h-6 w-6 mx-auto mb-2 opacity-50" />
+                            Gli errori dell'import compariranno qui dopo l'avvio
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle className="h-6 w-6 mx-auto mb-2 text-green-600" />
+                            Nessun errore durante l'import
+                          </>
+                        )}
+                      </div>
+                    ) : (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Tipo</TableHead>
+                            <TableHead>Operazione</TableHead>
+                            <TableHead>Identificativo</TableHead>
+                            <TableHead>Errore</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {errors.slice(0, 300).map((er, i) => (
+                            <TableRow key={i}>
+                              <TableCell className="text-xs">
+                                <Badge variant="outline" className="text-xs">
+                                  {er.type === 'company' ? (
+                                    <><Building2 className="h-3 w-3 mr-1" />Azienda</>
+                                  ) : (
+                                    <><UserCheck className="h-3 w-3 mr-1" />Dipendente</>
+                                  )}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-xs capitalize">{er.operation}</TableCell>
+                              <TableCell className="text-xs">{er.identifier}</TableCell>
+                              <TableCell className="text-xs">
+                                <span className="inline-flex items-start gap-1 text-destructive">
+                                  <XCircle className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                                  <span className="break-all">{er.message}</span>
+                                </span>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    )}
+                    {errors.length > 300 && (
+                      <p className="text-xs text-center text-muted-foreground p-2">
+                        Mostrati primi 300 di {errors.length}
+                      </p>
+                    )}
+                  </ScrollArea>
+                </TabsContent>
               </Tabs>
             </>
           )}
