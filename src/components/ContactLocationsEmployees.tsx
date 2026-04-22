@@ -104,6 +104,11 @@ interface ActivityFilters {
   statuses: string[];
 }
 
+interface EmployeeFilters {
+  roles: string[];
+  statuses: ('active' | 'inactive')[];
+}
+
 interface PendingDelete {
   activityId: string;
   activityName: string;
@@ -129,6 +134,7 @@ export function ContactLocationsEmployees({ contactId }: ContactLocationsEmploye
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [activityFilters, setActivityFilters] = useState<Record<string, ActivityFilters>>({});
+  const [employeeFilters, setEmployeeFilters] = useState<Record<string, EmployeeFilters>>({});
 
   useEffect(() => {
     fetchData();
@@ -216,13 +222,56 @@ export function ContactLocationsEmployees({ contactId }: ContactLocationsEmploye
   const getFilteredEmployeesForLocation = (locationId: string) => {
     const locationEmployees = getEmployeesForLocation(locationId);
     const query = (searchQueries[locationId] || '').toLowerCase().trim();
-    
-    if (!query) return locationEmployees;
-    
-    return locationEmployees.filter(e => 
-      `${e.first_name} ${e.last_name}`.toLowerCase().includes(query) ||
-      `${e.last_name} ${e.first_name}`.toLowerCase().includes(query)
-    );
+    const filters = getEmployeeFilters(locationId);
+
+    return locationEmployees.filter(e => {
+      // Text search: name + CF
+      const matchesQuery = !query ||
+        `${e.first_name} ${e.last_name}`.toLowerCase().includes(query) ||
+        `${e.last_name} ${e.first_name}`.toLowerCase().includes(query) ||
+        (e.fiscal_code || '').toLowerCase().includes(query);
+
+      const matchesRole = filters.roles.length === 0 ||
+        (e.role && filters.roles.includes(e.role));
+
+      const empStatus: 'active' | 'inactive' = e.termination_date || e.status === 'inactive' ? 'inactive' : 'active';
+      const matchesStatus = filters.statuses.length === 0 || filters.statuses.includes(empStatus);
+
+      return matchesQuery && matchesRole && matchesStatus;
+    });
+  };
+
+  const getEmployeeFilters = (locationId: string): EmployeeFilters => {
+    return employeeFilters[locationId] || { roles: [], statuses: [] };
+  };
+
+  const toggleEmployeeRoleFilter = (locationId: string, role: string) => {
+    const current = getEmployeeFilters(locationId);
+    const next = current.roles.includes(role)
+      ? current.roles.filter(r => r !== role)
+      : [...current.roles, role];
+    setEmployeeFilters(prev => ({ ...prev, [locationId]: { ...current, roles: next } }));
+  };
+
+  const toggleEmployeeStatusFilter = (locationId: string, status: 'active' | 'inactive') => {
+    const current = getEmployeeFilters(locationId);
+    const next = current.statuses.includes(status)
+      ? current.statuses.filter(s => s !== status)
+      : [...current.statuses, status];
+    setEmployeeFilters(prev => ({ ...prev, [locationId]: { ...current, statuses: next } }));
+  };
+
+  const getRolesForLocation = (locationId: string): string[] => {
+    const set = new Set<string>();
+    getEmployeesForLocation(locationId).forEach(e => {
+      if (e.role) set.add(e.role);
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  };
+
+  const getActiveEmployeeFiltersCount = (locationId: string) => {
+    const f = getEmployeeFilters(locationId);
+    return f.roles.length + f.statuses.length;
   };
 
   const getActivitiesForEmployee = (employeeId: string) => {
@@ -508,7 +557,7 @@ export function ContactLocationsEmployees({ contactId }: ContactLocationsEmploye
                           <div className="relative flex-1">
                             <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                             <Input
-                              placeholder="Cerca dipendente..."
+                              placeholder="Cerca per nome o CF..."
                               value={searchQuery}
                               onChange={(e) => updateSearchQuery(location.id, e.target.value)}
                               className="pl-8 h-8 text-sm"
@@ -524,6 +573,60 @@ export function ContactLocationsEmployees({ contactId }: ContactLocationsEmploye
                               </Button>
                             )}
                           </div>
+                          {/* Employee filters: role + status */}
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="gap-1 text-xs h-8"
+                              >
+                                <Users className="h-3 w-3" />
+                                Dipendenti
+                                {getActiveEmployeeFiltersCount(location.id) > 0 && (
+                                  <Badge variant="secondary" className="ml-1 h-4 px-1 text-[10px]">
+                                    {getActiveEmployeeFiltersCount(location.id)}
+                                  </Badge>
+                                )}
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-56 max-h-80 overflow-y-auto">
+                              <DropdownMenuLabel>Stato</DropdownMenuLabel>
+                              <DropdownMenuCheckboxItem
+                                checked={getEmployeeFilters(location.id).statuses.includes('active')}
+                                onCheckedChange={() => toggleEmployeeStatusFilter(location.id, 'active')}
+                              >
+                                <span className="flex items-center gap-2">
+                                  <CheckCircle className="h-3 w-3 text-green-600" />
+                                  Attivo
+                                </span>
+                              </DropdownMenuCheckboxItem>
+                              <DropdownMenuCheckboxItem
+                                checked={getEmployeeFilters(location.id).statuses.includes('inactive')}
+                                onCheckedChange={() => toggleEmployeeStatusFilter(location.id, 'inactive')}
+                              >
+                                <span className="flex items-center gap-2">
+                                  <CalendarX className="h-3 w-3 text-red-600" />
+                                  Inattivo / Cessato
+                                </span>
+                              </DropdownMenuCheckboxItem>
+                              {getRolesForLocation(location.id).length > 0 && (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuLabel>Mansione</DropdownMenuLabel>
+                                  {getRolesForLocation(location.id).map(role => (
+                                    <DropdownMenuCheckboxItem
+                                      key={role}
+                                      checked={getEmployeeFilters(location.id).roles.includes(role)}
+                                      onCheckedChange={() => toggleEmployeeRoleFilter(location.id, role)}
+                                    >
+                                      <span className="truncate">{role}</span>
+                                    </DropdownMenuCheckboxItem>
+                                  ))}
+                                </>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button
@@ -532,7 +635,7 @@ export function ContactLocationsEmployees({ contactId }: ContactLocationsEmploye
                                 className="gap-1 text-xs h-8"
                               >
                                 <Filter className="h-3 w-3" />
-                                Filtri
+                                Attività
                                 {getActiveFiltersCount(location.id) > 0 && (
                                   <Badge variant="secondary" className="ml-1 h-4 px-1 text-[10px]">
                                     {getActiveFiltersCount(location.id)}
@@ -630,11 +733,50 @@ export function ContactLocationsEmployees({ contactId }: ContactLocationsEmploye
                                   >
                                     <CollapsibleTrigger asChild>
                                       <div className="p-2 border rounded hover:bg-muted/30 cursor-pointer transition-colors">
-                                        <div className="flex items-center justify-between">
-                                          <span className="font-medium text-sm">
-                                            {employee.last_name} {employee.first_name}
-                                          </span>
-                                          <div className="flex items-center gap-2">
+                                        <div className="flex items-center justify-between gap-2">
+                                          <div className="flex flex-col min-w-0 flex-1">
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                              <span className="font-medium text-sm">
+                                                {employee.last_name} {employee.first_name}
+                                              </span>
+                                              {(employee.termination_date || employee.status === 'inactive') ? (
+                                                <Badge variant="outline" className="text-[10px] h-4 px-1 border-red-300 text-red-700 dark:text-red-400">
+                                                  Inattivo
+                                                </Badge>
+                                              ) : (
+                                                <Badge variant="outline" className="text-[10px] h-4 px-1 border-green-300 text-green-700 dark:text-green-400">
+                                                  Attivo
+                                                </Badge>
+                                              )}
+                                              {employee.role && (
+                                                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                                  <Briefcase className="h-3 w-3" />
+                                                  {employee.role}
+                                                </span>
+                                              )}
+                                            </div>
+                                            <div className="flex items-center gap-3 text-[11px] text-muted-foreground mt-0.5 flex-wrap">
+                                              {employee.fiscal_code && (
+                                                <span className="font-mono flex items-center gap-1">
+                                                  <IdCard className="h-3 w-3" />
+                                                  {employee.fiscal_code}
+                                                </span>
+                                              )}
+                                              {employee.hire_date && (
+                                                <span className="flex items-center gap-1">
+                                                  <CalendarCheck className="h-3 w-3 text-green-600" />
+                                                  Ass. {format(new Date(employee.hire_date), 'dd/MM/yy')}
+                                                </span>
+                                              )}
+                                              {employee.termination_date && (
+                                                <span className="flex items-center gap-1">
+                                                  <CalendarX className="h-3 w-3 text-red-600" />
+                                                  Cess. {format(new Date(employee.termination_date), 'dd/MM/yy')}
+                                                </span>
+                                              )}
+                                            </div>
+                                          </div>
+                                          <div className="flex items-center gap-2 flex-shrink-0">
                                             {expiringCount > 0 && (
                                               <Badge variant="destructive" className="text-xs">
                                                 <AlertTriangle className="h-3 w-3 mr-1" />
