@@ -39,6 +39,8 @@ import {
   UserCheck,
   UserPlus,
   Building2,
+  XCircle,
+  AlertTriangle,
 } from 'lucide-react';
 
 interface CRMLegacyDataImportProps {
@@ -89,6 +91,22 @@ interface EmployeeRow {
   match_status: 'update' | 'create' | 'skip';
   matched_id?: string;
   match_reason?: string;
+}
+
+// Righe scartate al parsing (dati incompleti / non validi)
+interface SkippedRow {
+  source: 'aziende' | 'formazione' | 'lavoratori';
+  rowIndex: number;
+  reason: string;
+  preview: string;
+}
+
+// Errori durante l'import effettivo verso il DB
+interface ImportError {
+  type: 'company' | 'employee';
+  identifier: string;
+  operation: 'insert' | 'update';
+  message: string;
 }
 
 function toIsoDate(value: any): string | null {
