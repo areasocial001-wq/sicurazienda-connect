@@ -4,7 +4,8 @@ import { it } from 'date-fns/locale';
 import { 
   MapPin, Users, ChevronDown, ChevronUp, Loader2, 
   Building, Phone, Mail, Calendar, AlertTriangle,
-  CheckCircle, Clock, Search, ChevronsUpDown, Pencil, X, Download, Trash2, Filter
+  CheckCircle, Clock, Search, ChevronsUpDown, Pencil, X, Download, Trash2, Filter,
+  IdCard, Cake, Briefcase, CalendarCheck, CalendarX
 } from 'lucide-react';
 import { AddEmployeeActivityDialog } from './AddEmployeeActivityDialog';
 import { EditEmployeeActivityDialog } from './EditEmployeeActivityDialog';
@@ -65,6 +66,15 @@ interface Employee {
   first_name: string;
   last_name: string;
   location_id: string;
+  fiscal_code?: string | null;
+  birth_date?: string | null;
+  birth_place?: string | null;
+  hire_date?: string | null;
+  termination_date?: string | null;
+  role?: string | null;
+  status?: string | null;
+  email?: string | null;
+  phone?: string | null;
 }
 
 interface EmployeeActivity {
