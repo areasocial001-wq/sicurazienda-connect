@@ -5,7 +5,7 @@ import {
   MapPin, Users, ChevronDown, ChevronUp, Loader2, 
   Building, Phone, Mail, Calendar, AlertTriangle,
   CheckCircle, Clock, Search, ChevronsUpDown, Pencil, X, Download, Trash2, Filter,
-  IdCard, Cake, Briefcase, CalendarCheck, CalendarX
+  IdCard, Cake, Briefcase, CalendarCheck, CalendarX, ArrowUpDown, ArrowUp, ArrowDown
 } from 'lucide-react';
 import { AddEmployeeActivityDialog } from './AddEmployeeActivityDialog';
 import { EditEmployeeActivityDialog } from './EditEmployeeActivityDialog';
@@ -109,6 +109,13 @@ interface EmployeeFilters {
   statuses: ('active' | 'inactive')[];
 }
 
+type EmployeeSortField = 'name' | 'fiscal_code' | 'hire_date' | 'termination_date';
+type SortDirection = 'asc' | 'desc';
+interface EmployeeSort {
+  field: EmployeeSortField;
+  direction: SortDirection;
+}
+
 interface PendingDelete {
   activityId: string;
   activityName: string;
@@ -135,6 +142,7 @@ export function ContactLocationsEmployees({ contactId }: ContactLocationsEmploye
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [activityFilters, setActivityFilters] = useState<Record<string, ActivityFilters>>({});
   const [employeeFilters, setEmployeeFilters] = useState<Record<string, EmployeeFilters>>({});
+  const [employeeSorts, setEmployeeSorts] = useState<Record<string, EmployeeSort>>({});
 
   useEffect(() => {
     fetchData();
@@ -224,7 +232,7 @@ export function ContactLocationsEmployees({ contactId }: ContactLocationsEmploye
     const query = (searchQueries[locationId] || '').toLowerCase().trim();
     const filters = getEmployeeFilters(locationId);
 
-    return locationEmployees.filter(e => {
+    const filtered = locationEmployees.filter(e => {
       // Text search: name + CF
       const matchesQuery = !query ||
         `${e.first_name} ${e.last_name}`.toLowerCase().includes(query) ||
@@ -239,6 +247,46 @@ export function ContactLocationsEmployees({ contactId }: ContactLocationsEmploye
 
       return matchesQuery && matchesRole && matchesStatus;
     });
+
+    const sort = getEmployeeSort(locationId);
+    const dir = sort.direction === 'asc' ? 1 : -1;
+    const compareStrings = (a?: string | null, b?: string | null) => {
+      const aEmpty = !a;
+      const bEmpty = !b;
+      if (aEmpty && bEmpty) return 0;
+      if (aEmpty) return 1; // empties always last
+      if (bEmpty) return -1;
+      return a!.localeCompare(b!) * dir;
+    };
+
+    return [...filtered].sort((a, b) => {
+      switch (sort.field) {
+        case 'fiscal_code':
+          return compareStrings(a.fiscal_code, b.fiscal_code);
+        case 'hire_date':
+          return compareStrings(a.hire_date, b.hire_date);
+        case 'termination_date':
+          return compareStrings(a.termination_date, b.termination_date);
+        case 'name':
+        default:
+          return compareStrings(
+            `${a.last_name} ${a.first_name}`,
+            `${b.last_name} ${b.first_name}`
+          );
+      }
+    });
+  };
+
+  const getEmployeeSort = (locationId: string): EmployeeSort => {
+    return employeeSorts[locationId] || { field: 'name', direction: 'asc' };
+  };
+
+  const setEmployeeSort = (locationId: string, field: EmployeeSortField) => {
+    const current = getEmployeeSort(locationId);
+    const next: EmployeeSort = current.field === field
+      ? { field, direction: current.direction === 'asc' ? 'desc' : 'asc' }
+      : { field, direction: 'asc' };
+    setEmployeeSorts(prev => ({ ...prev, [locationId]: next }));
   };
 
   const getEmployeeFilters = (locationId: string): EmployeeFilters => {
@@ -692,6 +740,56 @@ export function ContactLocationsEmployees({ contactId }: ContactLocationsEmploye
                                   Valido
                                 </span>
                               </DropdownMenuCheckboxItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                          {/* Employee sort */}
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="gap-1 text-xs h-8"
+                              >
+                                {getEmployeeSort(location.id).direction === 'asc' ? (
+                                  <ArrowUp className="h-3 w-3" />
+                                ) : (
+                                  <ArrowDown className="h-3 w-3" />
+                                )}
+                                Ordina
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-56">
+                              <DropdownMenuLabel>Ordina dipendenti per</DropdownMenuLabel>
+                              {([
+                                { field: 'name' as const, label: 'Nome' },
+                                { field: 'fiscal_code' as const, label: 'Codice Fiscale' },
+                                { field: 'hire_date' as const, label: 'Data assunzione' },
+                                { field: 'termination_date' as const, label: 'Data cessazione' },
+                              ]).map(opt => {
+                                const sort = getEmployeeSort(location.id);
+                                const active = sort.field === opt.field;
+                                return (
+                                  <DropdownMenuCheckboxItem
+                                    key={opt.field}
+                                    checked={active}
+                                    onCheckedChange={() => setEmployeeSort(location.id, opt.field)}
+                                    onSelect={(e) => e.preventDefault()}
+                                  >
+                                    <span className="flex items-center justify-between gap-2 w-full">
+                                      <span>{opt.label}</span>
+                                      {active ? (
+                                        sort.direction === 'asc' ? (
+                                          <ArrowUp className="h-3 w-3 text-muted-foreground" />
+                                        ) : (
+                                          <ArrowDown className="h-3 w-3 text-muted-foreground" />
+                                        )
+                                      ) : (
+                                        <ArrowUpDown className="h-3 w-3 text-muted-foreground/40" />
+                                      )}
+                                    </span>
+                                  </DropdownMenuCheckboxItem>
+                                );
+                              })}
                             </DropdownMenuContent>
                           </DropdownMenu>
                           <Button
