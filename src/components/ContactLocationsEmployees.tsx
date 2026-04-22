@@ -145,7 +145,7 @@ export function ContactLocationsEmployees({ contactId }: ContactLocationsEmploye
           .order('name'),
         supabase
           .from('crm_employees')
-          .select('id, first_name, last_name, location_id')
+          .select('id, first_name, last_name, location_id, fiscal_code, birth_date, birth_place, hire_date, termination_date, role, status, email, phone')
           .eq('contact_id', contactId)
           .order('last_name'),
       ]);
