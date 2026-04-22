@@ -4,7 +4,8 @@ import { it } from 'date-fns/locale';
 import { 
   MapPin, Users, ChevronDown, ChevronUp, Loader2, 
   Building, Phone, Mail, Calendar, AlertTriangle,
-  CheckCircle, Clock, Search, ChevronsUpDown, Pencil, X, Download, Trash2, Filter
+  CheckCircle, Clock, Search, ChevronsUpDown, Pencil, X, Download, Trash2, Filter,
+  IdCard, Cake, Briefcase, CalendarCheck, CalendarX
 } from 'lucide-react';
 import { AddEmployeeActivityDialog } from './AddEmployeeActivityDialog';
 import { EditEmployeeActivityDialog } from './EditEmployeeActivityDialog';
@@ -65,6 +66,15 @@ interface Employee {
   first_name: string;
   last_name: string;
   location_id: string;
+  fiscal_code?: string | null;
+  birth_date?: string | null;
+  birth_place?: string | null;
+  hire_date?: string | null;
+  termination_date?: string | null;
+  role?: string | null;
+  status?: string | null;
+  email?: string | null;
+  phone?: string | null;
 }
 
 interface EmployeeActivity {
@@ -135,7 +145,7 @@ export function ContactLocationsEmployees({ contactId }: ContactLocationsEmploye
           .order('name'),
         supabase
           .from('crm_employees')
-          .select('id, first_name, last_name, location_id')
+          .select('id, first_name, last_name, location_id, fiscal_code, birth_date, birth_place, hire_date, termination_date, role, status, email, phone')
           .eq('contact_id', contactId)
           .order('last_name'),
       ]);
@@ -645,6 +655,68 @@ export function ContactLocationsEmployees({ contactId }: ContactLocationsEmploye
                                     </CollapsibleTrigger>
                                     <CollapsibleContent>
                                       <div className="ml-4 mt-2 space-y-1">
+                                        {/* Employee details panel */}
+                                        {(employee.fiscal_code || employee.birth_date || employee.birth_place || employee.hire_date || employee.termination_date || employee.role) && (
+                                          <div className="mb-2 p-2 rounded bg-muted/40 border text-xs grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-1">
+                                            {employee.fiscal_code && (
+                                              <div className="flex items-center gap-1.5 text-muted-foreground">
+                                                <IdCard className="h-3 w-3 flex-shrink-0" />
+                                                <span className="font-medium text-foreground">CF:</span>
+                                                <span className="font-mono truncate">{employee.fiscal_code}</span>
+                                              </div>
+                                            )}
+                                            {employee.role && (
+                                              <div className="flex items-center gap-1.5 text-muted-foreground">
+                                                <Briefcase className="h-3 w-3 flex-shrink-0" />
+                                                <span className="font-medium text-foreground">Mansione:</span>
+                                                <span className="truncate">{employee.role}</span>
+                                              </div>
+                                            )}
+                                            {employee.birth_date && (
+                                              <div className="flex items-center gap-1.5 text-muted-foreground">
+                                                <Cake className="h-3 w-3 flex-shrink-0" />
+                                                <span className="font-medium text-foreground">Nato il:</span>
+                                                <span>{format(new Date(employee.birth_date), 'dd/MM/yyyy')}</span>
+                                                {employee.birth_place && <span>· {employee.birth_place}</span>}
+                                              </div>
+                                            )}
+                                            {!employee.birth_date && employee.birth_place && (
+                                              <div className="flex items-center gap-1.5 text-muted-foreground">
+                                                <MapPin className="h-3 w-3 flex-shrink-0" />
+                                                <span className="font-medium text-foreground">Luogo nascita:</span>
+                                                <span>{employee.birth_place}</span>
+                                              </div>
+                                            )}
+                                            {employee.hire_date && (
+                                              <div className="flex items-center gap-1.5 text-muted-foreground">
+                                                <CalendarCheck className="h-3 w-3 flex-shrink-0 text-green-600" />
+                                                <span className="font-medium text-foreground">Assunzione:</span>
+                                                <span>{format(new Date(employee.hire_date), 'dd/MM/yyyy')}</span>
+                                              </div>
+                                            )}
+                                            {employee.termination_date && (
+                                              <div className="flex items-center gap-1.5 text-muted-foreground">
+                                                <CalendarX className="h-3 w-3 flex-shrink-0 text-red-600" />
+                                                <span className="font-medium text-foreground">Cessazione:</span>
+                                                <span>{format(new Date(employee.termination_date), 'dd/MM/yyyy')}</span>
+                                              </div>
+                                            )}
+                                            {(employee.email || employee.phone) && (
+                                              <div className="flex items-center gap-3 text-muted-foreground sm:col-span-2 pt-1 mt-1 border-t border-border/50">
+                                                {employee.email && (
+                                                  <span className="flex items-center gap-1 truncate">
+                                                    <Mail className="h-3 w-3 flex-shrink-0" />{employee.email}
+                                                  </span>
+                                                )}
+                                                {employee.phone && (
+                                                  <span className="flex items-center gap-1">
+                                                    <Phone className="h-3 w-3 flex-shrink-0" />{employee.phone}
+                                                  </span>
+                                                )}
+                                              </div>
+                                            )}
+                                          </div>
+                                        )}
                                         {empActivities.map((activity) => {
                                           const expiryStatus = getExpiryStatus(activity.expiry_date);
                                           return (
