@@ -729,11 +729,11 @@ export function CRMLegacyDataImport({ onImportComplete }: CRMLegacyDataImportPro
                             <TableCell className="text-xs">{e.termination_date || '-'}</TableCell>
                             <TableCell>
                               {e.match_status === 'update' ? (
-                                <Badge variant="secondary" className="text-xs">
-                                  <CheckCircle className="h-3 w-3 mr-1" /> Match {e.match_reason}
+                                <Badge variant="secondary" className="text-xs" title={`Aggiorna record esistente — match per ${e.match_reason}`}>
+                                  <CheckCircle className="h-3 w-3 mr-1" /> Aggiorna · {e.match_reason}
                                 </Badge>
                               ) : (
-                                <Badge variant="outline" className="text-xs">
+                                <Badge variant="outline" className="text-xs" title={e.match_reason || 'Nuovo dipendente'}>
                                   <UserPlus className="h-3 w-3 mr-1" /> Nuovo
                                 </Badge>
                               )}
@@ -776,11 +776,11 @@ export function CRMLegacyDataImport({ onImportComplete }: CRMLegacyDataImportPro
                             </TableCell>
                             <TableCell>
                               {c.match_status === 'update' ? (
-                                <Badge variant="secondary" className="text-xs">
-                                  <CheckCircle className="h-3 w-3 mr-1" /> Match {c.match_reason}
+                                <Badge variant="secondary" className="text-xs" title={`Aggiorna record esistente — match per ${c.match_reason}`}>
+                                  <CheckCircle className="h-3 w-3 mr-1" /> Aggiorna · {c.match_reason}
                                 </Badge>
                               ) : (
-                                <Badge variant="outline" className="text-xs">
+                                <Badge variant="outline" className="text-xs" title={c.match_reason || 'Nuova azienda'}>
                                   <UserPlus className="h-3 w-3 mr-1" /> Nuova
                                 </Badge>
                               )}
