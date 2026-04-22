@@ -800,7 +800,7 @@ export function CRMLegacyDataImport({ onImportComplete }: CRMLegacyDataImportPro
                   <ScrollArea className="h-[320px] border rounded-md">
                     {skipped.length === 0 ? (
                       <div className="p-8 text-center text-sm text-muted-foreground">
-                        <CheckCircle className="h-6 w-6 mx-auto mb-2 text-green-600" />
+                        <CheckCircle className="h-6 w-6 mx-auto mb-2 text-primary" />
                         Nessuna riga scartata in fase di parsing
                       </div>
                     ) : (
@@ -823,7 +823,7 @@ export function CRMLegacyDataImport({ onImportComplete }: CRMLegacyDataImportPro
                               </TableCell>
                               <TableCell className="text-xs font-mono">{s.rowIndex}</TableCell>
                               <TableCell className="text-xs">
-                                <span className="inline-flex items-center gap-1 text-amber-700 dark:text-amber-500">
+                                <span className="inline-flex items-center gap-1 text-muted-foreground">
                                   <AlertTriangle className="h-3 w-3" />
                                   {s.reason}
                                 </span>
@@ -859,7 +859,7 @@ export function CRMLegacyDataImport({ onImportComplete }: CRMLegacyDataImportPro
                           </>
                         ) : (
                           <>
-                            <CheckCircle className="h-6 w-6 mx-auto mb-2 text-green-600" />
+                            <CheckCircle className="h-6 w-6 mx-auto mb-2 text-primary" />
                             Nessun errore durante l'import
                           </>
                         )}
