@@ -9,7 +9,7 @@ import {
   QrCode, ScanLine, FileText, Eye, Languages, Search,
   Camera, Upload, Loader2, Copy, Check, X, ImagePlus,
   ScanText, Contact, UserPlus, SwitchCamera, AlertTriangle,
-  Zap, ZapOff, Play,
+  Zap, ZapOff, Play, RotateCw, History, Trash2, ExternalLink,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import SicurLensDocScanner from "./SicurLensDocScanner";
@@ -46,6 +46,14 @@ const MODE_CONFIG: Record<LensMode, { label: string; icon: React.ReactNode; desc
 };
 
 const FACING_STORAGE_KEY = "sicurlens.facingMode";
+const QR_RESULT_STORAGE_KEY = "sicurlens.lastQrResult";
+const QR_HISTORY_STORAGE_KEY = "sicurlens.qrHistory";
+const MAX_HISTORY = 20;
+
+interface QrHistoryEntry {
+  text: string;
+  timestamp: number;
+}
 
 const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
   const [activeTab, setActiveTab] = useState<"qr" | "lens">("qr");
@@ -66,6 +74,17 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [torchOn, setTorchOn] = useState(false);
   const [torchSupported, setTorchSupported] = useState(false);
+  const [torchUnavailableNotice, setTorchUnavailableNotice] = useState<string | null>(null);
+  const [qrHistory, setQrHistory] = useState<QrHistoryEntry[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const raw = window.localStorage.getItem(QR_HISTORY_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [showHistory, setShowHistory] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -84,6 +103,48 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
       // ignore storage errors
     }
   }, [facingMode]);
+
+  // Restore last QR result on mount
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(QR_RESULT_STORAGE_KEY);
+      if (saved) setQrResult(saved);
+    } catch {
+      // ignore
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Persist QR result
+  useEffect(() => {
+    try {
+      if (qrResult) window.localStorage.setItem(QR_RESULT_STORAGE_KEY, qrResult);
+      else window.localStorage.removeItem(QR_RESULT_STORAGE_KEY);
+    } catch {
+      // ignore
+    }
+  }, [qrResult]);
+
+  // Persist history
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(QR_HISTORY_STORAGE_KEY, JSON.stringify(qrHistory));
+    } catch {
+      // ignore
+    }
+  }, [qrHistory]);
+
+  const addToHistory = useCallback((text: string) => {
+    setQrHistory((prev) => {
+      const filtered = prev.filter((e) => e.text !== text);
+      return [{ text, timestamp: Date.now() }, ...filtered].slice(0, MAX_HISTORY);
+    });
+  }, []);
+
+  const clearHistory = useCallback(() => {
+    setQrHistory([]);
+    toast.success("Cronologia cancellata");
+  }, []);
 
   const clearWatchdog = useCallback(() => {
     if (watchdogRef.current !== null) {
@@ -189,6 +250,7 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
         (decodedText) => {
           restartAttemptsRef.current = 0;
           setQrResult(decodedText);
+          addToHistory(decodedText);
           cleanupScanner();
         },
         () => {}
@@ -204,9 +266,18 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
         const stream = (video?.srcObject as MediaStream | null) ?? null;
         const track = stream?.getVideoTracks?.()[0];
         const caps: any = track?.getCapabilities?.() ?? {};
-        setTorchSupported(!!caps.torch);
+        const supported = !!caps.torch;
+        setTorchSupported(supported);
+        if (!supported) {
+          setTorchUnavailableNotice(
+            "Torcia non disponibile su questo dispositivo o browser. Suggerimento: usa Chrome su Android o un dispositivo con flash."
+          );
+        } else {
+          setTorchUnavailableNotice(null);
+        }
       } catch {
         setTorchSupported(false);
+        setTorchUnavailableNotice("Impossibile rilevare la torcia. Verifica le impostazioni del browser.");
       }
 
       // Watchdog: if the underlying <video> stops producing frames, auto-restart
@@ -242,6 +313,13 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
         setIsScanning(false);
         return;
       }
+      const msg =
+        name === "NotReadableError"
+          ? "Fotocamera occupata da un'altra applicazione. Chiudi le altre app che la usano."
+          : name === "OverconstrainedError"
+          ? "La fotocamera selezionata non supporta i parametri richiesti. Prova a cambiare camera."
+          : err?.message || "Errore sconosciuto della fotocamera.";
+      setCameraError(msg);
       attemptAutoRestart("Errore fotocamera, nuovo tentativo...");
     }
   }, [cleanupScanner, clearWatchdog, facingMode]);
@@ -258,8 +336,11 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
       setTorchOn(next);
     } catch (err) {
       console.error("Torch error:", err);
-      toast.error("Torcia non disponibile su questo dispositivo");
       setTorchSupported(false);
+      setTorchUnavailableNotice(
+        "Torcia disattivata per incompatibilità. Suggerimento: usa Chrome su Android o cambia dispositivo."
+      );
+      toast.error("Torcia non disponibile su questo dispositivo");
     }
   }, [torchOn]);
 
@@ -288,6 +369,14 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
     window.setTimeout(() => {
       startQrScanner(true);
     }, delay);
+  }, [cleanupScanner, startQrScanner]);
+
+  // Immediate single retry, bypassing backoff and the attempt counter
+  const retryNow = useCallback(async () => {
+    restartAttemptsRef.current = 0;
+    setCameraError(null);
+    await cleanupScanner();
+    startQrScanner(true);
   }, [cleanupScanner, startQrScanner]);
 
   // ── Image capture ──────────────────────────────
@@ -483,12 +572,22 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
                 <div className="w-full p-3 bg-muted rounded-lg space-y-2">
                   <div className="flex items-start gap-2">
                     <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
-                    <p className="text-xs text-muted-foreground">{cameraError}</p>
+                    <div className="text-xs text-muted-foreground space-y-1">
+                      <p className="font-semibold text-foreground">Errore fotocamera</p>
+                      <p>{cameraError}</p>
+                      <p className="text-[10px]">Suggerimento: prova un'altra fotocamera o riprova subito.</p>
+                    </div>
                   </div>
-                  <Button size="sm" variant="outline" className="w-full" onClick={switchCamera}>
-                    <SwitchCamera className="h-3.5 w-3.5 mr-1" />
-                    Cambia fotocamera
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="default" className="flex-1" onClick={retryNow}>
+                      <RotateCw className="h-3.5 w-3.5 mr-1" />
+                      Riprova ora
+                    </Button>
+                    <Button size="sm" variant="outline" className="flex-1" onClick={switchCamera}>
+                      <SwitchCamera className="h-3.5 w-3.5 mr-1" />
+                      Cambia camera
+                    </Button>
+                  </div>
                 </div>
               ) : qrResult ? (
                 <div className="w-full space-y-2">
@@ -553,6 +652,85 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
                   )}
                 </div>
               )}
+
+              {/* Torch unavailable notice */}
+              {isScanning && torchUnavailableNotice && (
+                <div className="w-full p-2 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+                  <div className="flex items-start gap-2">
+                    <ZapOff className="h-3.5 w-3.5 text-amber-600 shrink-0 mt-0.5" />
+                    <p className="text-[11px] text-muted-foreground">{torchUnavailableNotice}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* History toggle + panel */}
+              <div className="w-full">
+                <button
+                  type="button"
+                  onClick={() => setShowHistory((v) => !v)}
+                  className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <History className="h-3.5 w-3.5" />
+                  Cronologia scansioni ({qrHistory.length})
+                </button>
+                {showHistory && (
+                  <div className="mt-2 border rounded-lg p-2 space-y-1.5 max-h-48 overflow-y-auto">
+                    {qrHistory.length === 0 ? (
+                      <p className="text-xs text-muted-foreground text-center py-2">Nessuna scansione</p>
+                    ) : (
+                      <>
+                        {qrHistory.map((entry, idx) => {
+                          const isUrl = /^https?:\/\//i.test(entry.text);
+                          return (
+                            <div key={`${entry.timestamp}-${idx}`} className="flex items-start gap-1.5 text-xs p-1.5 bg-muted/50 rounded">
+                              <div className="flex-1 min-w-0">
+                                <p className="break-all font-medium">{entry.text}</p>
+                                <p className="text-[10px] text-muted-foreground">
+                                  {new Date(entry.timestamp).toLocaleString("it-IT")}
+                                </p>
+                              </div>
+                              <div className="flex gap-1 shrink-0">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6"
+                                  title="Copia"
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(entry.text);
+                                    toast.success("Copiato");
+                                  }}
+                                >
+                                  <Copy className="h-3 w-3" />
+                                </Button>
+                                {isUrl && (
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6"
+                                    title="Apri link"
+                                    onClick={() => window.open(entry.text, "_blank")}
+                                  >
+                                    <ExternalLink className="h-3 w-3" />
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="w-full text-destructive hover:text-destructive"
+                          onClick={clearHistory}
+                        >
+                          <Trash2 className="h-3.5 w-3.5 mr-1" />
+                          Cancella cronologia
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           </TabsContent>
 
