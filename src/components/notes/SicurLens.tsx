@@ -81,10 +81,12 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
       scannerRef.current = null;
     }
     // Manually clear any leftover DOM nodes html5-qrcode injected
-    if (qrReaderRef.current) {
-      while (qrReaderRef.current.firstChild) {
-        qrReaderRef.current.removeChild(qrReaderRef.current.firstChild);
+    try {
+      if (qrReaderRef.current) {
+        qrReaderRef.current.innerHTML = "";
       }
+    } catch {
+      // ignore — React may have already removed the node
     }
     setIsScanning(false);
   }, []);
@@ -286,13 +288,15 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
           {/* ── QR Tab ───────────────────────────── */}
           <TabsContent value="qr" className="flex-1 flex flex-col overflow-y-auto px-4 pb-4">
             <div className="flex flex-col items-center gap-3">
-              <div
-                id={qrReaderIdRef.current}
-                ref={qrReaderRef}
-                className="w-full max-w-[300px] aspect-square bg-muted rounded-lg overflow-hidden relative"
-              >
+              <div className="w-full max-w-[300px] aspect-square bg-muted rounded-lg overflow-hidden relative">
+                {/* QR scanner host — kept empty so html5-qrcode owns the DOM */}
+                <div
+                  id={qrReaderIdRef.current}
+                  ref={qrReaderRef}
+                  className="absolute inset-0"
+                />
                 {!isScanning && !qrResult && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground">
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground pointer-events-none">
                     <QrCode className="h-12 w-12 mb-2 opacity-30" />
                     <p className="text-sm">Premi "Scansiona" per iniziare</p>
                   </div>
