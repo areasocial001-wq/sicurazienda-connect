@@ -1,0 +1,1 @@
+ALTER VIEW public.qr_codes_public SET (security_invoker = true);
