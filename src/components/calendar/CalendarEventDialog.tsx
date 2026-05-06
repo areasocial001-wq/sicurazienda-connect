@@ -16,8 +16,9 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { CalendarEvent, CalendarEventInput } from '@/hooks/useCalendarEvents';
 import { supabase } from '@/integrations/supabase/client';
-import { Trash2, Check, ChevronsUpDown } from 'lucide-react';
+import { Trash2, Check, ChevronsUpDown, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { CalendarEventComments } from './CalendarEventComments';
 
@@ -142,23 +143,32 @@ export function CalendarEventDialog({
   const [location, setLocation] = useState('');
   const [color, setColor] = useState('#3B82F6');
   const [category, setCategory] = useState('appuntamento');
-  const [contactId, setContactId] = useState<string>('');
-  const [employeeId, setEmployeeId] = useState<string>('');
+  const [linkedUserIds, setLinkedUserIds] = useState<string[]>([]);
   const [isShared, setIsShared] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const [contacts, setContacts] = useState<any[]>([]);
-  const [employees, setEmployees] = useState<any[]>([]);
+  const [staffUsers, setStaffUsers] = useState<{ id: string; full_name: string | null }[]>([]);
 
   useEffect(() => {
     if (open) {
-      // Load contacts and employees
-      supabase.from('crm_contacts').select('id, name, company').order('company').then(({ data }) => {
-        setContacts(data || []);
-      });
-      supabase.from('crm_employees').select('id, first_name, last_name, contact_id').order('last_name').then(({ data }) => {
-        setEmployees(data || []);
-      });
+      // Load staff users (utenti iscritti alle aree interne)
+      (async () => {
+        const { data: roles } = await supabase
+          .from('user_roles')
+          .select('user_id, role')
+          .in('role', ['admin', 'contabilita', 'area_tecnica', 'gestione_corsi', 'consulenti_tecnici', 'medicina']);
+        const ids = Array.from(new Set((roles || []).map((r: any) => r.user_id)));
+        if (ids.length === 0) {
+          setStaffUsers([]);
+          return;
+        }
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, full_name')
+          .in('id', ids)
+          .order('full_name');
+        setStaffUsers((profiles || []) as any);
+      })();
     }
   }, [open]);
 
@@ -176,8 +186,7 @@ export function CalendarEventDialog({
       setLocation(event.location || '');
       setColor(event.color || '#3B82F6');
       setCategory(event.category);
-      setContactId(event.contact_id || '');
-      setEmployeeId(event.employee_id || '');
+      setLinkedUserIds(event.linked_user_ids || []);
       setIsShared(event.is_shared);
     } else {
       const d = defaultDate || new Date();
@@ -196,8 +205,7 @@ export function CalendarEventDialog({
       setLocation('');
       setColor('#3B82F6');
       setCategory('appuntamento');
-      setContactId('');
-      setEmployeeId('');
+      setLinkedUserIds([]);
       setIsShared(false);
     }
   }, [event, defaultDate, open]);
@@ -222,8 +230,9 @@ export function CalendarEventDialog({
       location: location.trim() || undefined,
       color,
       category,
-      contact_id: contactId || null,
-      employee_id: employeeId || null,
+      contact_id: null,
+      employee_id: null,
+      linked_user_ids: linkedUserIds,
       is_shared: isShared,
     };
 
