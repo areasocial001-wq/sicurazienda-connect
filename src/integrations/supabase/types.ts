@@ -2134,6 +2134,13 @@ export type Database = {
             referencedRelation: "qr_codes"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "qr_scans_qr_code_id_fkey"
+            columns: ["qr_code_id"]
+            isOneToOne: false
+            referencedRelation: "qr_codes_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       reminders: {
@@ -2201,7 +2208,38 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      qr_codes_public: {
+        Row: {
+          document_id: string | null
+          expires_at: string | null
+          id: string | null
+          is_active: boolean | null
+          public_url: string | null
+        }
+        Insert: {
+          document_id?: string | null
+          expires_at?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          public_url?: string | null
+        }
+        Update: {
+          document_id?: string | null
+          expires_at?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          public_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qr_codes_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       get_documents_for_role: {
