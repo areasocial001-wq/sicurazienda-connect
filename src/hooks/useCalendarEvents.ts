@@ -15,6 +15,7 @@ export interface CalendarEvent {
   category: string;
   contact_id: string | null;
   employee_id: string | null;
+  linked_user_ids: string[];
   is_shared: boolean;
   created_by_name: string | null;
   created_at: string;
@@ -22,6 +23,7 @@ export interface CalendarEvent {
   // Joined fields
   contact_name?: string;
   employee_name?: string;
+  linked_users_names?: string[];
 }
 
 export interface CalendarEventInput {
@@ -35,6 +37,7 @@ export interface CalendarEventInput {
   category?: string;
   contact_id?: string | null;
   employee_id?: string | null;
+  linked_user_ids?: string[];
   is_shared?: boolean;
 }
 
