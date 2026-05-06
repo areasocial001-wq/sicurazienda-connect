@@ -189,6 +189,7 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
         (decodedText) => {
           restartAttemptsRef.current = 0;
           setQrResult(decodedText);
+          addToHistory(decodedText);
           cleanupScanner();
         },
         () => {}
