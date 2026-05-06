@@ -131,6 +131,7 @@ export type Database = {
           end_datetime: string
           id: string
           is_shared: boolean
+          linked_user_ids: string[]
           location: string | null
           start_datetime: string
           title: string
@@ -149,6 +150,7 @@ export type Database = {
           end_datetime: string
           id?: string
           is_shared?: boolean
+          linked_user_ids?: string[]
           location?: string | null
           start_datetime: string
           title: string
@@ -167,6 +169,7 @@ export type Database = {
           end_datetime?: string
           id?: string
           is_shared?: boolean
+          linked_user_ids?: string[]
           location?: string | null
           start_datetime?: string
           title?: string
