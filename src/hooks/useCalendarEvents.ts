@@ -47,10 +47,20 @@ export function useCalendarEvents(userId: string | undefined) {
     if (!userId) return;
     setLoading(true);
     try {
+      // Limit to a ±2 year window: there can be thousands of events in DB
+      // and Supabase caps results at 1000 by default, which would otherwise
+      // hide newly-created events behind the oldest ones.
+      const now = new Date();
+      const windowStart = new Date(now.getFullYear() - 2, 0, 1).toISOString();
+      const windowEnd = new Date(now.getFullYear() + 2, 11, 31).toISOString();
+
       const { data, error } = await supabase
         .from('calendar_events')
         .select('*')
-        .order('start_datetime', { ascending: true });
+        .gte('start_datetime', windowStart)
+        .lte('start_datetime', windowEnd)
+        .order('start_datetime', { ascending: false })
+        .limit(1000);
 
       if (error) throw error;
 
