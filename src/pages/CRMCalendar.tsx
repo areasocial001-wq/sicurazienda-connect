@@ -525,8 +525,8 @@ export default function CRMCalendar() {
             <Button
               size="sm"
               variant="outline"
-              onClick={() => downloadICS(events)}
-              disabled={!events.length}
+              onClick={() => downloadICS(calendarEvents)}
+              disabled={!calendarEvents.length}
             >
               <Download className="h-4 w-4 mr-1" /> Esporta ICS
             </Button>
