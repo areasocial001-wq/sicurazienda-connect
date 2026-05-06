@@ -108,6 +108,24 @@ export function useCalendarEvents(userId: string | undefined) {
     fetchEvents();
   }, [fetchEvents]);
 
+  // Realtime: aggiorna automaticamente quando un altro utente crea/modifica/elimina eventi
+  useEffect(() => {
+    if (!userId) return;
+    const channel = supabase
+      .channel('calendar_events_realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'calendar_events' },
+        () => {
+          fetchEvents();
+        }
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [userId, fetchEvents]);
+
   const createEvent = async (input: CalendarEventInput) => {
     if (!userId) return null;
     try {

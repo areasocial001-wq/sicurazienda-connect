@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   Calendar as CalendarIcon, Loader2, Plus, Upload,
   LayoutGrid, CalendarDays, List, Clock,
-  MapPin, Users, Share2, ChevronLeft, ChevronRight,
+  MapPin, Users, Share2, ChevronLeft, ChevronRight, Download,
 } from 'lucide-react';
 import {
   format, isSameDay, startOfWeek, endOfWeek, eachDayOfInterval,
@@ -25,6 +25,7 @@ import { ICSImportDialog } from '@/components/calendar/ICSImportDialog';
 import { useReminders } from '@/hooks/useReminders';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import { downloadICS } from '@/lib/icsExport';
 
 type CalendarView = 'month' | 'week' | 'day';
 
@@ -520,6 +521,14 @@ export default function CRMCalendar() {
             </Tabs>
             <Button size="sm" variant="outline" onClick={() => setIcsImportOpen(true)}>
               <Upload className="h-4 w-4 mr-1" /> Importa ICS
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => downloadICS(calendarEvents)}
+              disabled={!calendarEvents.length}
+            >
+              <Download className="h-4 w-4 mr-1" /> Esporta ICS
             </Button>
             <Button size="sm" onClick={() => openNewEvent()}>
               <Plus className="h-4 w-4 mr-1" /> Evento

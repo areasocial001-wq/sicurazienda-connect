@@ -19,6 +19,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Trash2, Check, ChevronsUpDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { CalendarEventComments } from './CalendarEventComments';
 
 interface CalendarEventDialogProps {
   open: boolean;
@@ -358,6 +359,10 @@ export function CalendarEventDialog({
             <Switch checked={isShared} onCheckedChange={setIsShared} id="shared" />
             <Label htmlFor="shared">Visibile a tutto lo staff</Label>
           </div>
+
+          {isEdit && event && (
+            <CalendarEventComments eventId={event.id} />
+          )}
         </div>
 
         <DialogFooter className="flex justify-between">
