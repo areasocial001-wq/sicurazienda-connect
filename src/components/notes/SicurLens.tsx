@@ -386,7 +386,7 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
                       <X className="h-3.5 w-3.5 mr-1" /> Ferma
                     </Button>
                   ) : (
-                    <Button size="sm" onClick={startQrScanner}>
+                    <Button size="sm" onClick={() => startQrScanner()}>
                       <Camera className="h-3.5 w-3.5 mr-1" /> Scansiona
                     </Button>
                   )}
