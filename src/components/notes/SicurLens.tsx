@@ -81,10 +81,12 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
       scannerRef.current = null;
     }
     // Manually clear any leftover DOM nodes html5-qrcode injected
-    if (qrReaderRef.current) {
-      while (qrReaderRef.current.firstChild) {
-        qrReaderRef.current.removeChild(qrReaderRef.current.firstChild);
+    try {
+      if (qrReaderRef.current) {
+        qrReaderRef.current.innerHTML = "";
       }
+    } catch {
+      // ignore — React may have already removed the node
     }
     setIsScanning(false);
   }, []);
