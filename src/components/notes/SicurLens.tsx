@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   QrCode, ScanLine, FileText, Eye, Languages, Search,
   Camera, Upload, Loader2, Copy, Check, X, ImagePlus,
-  ScanText, Contact, UserPlus,
+  ScanText, Contact, UserPlus, SwitchCamera, AlertTriangle,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import SicurLensDocScanner from "./SicurLensDocScanner";
@@ -54,6 +54,9 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
   const [copied, setCopied] = useState(false);
   const [qrResult, setQrResult] = useState<string | null>(null);
   const [isScanning, setIsScanning] = useState(false);
+  const [facingMode, setFacingMode] = useState<"environment" | "user">("environment");
+  const [permissionDenied, setPermissionDenied] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -109,6 +112,8 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
       setResult(null);
       setQrResult(null);
       setBusinessCard(null);
+      setPermissionDenied(false);
+      setCameraError(null);
     }
     return () => {
       // Also cleanup on unmount
@@ -121,6 +126,35 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
     try {
       // Ensure previous scanner is fully cleaned up
       await cleanupScanner();
+      setPermissionDenied(false);
+      setCameraError(null);
+
+      // Pre-flight: check camera permission via getUserMedia so we can give
+      // a clear guided message instead of a silent failure.
+      try {
+        const probe = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode },
+        });
+        // Release the probe stream immediately — html5-qrcode will reopen it
+        probe.getTracks().forEach((t) => t.stop());
+      } catch (permErr: any) {
+        const name = permErr?.name || "";
+        if (name === "NotAllowedError" || name === "PermissionDeniedError") {
+          setPermissionDenied(true);
+          setIsScanning(false);
+          return;
+        }
+        if (name === "NotFoundError" || name === "OverconstrainedError") {
+          setCameraError(
+            facingMode === "environment"
+              ? "Fotocamera posteriore non disponibile. Prova quella anteriore."
+              : "Fotocamera anteriore non disponibile. Prova quella posteriore."
+          );
+          setIsScanning(false);
+          return;
+        }
+        // Other errors fall through to html5-qrcode attempt
+      }
 
       const { Html5Qrcode } = await import("html5-qrcode");
       setIsScanning(true);
@@ -130,7 +164,7 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
       scannerRef.current = scanner;
 
       await scanner.start(
-        { facingMode: "environment" },
+        { facingMode },
         { fps: 10, qrbox: { width: 250, height: 250 } },
         (decodedText) => {
           restartAttemptsRef.current = 0;
@@ -169,11 +203,27 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
         }
         lastTime = t;
       }, 1000);
-    } catch (err) {
+    } catch (err: any) {
       console.error("QR scanner error:", err);
+      const name = err?.name || "";
+      if (name === "NotAllowedError" || name === "PermissionDeniedError") {
+        setPermissionDenied(true);
+        setIsScanning(false);
+        return;
+      }
       attemptAutoRestart("Errore fotocamera, nuovo tentativo...");
     }
-  }, [cleanupScanner, clearWatchdog]);
+  }, [cleanupScanner, clearWatchdog, facingMode]);
+
+  const switchCamera = useCallback(async () => {
+    const next = facingMode === "environment" ? "user" : "environment";
+    setFacingMode(next);
+    restartAttemptsRef.current = 0;
+    setCameraError(null);
+    await cleanupScanner();
+    // Defer until state has applied
+    window.setTimeout(() => startQrScanner(), 100);
+  }, [facingMode, cleanupScanner, startQrScanner]);
 
   const attemptAutoRestart = useCallback((message: string) => {
     restartAttemptsRef.current += 1;
@@ -359,7 +409,38 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
                 )}
               </div>
 
-              {qrResult ? (
+              {permissionDenied ? (
+                <div className="w-full p-3 bg-destructive/10 border border-destructive/30 rounded-lg space-y-2">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+                    <div className="text-xs space-y-1">
+                      <p className="font-semibold text-destructive">Accesso alla fotocamera negato</p>
+                      <p className="text-muted-foreground">
+                        Per usare lo scanner devi consentire l'accesso alla fotocamera.
+                      </p>
+                      <ul className="list-disc list-inside text-muted-foreground space-y-0.5">
+                        <li>Tocca l'icona del lucchetto 🔒 nella barra dell'indirizzo</li>
+                        <li>Imposta "Fotocamera" su <strong>Consenti</strong></li>
+                        <li>Ricarica la pagina e riprova</li>
+                      </ul>
+                    </div>
+                  </div>
+                  <Button size="sm" variant="outline" className="w-full" onClick={() => { setPermissionDenied(false); startQrScanner(); }}>
+                    Riprova
+                  </Button>
+                </div>
+              ) : cameraError ? (
+                <div className="w-full p-3 bg-muted rounded-lg space-y-2">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                    <p className="text-xs text-muted-foreground">{cameraError}</p>
+                  </div>
+                  <Button size="sm" variant="outline" className="w-full" onClick={switchCamera}>
+                    <SwitchCamera className="h-3.5 w-3.5 mr-1" />
+                    Cambia fotocamera
+                  </Button>
+                </div>
+              ) : qrResult ? (
                 <div className="w-full space-y-2">
                   <div className="p-3 bg-muted rounded-lg">
                     <p className="text-xs text-muted-foreground mb-1">Risultato:</p>
@@ -382,13 +463,25 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
               ) : (
                 <div className="flex gap-2">
                   {isScanning ? (
-                    <Button variant="destructive" size="sm" onClick={cleanupScanner}>
-                      <X className="h-3.5 w-3.5 mr-1" /> Ferma
-                    </Button>
+                    <>
+                      <Button variant="destructive" size="sm" onClick={cleanupScanner}>
+                        <X className="h-3.5 w-3.5 mr-1" /> Ferma
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={switchCamera} title="Cambia fotocamera">
+                        <SwitchCamera className="h-3.5 w-3.5 mr-1" />
+                        {facingMode === "environment" ? "Anteriore" : "Posteriore"}
+                      </Button>
+                    </>
                   ) : (
-                    <Button size="sm" onClick={() => startQrScanner()}>
-                      <Camera className="h-3.5 w-3.5 mr-1" /> Scansiona
-                    </Button>
+                    <>
+                      <Button size="sm" onClick={() => startQrScanner()}>
+                        <Camera className="h-3.5 w-3.5 mr-1" /> Scansiona
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={switchCamera} title="Cambia fotocamera">
+                        <SwitchCamera className="h-3.5 w-3.5 mr-1" />
+                        {facingMode === "environment" ? "Anteriore" : "Posteriore"}
+                      </Button>
+                    </>
                   )}
                 </div>
               )}
