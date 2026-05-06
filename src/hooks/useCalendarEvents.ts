@@ -41,6 +41,7 @@ export interface CalendarEventInput {
 export function useCalendarEvents(userId: string | undefined) {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [initialLoad, setInitialLoad] = useState(true);
 
   const fetchEvents = useCallback(async () => {
     if (!userId) return;
@@ -89,6 +90,7 @@ export function useCalendarEvents(userId: string | undefined) {
       toast.error('Errore nel caricamento del calendario');
     } finally {
       setLoading(false);
+      setInitialLoad(false);
     }
   }, [userId]);
 
@@ -161,7 +163,8 @@ export function useCalendarEvents(userId: string | undefined) {
 
   return {
     events,
-    loading,
+    loading: initialLoad,
+    refreshing: loading,
     fetchEvents,
     createEvent,
     updateEvent,
