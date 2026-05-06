@@ -9,6 +9,7 @@ import {
   QrCode, ScanLine, FileText, Eye, Languages, Search,
   Camera, Upload, Loader2, Copy, Check, X, ImagePlus,
   ScanText, Contact, UserPlus, SwitchCamera, AlertTriangle,
+  Zap, ZapOff, Play,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import SicurLensDocScanner from "./SicurLensDocScanner";
@@ -44,6 +45,8 @@ const MODE_CONFIG: Record<LensMode, { label: string; icon: React.ReactNode; desc
   search: { label: "Info", icon: <Search className="h-4 w-4" />, description: "Cerca informazioni su ciò che vedi" },
 };
 
+const FACING_STORAGE_KEY = "sicurlens.facingMode";
+
 const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
   const [activeTab, setActiveTab] = useState<"qr" | "lens">("qr");
   const [lensMode, setLensMode] = useState<LensMode>("ocr");
@@ -54,9 +57,15 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
   const [copied, setCopied] = useState(false);
   const [qrResult, setQrResult] = useState<string | null>(null);
   const [isScanning, setIsScanning] = useState(false);
-  const [facingMode, setFacingMode] = useState<"environment" | "user">("environment");
+  const [facingMode, setFacingMode] = useState<"environment" | "user">(() => {
+    if (typeof window === "undefined") return "environment";
+    const saved = window.localStorage.getItem(FACING_STORAGE_KEY);
+    return saved === "user" || saved === "environment" ? saved : "environment";
+  });
   const [permissionDenied, setPermissionDenied] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
+  const [torchOn, setTorchOn] = useState(false);
+  const [torchSupported, setTorchSupported] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -66,6 +75,15 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
   const watchdogRef = useRef<number | null>(null);
   const restartAttemptsRef = useRef(0);
   const MAX_RESTART_ATTEMPTS = 3;
+
+  // Persist facing mode preference
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(FACING_STORAGE_KEY, facingMode);
+    } catch {
+      // ignore storage errors
+    }
+  }, [facingMode]);
 
   const clearWatchdog = useCallback(() => {
     if (watchdogRef.current !== null) {
@@ -77,6 +95,8 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
   // Cleanup scanner safely before React unmounts
   const cleanupScanner = useCallback(async () => {
     clearWatchdog();
+    setTorchOn(false);
+    setTorchSupported(false);
     if (scannerRef.current) {
       try {
         const state = scannerRef.current.getState?.();
@@ -178,6 +198,17 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
       restartAttemptsRef.current = 0;
       if (isRestart) toast.success("Scanner riavviato");
 
+      // Detect torch capability on the active video track
+      try {
+        const video = qrReaderRef.current?.querySelector("video") as HTMLVideoElement | null;
+        const stream = (video?.srcObject as MediaStream | null) ?? null;
+        const track = stream?.getVideoTracks?.()[0];
+        const caps: any = track?.getCapabilities?.() ?? {};
+        setTorchSupported(!!caps.torch);
+      } catch {
+        setTorchSupported(false);
+      }
+
       // Watchdog: if the underlying <video> stops producing frames, auto-restart
       let lastTime = 0;
       let stallCount = 0;
@@ -215,6 +246,23 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
     }
   }, [cleanupScanner, clearWatchdog, facingMode]);
 
+  // Toggle torch (flash) on the active video track
+  const toggleTorch = useCallback(async () => {
+    try {
+      const video = qrReaderRef.current?.querySelector("video") as HTMLVideoElement | null;
+      const stream = (video?.srcObject as MediaStream | null) ?? null;
+      const track = stream?.getVideoTracks?.()[0];
+      if (!track) return;
+      const next = !torchOn;
+      await track.applyConstraints({ advanced: [{ torch: next } as any] });
+      setTorchOn(next);
+    } catch (err) {
+      console.error("Torch error:", err);
+      toast.error("Torcia non disponibile su questo dispositivo");
+      setTorchSupported(false);
+    }
+  }, [torchOn]);
+
   const switchCamera = useCallback(async () => {
     const next = facingMode === "environment" ? "user" : "environment";
     setFacingMode(next);
@@ -233,11 +281,13 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
       cleanupScanner();
       return;
     }
+    // Exponential backoff: 500ms, 1s, 2s, 4s...
+    const delay = 500 * Math.pow(2, restartAttemptsRef.current - 1);
     toast.info(`${message} (${restartAttemptsRef.current}/${MAX_RESTART_ATTEMPTS})`);
     cleanupScanner();
     window.setTimeout(() => {
       startQrScanner(true);
-    }, 600 * restartAttemptsRef.current);
+    }, delay);
   }, [cleanupScanner, startQrScanner]);
 
   // ── Image capture ──────────────────────────────
