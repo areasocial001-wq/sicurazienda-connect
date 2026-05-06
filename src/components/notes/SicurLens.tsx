@@ -409,7 +409,38 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
                 )}
               </div>
 
-              {qrResult ? (
+              {permissionDenied ? (
+                <div className="w-full p-3 bg-destructive/10 border border-destructive/30 rounded-lg space-y-2">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+                    <div className="text-xs space-y-1">
+                      <p className="font-semibold text-destructive">Accesso alla fotocamera negato</p>
+                      <p className="text-muted-foreground">
+                        Per usare lo scanner devi consentire l'accesso alla fotocamera.
+                      </p>
+                      <ul className="list-disc list-inside text-muted-foreground space-y-0.5">
+                        <li>Tocca l'icona del lucchetto 🔒 nella barra dell'indirizzo</li>
+                        <li>Imposta "Fotocamera" su <strong>Consenti</strong></li>
+                        <li>Ricarica la pagina e riprova</li>
+                      </ul>
+                    </div>
+                  </div>
+                  <Button size="sm" variant="outline" className="w-full" onClick={() => { setPermissionDenied(false); startQrScanner(); }}>
+                    Riprova
+                  </Button>
+                </div>
+              ) : cameraError ? (
+                <div className="w-full p-3 bg-muted rounded-lg space-y-2">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                    <p className="text-xs text-muted-foreground">{cameraError}</p>
+                  </div>
+                  <Button size="sm" variant="outline" className="w-full" onClick={switchCamera}>
+                    <SwitchCamera className="h-3.5 w-3.5 mr-1" />
+                    Cambia fotocamera
+                  </Button>
+                </div>
+              ) : qrResult ? (
                 <div className="w-full space-y-2">
                   <div className="p-3 bg-muted rounded-lg">
                     <p className="text-xs text-muted-foreground mb-1">Risultato:</p>
@@ -432,13 +463,25 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
               ) : (
                 <div className="flex gap-2">
                   {isScanning ? (
-                    <Button variant="destructive" size="sm" onClick={cleanupScanner}>
-                      <X className="h-3.5 w-3.5 mr-1" /> Ferma
-                    </Button>
+                    <>
+                      <Button variant="destructive" size="sm" onClick={cleanupScanner}>
+                        <X className="h-3.5 w-3.5 mr-1" /> Ferma
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={switchCamera} title="Cambia fotocamera">
+                        <SwitchCamera className="h-3.5 w-3.5 mr-1" />
+                        {facingMode === "environment" ? "Anteriore" : "Posteriore"}
+                      </Button>
+                    </>
                   ) : (
-                    <Button size="sm" onClick={() => startQrScanner()}>
-                      <Camera className="h-3.5 w-3.5 mr-1" /> Scansiona
-                    </Button>
+                    <>
+                      <Button size="sm" onClick={() => startQrScanner()}>
+                        <Camera className="h-3.5 w-3.5 mr-1" /> Scansiona
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={switchCamera} title="Cambia fotocamera">
+                        <SwitchCamera className="h-3.5 w-3.5 mr-1" />
+                        {facingMode === "environment" ? "Anteriore" : "Posteriore"}
+                      </Button>
+                    </>
                   )}
                 </div>
               )}
