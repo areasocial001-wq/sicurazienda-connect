@@ -333,35 +333,44 @@ export function CalendarEventDialog({
           </div>
 
           <div>
-            <Label>Collega a contatto CRM</Label>
+            <Label>Collega a utenti staff interni</Label>
             <SearchableCombobox
-              items={contacts.map((c) => ({
-                value: c.id,
-                label: c.company || c.name,
-                searchText: `${c.company || ''} ${c.name || ''}`.trim(),
-              }))}
-              value={contactId}
-              onChange={setContactId}
-              placeholder="Nessuno"
-              searchPlaceholder="Cerca contatto..."
-              emptyText="Nessun contatto trovato"
+              items={staffUsers
+                .filter((u) => !linkedUserIds.includes(u.id))
+                .map((u) => ({
+                  value: u.id,
+                  label: u.full_name || 'Senza nome',
+                  searchText: u.full_name || '',
+                }))}
+              value=""
+              onChange={(v) => {
+                if (v && !linkedUserIds.includes(v)) {
+                  setLinkedUserIds([...linkedUserIds, v]);
+                }
+              }}
+              placeholder="Aggiungi utente staff..."
+              searchPlaceholder="Cerca utente..."
+              emptyText="Nessun utente trovato"
             />
-          </div>
-
-          <div>
-            <Label>Collega a dipendente</Label>
-            <SearchableCombobox
-              items={employees.map((e) => ({
-                value: e.id,
-                label: `${e.last_name} ${e.first_name}`,
-                searchText: `${e.last_name} ${e.first_name} ${e.first_name} ${e.last_name}`,
-              }))}
-              value={employeeId}
-              onChange={setEmployeeId}
-              placeholder="Nessuno"
-              searchPlaceholder="Cerca dipendente..."
-              emptyText="Nessun dipendente trovato"
-            />
+            {linkedUserIds.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-2">
+                {linkedUserIds.map((uid) => {
+                  const u = staffUsers.find((s) => s.id === uid);
+                  return (
+                    <Badge key={uid} variant="secondary" className="gap-1">
+                      {u?.full_name || uid.slice(0, 8)}
+                      <button
+                        type="button"
+                        onClick={() => setLinkedUserIds(linkedUserIds.filter((x) => x !== uid))}
+                        className="ml-1 hover:text-destructive"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-3">
