@@ -493,22 +493,29 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
               ) : qrResult ? (
                 <div className="w-full space-y-2">
                   <div className="p-3 bg-muted rounded-lg">
-                    <p className="text-xs text-muted-foreground mb-1">Risultato:</p>
+                    <p className="text-xs text-muted-foreground mb-1">
+                      Risultato (scanner in pausa):
+                    </p>
                     <p className="text-sm font-medium break-all">{qrResult}</p>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     {/^https?:\/\//i.test(qrResult) && (
-                      <Button size="sm" variant="outline" className="flex-1" onClick={() => window.open(qrResult, "_blank")}>
+                      <Button size="sm" variant="outline" className="flex-1 min-w-[110px]" onClick={() => window.open(qrResult, "_blank")}>
                         Apri link
                       </Button>
                     )}
-                    <Button size="sm" className="flex-1" onClick={handleInsertQrResult}>
+                    <Button size="sm" className="flex-1 min-w-[140px]" onClick={handleInsertQrResult}>
                       Inserisci nella nota
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => { setQrResult(null); startQrScanner(); }}>
-                      Nuova scansione
-                    </Button>
                   </div>
+                  <Button
+                    size="sm"
+                    variant="default"
+                    className="w-full"
+                    onClick={() => { setQrResult(null); startQrScanner(); }}
+                  >
+                    <Play className="h-3.5 w-3.5 mr-1" /> Riprendi scansione
+                  </Button>
                 </div>
               ) : (
                 <div className="flex gap-2">
