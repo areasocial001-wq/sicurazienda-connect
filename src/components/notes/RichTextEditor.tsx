@@ -135,7 +135,7 @@ const RichTextEditor = ({ content, onChange, placeholder, noteId }: RichTextEdit
 
   const editor = useEditor({
     extensions: [
-      StarterKit.configure({ heading: { levels: [1, 2, 3] } }),
+      StarterKit.configure({ heading: { levels: [1, 2, 3] }, link: false, underline: false } as any),
       Underline,
       Highlight.configure({ multicolor: true }),
       TaskList,
