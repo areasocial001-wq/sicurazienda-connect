@@ -23,11 +23,18 @@ const QRRedirect = () => {
         
         // Get QR code info - only fetch necessary fields for redirect
         // Note: RLS policy restricts public access to only necessary fields
-        const { data: qrCode, error: qrError } = await supabase
-          .from('qr_codes_public' as any)
+        const { data: qrCodeRaw, error: qrError } = await (supabase as any)
+          .from('qr_codes_public')
           .select('id, public_url, is_active, expires_at, document_id')
           .eq('id', id)
           .maybeSingle();
+        const qrCode = qrCodeRaw as {
+          id: string;
+          public_url: string;
+          is_active: boolean;
+          expires_at: string | null;
+          document_id: string;
+        } | null;
 
         console.log('[QRRedirect] QR code query result:', { qrCode, qrError });
 
