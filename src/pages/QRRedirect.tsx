@@ -24,7 +24,7 @@ const QRRedirect = () => {
         // Get QR code info - only fetch necessary fields for redirect
         // Note: RLS policy restricts public access to only necessary fields
         const { data: qrCode, error: qrError } = await supabase
-          .from('qr_codes')
+          .from('qr_codes_public' as any)
           .select('id, public_url, is_active, expires_at, document_id')
           .eq('id', id)
           .maybeSingle();
