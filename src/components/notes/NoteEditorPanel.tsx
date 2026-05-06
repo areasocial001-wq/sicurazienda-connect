@@ -516,14 +516,12 @@ const NoteEditorPanel = ({
         }}
       />
       {/* Zip Preview */}
-      {zipPreview && (
-        <ZipPreviewDialog
-          open={!!zipPreview}
-          onOpenChange={(v) => { if (!v) setZipPreview(null); }}
-          fileName={zipPreview.name}
-          zipUrl={zipPreview.url}
-        />
-      )}
+      <ZipPreviewDialog
+        open={!!zipPreview}
+        onOpenChange={(v) => { if (!v) setZipPreview(null); }}
+        fileName={zipPreview?.name ?? ""}
+        zipUrl={zipPreview?.url ?? ""}
+      />
       {/* SicurLens */}
       <SicurLens
         open={showLens}
