@@ -572,12 +572,22 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
                 <div className="w-full p-3 bg-muted rounded-lg space-y-2">
                   <div className="flex items-start gap-2">
                     <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
-                    <p className="text-xs text-muted-foreground">{cameraError}</p>
+                    <div className="text-xs text-muted-foreground space-y-1">
+                      <p className="font-semibold text-foreground">Errore fotocamera</p>
+                      <p>{cameraError}</p>
+                      <p className="text-[10px]">Suggerimento: prova un'altra fotocamera o riprova subito.</p>
+                    </div>
                   </div>
-                  <Button size="sm" variant="outline" className="w-full" onClick={switchCamera}>
-                    <SwitchCamera className="h-3.5 w-3.5 mr-1" />
-                    Cambia fotocamera
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="default" className="flex-1" onClick={retryNow}>
+                      <RotateCw className="h-3.5 w-3.5 mr-1" />
+                      Riprova ora
+                    </Button>
+                    <Button size="sm" variant="outline" className="flex-1" onClick={switchCamera}>
+                      <SwitchCamera className="h-3.5 w-3.5 mr-1" />
+                      Cambia camera
+                    </Button>
+                  </div>
                 </div>
               ) : qrResult ? (
                 <div className="w-full space-y-2">
@@ -642,6 +652,85 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
                   )}
                 </div>
               )}
+
+              {/* Torch unavailable notice */}
+              {isScanning && torchUnavailableNotice && (
+                <div className="w-full p-2 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+                  <div className="flex items-start gap-2">
+                    <ZapOff className="h-3.5 w-3.5 text-amber-600 shrink-0 mt-0.5" />
+                    <p className="text-[11px] text-muted-foreground">{torchUnavailableNotice}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* History toggle + panel */}
+              <div className="w-full">
+                <button
+                  type="button"
+                  onClick={() => setShowHistory((v) => !v)}
+                  className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <History className="h-3.5 w-3.5" />
+                  Cronologia scansioni ({qrHistory.length})
+                </button>
+                {showHistory && (
+                  <div className="mt-2 border rounded-lg p-2 space-y-1.5 max-h-48 overflow-y-auto">
+                    {qrHistory.length === 0 ? (
+                      <p className="text-xs text-muted-foreground text-center py-2">Nessuna scansione</p>
+                    ) : (
+                      <>
+                        {qrHistory.map((entry, idx) => {
+                          const isUrl = /^https?:\/\//i.test(entry.text);
+                          return (
+                            <div key={`${entry.timestamp}-${idx}`} className="flex items-start gap-1.5 text-xs p-1.5 bg-muted/50 rounded">
+                              <div className="flex-1 min-w-0">
+                                <p className="break-all font-medium">{entry.text}</p>
+                                <p className="text-[10px] text-muted-foreground">
+                                  {new Date(entry.timestamp).toLocaleString("it-IT")}
+                                </p>
+                              </div>
+                              <div className="flex gap-1 shrink-0">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6"
+                                  title="Copia"
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(entry.text);
+                                    toast.success("Copiato");
+                                  }}
+                                >
+                                  <Copy className="h-3 w-3" />
+                                </Button>
+                                {isUrl && (
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6"
+                                    title="Apri link"
+                                    onClick={() => window.open(entry.text, "_blank")}
+                                  >
+                                    <ExternalLink className="h-3 w-3" />
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="w-full text-destructive hover:text-destructive"
+                          onClick={clearHistory}
+                        >
+                          <Trash2 className="h-3.5 w-3.5 mr-1" />
+                          Cancella cronologia
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           </TabsContent>
 
