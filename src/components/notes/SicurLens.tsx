@@ -9,7 +9,7 @@ import {
   QrCode, ScanLine, FileText, Eye, Languages, Search,
   Camera, Upload, Loader2, Copy, Check, X, ImagePlus,
   ScanText, Contact, UserPlus, SwitchCamera, AlertTriangle,
-  Zap, ZapOff, Play,
+  Zap, ZapOff, Play, RotateCw, History, Trash2, ExternalLink,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import SicurLensDocScanner from "./SicurLensDocScanner";
@@ -46,6 +46,14 @@ const MODE_CONFIG: Record<LensMode, { label: string; icon: React.ReactNode; desc
 };
 
 const FACING_STORAGE_KEY = "sicurlens.facingMode";
+const QR_RESULT_STORAGE_KEY = "sicurlens.lastQrResult";
+const QR_HISTORY_STORAGE_KEY = "sicurlens.qrHistory";
+const MAX_HISTORY = 20;
+
+interface QrHistoryEntry {
+  text: string;
+  timestamp: number;
+}
 
 const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
   const [activeTab, setActiveTab] = useState<"qr" | "lens">("qr");
@@ -66,6 +74,17 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [torchOn, setTorchOn] = useState(false);
   const [torchSupported, setTorchSupported] = useState(false);
+  const [torchUnavailableNotice, setTorchUnavailableNotice] = useState<string | null>(null);
+  const [qrHistory, setQrHistory] = useState<QrHistoryEntry[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const raw = window.localStorage.getItem(QR_HISTORY_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [showHistory, setShowHistory] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -84,6 +103,48 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
       // ignore storage errors
     }
   }, [facingMode]);
+
+  // Restore last QR result on mount
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(QR_RESULT_STORAGE_KEY);
+      if (saved) setQrResult(saved);
+    } catch {
+      // ignore
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Persist QR result
+  useEffect(() => {
+    try {
+      if (qrResult) window.localStorage.setItem(QR_RESULT_STORAGE_KEY, qrResult);
+      else window.localStorage.removeItem(QR_RESULT_STORAGE_KEY);
+    } catch {
+      // ignore
+    }
+  }, [qrResult]);
+
+  // Persist history
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(QR_HISTORY_STORAGE_KEY, JSON.stringify(qrHistory));
+    } catch {
+      // ignore
+    }
+  }, [qrHistory]);
+
+  const addToHistory = useCallback((text: string) => {
+    setQrHistory((prev) => {
+      const filtered = prev.filter((e) => e.text !== text);
+      return [{ text, timestamp: Date.now() }, ...filtered].slice(0, MAX_HISTORY);
+    });
+  }, []);
+
+  const clearHistory = useCallback(() => {
+    setQrHistory([]);
+    toast.success("Cronologia cancellata");
+  }, []);
 
   const clearWatchdog = useCallback(() => {
     if (watchdogRef.current !== null) {
@@ -205,9 +266,18 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
         const stream = (video?.srcObject as MediaStream | null) ?? null;
         const track = stream?.getVideoTracks?.()[0];
         const caps: any = track?.getCapabilities?.() ?? {};
-        setTorchSupported(!!caps.torch);
+        const supported = !!caps.torch;
+        setTorchSupported(supported);
+        if (!supported) {
+          setTorchUnavailableNotice(
+            "Torcia non disponibile su questo dispositivo o browser. Suggerimento: usa Chrome su Android o un dispositivo con flash."
+          );
+        } else {
+          setTorchUnavailableNotice(null);
+        }
       } catch {
         setTorchSupported(false);
+        setTorchUnavailableNotice("Impossibile rilevare la torcia. Verifica le impostazioni del browser.");
       }
 
       // Watchdog: if the underlying <video> stops producing frames, auto-restart
@@ -243,6 +313,13 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
         setIsScanning(false);
         return;
       }
+      const msg =
+        name === "NotReadableError"
+          ? "Fotocamera occupata da un'altra applicazione. Chiudi le altre app che la usano."
+          : name === "OverconstrainedError"
+          ? "La fotocamera selezionata non supporta i parametri richiesti. Prova a cambiare camera."
+          : err?.message || "Errore sconosciuto della fotocamera.";
+      setCameraError(msg);
       attemptAutoRestart("Errore fotocamera, nuovo tentativo...");
     }
   }, [cleanupScanner, clearWatchdog, facingMode]);
@@ -259,8 +336,11 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
       setTorchOn(next);
     } catch (err) {
       console.error("Torch error:", err);
-      toast.error("Torcia non disponibile su questo dispositivo");
       setTorchSupported(false);
+      setTorchUnavailableNotice(
+        "Torcia disattivata per incompatibilità. Suggerimento: usa Chrome su Android o cambia dispositivo."
+      );
+      toast.error("Torcia non disponibile su questo dispositivo");
     }
   }, [torchOn]);
 
@@ -289,6 +369,14 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
     window.setTimeout(() => {
       startQrScanner(true);
     }, delay);
+  }, [cleanupScanner, startQrScanner]);
+
+  // Immediate single retry, bypassing backoff and the attempt counter
+  const retryNow = useCallback(async () => {
+    restartAttemptsRef.current = 0;
+    setCameraError(null);
+    await cleanupScanner();
+    startQrScanner(true);
   }, [cleanupScanner, startQrScanner]);
 
   // ── Image capture ──────────────────────────────
