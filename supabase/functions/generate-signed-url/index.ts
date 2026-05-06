@@ -26,6 +26,36 @@ serve(async (req: Request): Promise<Response> => {
 
     const { filePath, qrCodeId, expiresIn = 3600 }: GenerateSignedUrlRequest = await req.json();
 
+    // Capture client metadata for audit log
+    const forwardedFor = req.headers.get("x-forwarded-for");
+    const realIp = req.headers.get("x-real-ip");
+    const cfConnectingIp = req.headers.get("cf-connecting-ip");
+    const clientIp = cfConnectingIp || (forwardedFor?.split(',')[0]?.trim()) || realIp || null;
+    const userAgent = req.headers.get("user-agent")?.slice(0, 500) || null;
+
+    const logAccess = async (params: {
+      documentId?: string | null;
+      accessType: string;
+      userId?: string | null;
+      qrId?: string | null;
+      details?: Record<string, unknown>;
+    }) => {
+      try {
+        await supabase.from("document_access_logs").insert({
+          document_id: params.documentId ?? null,
+          file_path: filePath,
+          qr_code_id: params.qrId ?? null,
+          user_id: params.userId ?? null,
+          access_type: params.accessType,
+          ip_address: clientIp,
+          user_agent: userAgent,
+          details: params.details ?? {},
+        });
+      } catch (e) {
+        console.error("Failed to log document access:", e);
+      }
+    };
+
     if (!filePath) {
       return new Response(
         JSON.stringify({ error: "filePath is required" }),
@@ -85,6 +115,13 @@ serve(async (req: Request): Promise<Response> => {
               { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
             );
           }
+
+          await logAccess({
+            documentId: document.id,
+            accessType: "authenticated",
+            userId,
+            details: { isAdmin, isOwner, expiresIn },
+          });
 
           return new Response(
             JSON.stringify({ 
@@ -180,6 +217,13 @@ serve(async (req: Request): Promise<Response> => {
     }
 
     console.log("Signed URL generated successfully via QR code validation");
+
+    await logAccess({
+      documentId: document.id,
+      accessType: "qr_signed_url",
+      qrId: qrCodeId,
+      details: { expiresIn },
+    });
 
     return new Response(
       JSON.stringify({ 

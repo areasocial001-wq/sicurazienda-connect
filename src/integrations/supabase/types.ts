@@ -1072,6 +1072,45 @@ export type Database = {
           },
         ]
       }
+      document_access_logs: {
+        Row: {
+          access_type: string
+          created_at: string
+          details: Json | null
+          document_id: string | null
+          file_path: string
+          id: string
+          ip_address: string | null
+          qr_code_id: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          access_type: string
+          created_at?: string
+          details?: Json | null
+          document_id?: string | null
+          file_path: string
+          id?: string
+          ip_address?: string | null
+          qr_code_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          access_type?: string
+          created_at?: string
+          details?: Json | null
+          document_id?: string | null
+          file_path?: string
+          id?: string
+          ip_address?: string | null
+          qr_code_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       document_extracted_data: {
         Row: {
           addresses: Json | null
