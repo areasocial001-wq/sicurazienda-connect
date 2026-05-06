@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   QrCode, ScanLine, FileText, Eye, Languages, Search,
   Camera, Upload, Loader2, Copy, Check, X, ImagePlus,
-  ScanText, Contact, UserPlus,
+  ScanText, Contact, UserPlus, SwitchCamera, AlertTriangle,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import SicurLensDocScanner from "./SicurLensDocScanner";
@@ -54,6 +54,9 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
   const [copied, setCopied] = useState(false);
   const [qrResult, setQrResult] = useState<string | null>(null);
   const [isScanning, setIsScanning] = useState(false);
+  const [facingMode, setFacingMode] = useState<"environment" | "user">("environment");
+  const [permissionDenied, setPermissionDenied] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -109,6 +112,8 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
       setResult(null);
       setQrResult(null);
       setBusinessCard(null);
+      setPermissionDenied(false);
+      setCameraError(null);
     }
     return () => {
       // Also cleanup on unmount
@@ -121,6 +126,35 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
     try {
       // Ensure previous scanner is fully cleaned up
       await cleanupScanner();
+      setPermissionDenied(false);
+      setCameraError(null);
+
+      // Pre-flight: check camera permission via getUserMedia so we can give
+      // a clear guided message instead of a silent failure.
+      try {
+        const probe = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode },
+        });
+        // Release the probe stream immediately — html5-qrcode will reopen it
+        probe.getTracks().forEach((t) => t.stop());
+      } catch (permErr: any) {
+        const name = permErr?.name || "";
+        if (name === "NotAllowedError" || name === "PermissionDeniedError") {
+          setPermissionDenied(true);
+          setIsScanning(false);
+          return;
+        }
+        if (name === "NotFoundError" || name === "OverconstrainedError") {
+          setCameraError(
+            facingMode === "environment"
+              ? "Fotocamera posteriore non disponibile. Prova quella anteriore."
+              : "Fotocamera anteriore non disponibile. Prova quella posteriore."
+          );
+          setIsScanning(false);
+          return;
+        }
+        // Other errors fall through to html5-qrcode attempt
+      }
 
       const { Html5Qrcode } = await import("html5-qrcode");
       setIsScanning(true);
@@ -130,7 +164,7 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
       scannerRef.current = scanner;
 
       await scanner.start(
-        { facingMode: "environment" },
+        { facingMode },
         { fps: 10, qrbox: { width: 250, height: 250 } },
         (decodedText) => {
           restartAttemptsRef.current = 0;
@@ -169,11 +203,27 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
         }
         lastTime = t;
       }, 1000);
-    } catch (err) {
+    } catch (err: any) {
       console.error("QR scanner error:", err);
+      const name = err?.name || "";
+      if (name === "NotAllowedError" || name === "PermissionDeniedError") {
+        setPermissionDenied(true);
+        setIsScanning(false);
+        return;
+      }
       attemptAutoRestart("Errore fotocamera, nuovo tentativo...");
     }
-  }, [cleanupScanner, clearWatchdog]);
+  }, [cleanupScanner, clearWatchdog, facingMode]);
+
+  const switchCamera = useCallback(async () => {
+    const next = facingMode === "environment" ? "user" : "environment";
+    setFacingMode(next);
+    restartAttemptsRef.current = 0;
+    setCameraError(null);
+    await cleanupScanner();
+    // Defer until state has applied
+    window.setTimeout(() => startQrScanner(), 100);
+  }, [facingMode, cleanupScanner, startQrScanner]);
 
   const attemptAutoRestart = useCallback((message: string) => {
     restartAttemptsRef.current += 1;
