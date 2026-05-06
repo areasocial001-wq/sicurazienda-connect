@@ -521,6 +521,17 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
                         <SwitchCamera className="h-3.5 w-3.5 mr-1" />
                         {facingMode === "environment" ? "Anteriore" : "Posteriore"}
                       </Button>
+                      {torchSupported && (
+                        <Button
+                          variant={torchOn ? "default" : "outline"}
+                          size="sm"
+                          onClick={toggleTorch}
+                          title={torchOn ? "Spegni torcia" : "Accendi torcia"}
+                        >
+                          {torchOn ? <ZapOff className="h-3.5 w-3.5 mr-1" /> : <Zap className="h-3.5 w-3.5 mr-1" />}
+                          {torchOn ? "Off" : "Flash"}
+                        </Button>
+                      )}
                     </>
                   ) : (
                     <>
