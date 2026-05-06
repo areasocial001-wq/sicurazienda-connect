@@ -70,21 +70,29 @@ export function useCalendarEvents(userId: string | undefined) {
       const rawEvents = data || [];
       const contactIds = Array.from(new Set(rawEvents.map((e: any) => e.contact_id).filter(Boolean)));
       const employeeIds = Array.from(new Set(rawEvents.map((e: any) => e.employee_id).filter(Boolean)));
+      const linkedUserIds = Array.from(
+        new Set(rawEvents.flatMap((e: any) => (e.linked_user_ids || []) as string[]).filter(Boolean))
+      );
 
-      const [contactsRes, employeesRes] = await Promise.all([
+      const [contactsRes, employeesRes, profilesRes] = await Promise.all([
         contactIds.length
           ? supabase.from('crm_contacts').select('id, name, company').in('id', contactIds)
           : Promise.resolve({ data: [], error: null }),
         employeeIds.length
           ? supabase.from('crm_employees').select('id, first_name, last_name').in('id', employeeIds)
           : Promise.resolve({ data: [], error: null }),
+        linkedUserIds.length
+          ? supabase.from('profiles').select('id, full_name').in('id', linkedUserIds)
+          : Promise.resolve({ data: [], error: null }),
       ]);
 
       if (contactsRes.error) throw contactsRes.error;
       if (employeesRes.error) throw employeesRes.error;
+      if (profilesRes.error) throw profilesRes.error;
 
       const contactsById = new Map((contactsRes.data || []).map((contact: any) => [contact.id, contact]));
       const employeesById = new Map((employeesRes.data || []).map((employee: any) => [employee.id, employee]));
+      const profilesById = new Map((profilesRes.data || []).map((p: any) => [p.id, p]));
 
       const mapped: CalendarEvent[] = rawEvents.map((e: any) => {
         const contact = e.contact_id ? contactsById.get(e.contact_id) : null;
@@ -94,6 +102,9 @@ export function useCalendarEvents(userId: string | undefined) {
           ...e,
           contact_name: contact ? (contact.company || contact.name) : null,
           employee_name: employee ? `${employee.first_name} ${employee.last_name}` : null,
+          linked_users_names: ((e.linked_user_ids || []) as string[])
+            .map((uid) => profilesById.get(uid)?.full_name)
+            .filter(Boolean) as string[],
         };
       });
 
