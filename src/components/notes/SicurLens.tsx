@@ -60,9 +60,20 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
   const scannerRef = useRef<any>(null);
   const qrReaderRef = useRef<HTMLDivElement>(null);
   const qrReaderIdRef = useRef(`qr-reader-${Math.random().toString(36).slice(2, 9)}`);
+  const watchdogRef = useRef<number | null>(null);
+  const restartAttemptsRef = useRef(0);
+  const MAX_RESTART_ATTEMPTS = 3;
+
+  const clearWatchdog = useCallback(() => {
+    if (watchdogRef.current !== null) {
+      window.clearInterval(watchdogRef.current);
+      watchdogRef.current = null;
+    }
+  }, []);
 
   // Cleanup scanner safely before React unmounts
   const cleanupScanner = useCallback(async () => {
+    clearWatchdog();
     if (scannerRef.current) {
       try {
         const state = scannerRef.current.getState?.();
@@ -89,7 +100,7 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
       // ignore — React may have already removed the node
     }
     setIsScanning(false);
-  }, []);
+  }, [clearWatchdog]);
 
   useEffect(() => {
     if (!open) {
@@ -106,7 +117,7 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
   }, [open, cleanupScanner]);
 
   // ── QR Scanner ──────────────────────────────────
-  const startQrScanner = useCallback(async () => {
+  const startQrScanner = useCallback(async (isRestart = false) => {
     try {
       // Ensure previous scanner is fully cleaned up
       await cleanupScanner();
@@ -122,17 +133,62 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
         { facingMode: "environment" },
         { fps: 10, qrbox: { width: 250, height: 250 } },
         (decodedText) => {
+          restartAttemptsRef.current = 0;
           setQrResult(decodedText);
           cleanupScanner();
         },
         () => {}
       );
+
+      // Successful start — reset retry counter and arm the watchdog
+      restartAttemptsRef.current = 0;
+      if (isRestart) toast.success("Scanner riavviato");
+
+      // Watchdog: if the underlying <video> stops producing frames, auto-restart
+      let lastTime = 0;
+      let stallCount = 0;
+      clearWatchdog();
+      watchdogRef.current = window.setInterval(() => {
+        const video = qrReaderRef.current?.querySelector("video") as HTMLVideoElement | null;
+        if (!video) return;
+        const t = video.currentTime;
+        const frozen =
+          video.readyState < 2 ||
+          video.paused ||
+          video.ended ||
+          (t === lastTime && t > 0);
+        if (frozen) {
+          stallCount++;
+          if (stallCount >= 3) {
+            // ~3s of stall → restart
+            stallCount = 0;
+            attemptAutoRestart("Telecamera bloccata, riavvio in corso...");
+          }
+        } else {
+          stallCount = 0;
+        }
+        lastTime = t;
+      }, 1000);
     } catch (err) {
       console.error("QR scanner error:", err);
-      toast.error("Impossibile avviare la fotocamera");
-      setIsScanning(false);
+      attemptAutoRestart("Errore fotocamera, nuovo tentativo...");
     }
-  }, [cleanupScanner]);
+  }, [cleanupScanner, clearWatchdog]);
+
+  const attemptAutoRestart = useCallback((message: string) => {
+    restartAttemptsRef.current += 1;
+    if (restartAttemptsRef.current > MAX_RESTART_ATTEMPTS) {
+      restartAttemptsRef.current = 0;
+      toast.error("Impossibile avviare la fotocamera. Riprova manualmente.");
+      cleanupScanner();
+      return;
+    }
+    toast.info(`${message} (${restartAttemptsRef.current}/${MAX_RESTART_ATTEMPTS})`);
+    cleanupScanner();
+    window.setTimeout(() => {
+      startQrScanner(true);
+    }, 600 * restartAttemptsRef.current);
+  }, [cleanupScanner, startQrScanner]);
 
   // ── Image capture ──────────────────────────────
   const handleImageCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -330,7 +386,7 @@ const SicurLens = ({ open, onOpenChange, onInsertText }: SicurLensProps) => {
                       <X className="h-3.5 w-3.5 mr-1" /> Ferma
                     </Button>
                   ) : (
-                    <Button size="sm" onClick={startQrScanner}>
+                    <Button size="sm" onClick={() => startQrScanner()}>
                       <Camera className="h-3.5 w-3.5 mr-1" /> Scansiona
                     </Button>
                   )}
