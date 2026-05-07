@@ -87,10 +87,12 @@ serve(async (req) => {
 
       let redirectOk = false;
       let redirectDetail = '';
+      let probeDebug: any = null;
       try {
         const res = await fetch(probeUrl.toString(), { redirect: 'manual' });
         const location = res.headers.get('location') ?? '';
         const body = await res.text();
+        probeDebug = { status: res.status, location: location.slice(0, 500), bodyPreview: body.slice(0, 300) };
         const haystack = location + '\n' + body;
         // Decode any base64 authError payload to inspect the actual error code
         let decoded = '';
@@ -146,6 +148,7 @@ serve(async (req) => {
           expectedOrigins,
           credentialsConsoleUrl,
           checks,
+          probeDebug,
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
