@@ -93,7 +93,7 @@ export default function CRMCalendar() {
         start: new Date(e.start_datetime),
         end: new Date(e.end_datetime),
         allDay: e.all_day,
-        color: e.color || '#3B82F6',
+        color: e.creator_color || e.color || '#3B82F6',
         category: e.category,
         isSystem: false,
         sourceEvent: e,
@@ -102,7 +102,7 @@ export default function CRMCalendar() {
         contactName: e.contact_name || undefined,
         employeeName: e.employee_name || undefined,
         isShared: e.is_shared,
-        createdByName: e.created_by_name || undefined,
+        createdByName: e.creator_name || e.created_by_name || undefined,
       });
     });
 
