@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "npm:resend@2.0.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
@@ -94,9 +95,33 @@ const handler = async (req: Request): Promise<Response> => {
     `;
 
     console.log("Attempting to send email to gestioneappuntamenti@sicurazienda.com");
+
+    // Lookup admin + contabilita emails via service role
+    const recipients = new Set<string>(["gestioneappuntamenti@sicurazienda.com"]);
+    try {
+      const adminClient = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+        { auth: { autoRefreshToken: false, persistSession: false } }
+      );
+      const { data: roles } = await adminClient
+        .from("user_roles")
+        .select("user_id, role")
+        .in("role", ["admin", "contabilita"]);
+      const ids = (roles ?? []).map((r: any) => r.user_id);
+      if (ids.length > 0) {
+        const { data: usersList } = await adminClient.auth.admin.listUsers({ perPage: 1000 });
+        for (const u of usersList?.users ?? []) {
+          if (ids.includes(u.id) && u.email) recipients.add(u.email);
+        }
+      }
+    } catch (e) {
+      console.error("Failed to resolve admin/contabilita recipients:", e);
+    }
+
     const emailResponse = await resend.emails.send({
       from: "SicurAzienda <noreply@sicurazienda.com>",
-      to: ["gestioneappuntamenti@sicurazienda.com"],
+      to: Array.from(recipients),
       subject: `Nuova richiesta: ${safeServiceType} - ${safeName}`,
       html: emailHtml,
     });
