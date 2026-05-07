@@ -1,8 +1,11 @@
 import { useState } from 'react';
-import { HardDrive, Link2, Link2Off, RefreshCw, Upload, Loader2, ExternalLink, FolderSync } from 'lucide-react';
+import { HardDrive, Link2, Link2Off, RefreshCw, Upload, Loader2, ExternalLink, FolderSync, ShieldCheck, CheckCircle2, XCircle, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import { useGoogleDrive } from '@/hooks/useGoogleDrive';
 
 interface GoogleDriveSyncProps {
@@ -22,6 +25,8 @@ export default function GoogleDriveSync({ userId }: GoogleDriveSyncProps) {
   
   const [syncing, setSyncing] = useState(false);
   const [fetching, setFetching] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [verifyResult, setVerifyResult] = useState<any>(null);
 
   const handleSync = async () => {
     setSyncing(true);
@@ -38,6 +43,27 @@ export default function GoogleDriveSync({ userId }: GoogleDriveSyncProps) {
     } finally {
       setFetching(false);
     }
+  };
+
+  const handleVerifyConfig = async () => {
+    setVerifying(true);
+    setVerifyResult(null);
+    try {
+      const { data, error } = await supabase.functions.invoke('google-drive-auth', {
+        body: { action: 'verify_config', userId },
+      });
+      if (error) throw error;
+      setVerifyResult(data);
+    } catch (e: any) {
+      toast.error(`Errore verifica: ${e.message}`);
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  const copy = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success('Copiato negli appunti');
   };
 
   if (isLoading) {
@@ -67,10 +93,16 @@ export default function GoogleDriveSync({ userId }: GoogleDriveSyncProps) {
             <p className="text-sm text-muted-foreground">
               Collega Google Drive per sincronizzare automaticamente i tuoi documenti.
             </p>
-            <Button onClick={connect} className="w-full">
-              <Link2 className="h-4 w-4 mr-2" />
-              Connetti Google Drive
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={connect} className="flex-1">
+                <Link2 className="h-4 w-4 mr-2" />
+                Connetti Google Drive
+              </Button>
+              <Button variant="outline" onClick={handleVerifyConfig} disabled={verifying}>
+                {verifying ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <ShieldCheck className="h-4 w-4 mr-2" />}
+                Verifica configurazione
+              </Button>
+            </div>
           </div>
         ) : (
           <>
@@ -82,6 +114,10 @@ export default function GoogleDriveSync({ userId }: GoogleDriveSyncProps) {
               <Button variant="outline" size="sm" onClick={handleFetchFiles} disabled={fetching}>
                 {fetching ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
                 Aggiorna Lista
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleVerifyConfig} disabled={verifying}>
+                {verifying ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <ShieldCheck className="h-4 w-4 mr-2" />}
+                Verifica config
               </Button>
               <Button variant="ghost" size="sm" onClick={disconnect}>
                 <Link2Off className="h-4 w-4 mr-2" />
@@ -122,6 +158,63 @@ export default function GoogleDriveSync({ userId }: GoogleDriveSyncProps) {
               </div>
             )}
           </>
+        )}
+
+        {verifyResult && (
+          <Alert variant={verifyResult.allOk ? 'default' : 'destructive'} className="mt-2">
+            <AlertTitle className="flex items-center gap-2">
+              {verifyResult.allOk ? <CheckCircle2 className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
+              {verifyResult.allOk ? 'Configurazione OAuth corretta' : 'Configurazione OAuth da correggere'}
+            </AlertTitle>
+            <AlertDescription className="space-y-3 mt-2">
+              <ul className="text-sm space-y-1">
+                {verifyResult.checks?.map((c: any, i: number) => (
+                  <li key={i} className="flex items-start gap-2">
+                    {c.ok ? <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0 mt-0.5" /> : <XCircle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />}
+                    <span><strong>{c.name}:</strong> {c.detail}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <div className="text-sm space-y-2 border-t pt-2">
+                <p className="font-medium">Valori attesi in Google Cloud Console:</p>
+
+                <div>
+                  <p className="text-xs text-muted-foreground">Authorized redirect URI:</p>
+                  <div className="flex items-center gap-2">
+                    <code className="text-xs bg-muted p-1 rounded flex-1 break-all">{verifyResult.expectedRedirectUri}</code>
+                    <Button size="sm" variant="ghost" onClick={() => copy(verifyResult.expectedRedirectUri)}>
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-xs text-muted-foreground">Authorized JavaScript origins:</p>
+                  {verifyResult.expectedOrigins?.map((o: string) => (
+                    <div key={o} className="flex items-center gap-2">
+                      <code className="text-xs bg-muted p-1 rounded flex-1 break-all">{o}</code>
+                      <Button size="sm" variant="ghost" onClick={() => copy(o)}>
+                        <Copy className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+
+                {verifyResult.credentialsConsoleUrl && (
+                  <a
+                    href={verifyResult.credentialsConsoleUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-primary hover:underline text-sm"
+                  >
+                    <ExternalLink className="h-3 w-3" />
+                    Apri il Client OAuth in Google Cloud Console
+                  </a>
+                )}
+              </div>
+            </AlertDescription>
+          </Alert>
         )}
       </CardContent>
     </Card>
