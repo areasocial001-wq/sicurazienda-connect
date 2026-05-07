@@ -67,6 +67,76 @@ serve(async (req) => {
       );
     }
 
+    if (action === 'verify_config') {
+      const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
+      const expectedRedirectUri = `${SUPABASE_URL}/functions/v1/google-drive-callback`;
+      const expectedOrigins = [
+        'https://sicurazienda-connect.com',
+        'https://www.sicurazienda-connect.com',
+        'https://sicurazienda-connect.lovable.app',
+      ];
+
+      const checks: Array<{ name: string; ok: boolean; detail: string }> = [];
+
+      // 1) Probe redirect_uri by hitting Google's OAuth endpoint
+      const probeUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
+      probeUrl.searchParams.set('client_id', GOOGLE_CLIENT_ID);
+      probeUrl.searchParams.set('redirect_uri', expectedRedirectUri);
+      probeUrl.searchParams.set('response_type', 'code');
+      probeUrl.searchParams.set('scope', 'https://www.googleapis.com/auth/drive.file');
+
+      let redirectOk = false;
+      let redirectDetail = '';
+      try {
+        const res = await fetch(probeUrl.toString(), { redirect: 'manual' });
+        const body = await res.text();
+        if (body.includes('redirect_uri_mismatch')) {
+          redirectDetail = 'Google ha risposto: redirect_uri_mismatch. Aggiungi l\'URI esatto nelle "Authorized redirect URIs".';
+        } else if (body.includes('invalid_client') || body.includes('deleted_client')) {
+          redirectDetail = 'Client ID non valido o eliminato in Google Cloud.';
+        } else if (body.includes('Errore 401') || body.includes('Error 401')) {
+          redirectDetail = 'Errore 401 da Google: verifica il Client ID.';
+        } else {
+          redirectOk = true;
+          redirectDetail = 'Redirect URI accettato da Google.';
+        }
+      } catch (e) {
+        redirectDetail = `Impossibile contattare Google: ${(e as Error).message}`;
+      }
+      checks.push({ name: 'Authorized redirect URI', ok: redirectOk, detail: redirectDetail });
+
+      // 2) Client ID format
+      const clientIdOk = /\.apps\.googleusercontent\.com$/.test(GOOGLE_CLIENT_ID);
+      checks.push({
+        name: 'Formato Client ID',
+        ok: clientIdOk,
+        detail: clientIdOk ? 'Formato corretto.' : 'Il Client ID non termina con .apps.googleusercontent.com',
+      });
+
+      // 3) Client Secret presence
+      const hasSecret = !!Deno.env.get('GOOGLE_CLIENT_SECRET');
+      checks.push({
+        name: 'GOOGLE_CLIENT_SECRET',
+        ok: hasSecret,
+        detail: hasSecret ? 'Configurato.' : 'Manca il secret nei Supabase Edge Function secrets.',
+      });
+
+      const credentialsConsoleUrl = `https://console.cloud.google.com/apis/credentials/oauthclient/${encodeURIComponent(GOOGLE_CLIENT_ID)}`;
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          allOk: checks.every((c) => c.ok),
+          clientId: GOOGLE_CLIENT_ID,
+          expectedRedirectUri,
+          expectedOrigins,
+          credentialsConsoleUrl,
+          checks,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     return new Response(
       JSON.stringify({ success: false, error: 'Invalid action' }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
