@@ -260,8 +260,12 @@ export default function CRMCalendar() {
                       onClick={(e) => { e.stopPropagation(); openEditEvent(ev); }}
                       className="text-[10px] md:text-xs px-1 py-0.5 rounded truncate cursor-pointer hover:opacity-80"
                       style={{ backgroundColor: `${ev.color}20`, color: ev.color, borderLeft: `2px solid ${ev.color}` }}
+                      title={ev.createdByName ? `${ev.title} — ${ev.createdByName}` : ev.title}
                     >
                       {ev.title}
+                      {ev.createdByName && !ev.isSystem && (
+                        <span className="hidden md:inline opacity-70"> · {ev.createdByName.split(' ')[0]}</span>
+                      )}
                     </div>
                   ))}
                   {dayEvents.length > 3 && (
@@ -337,9 +341,13 @@ export default function CRMCalendar() {
                         onClick={() => openEditEvent(ev)}
                         className="text-[10px] px-1 py-0.5 rounded truncate mb-0.5 cursor-pointer"
                         style={{ backgroundColor: `${ev.color}30`, color: ev.color, borderLeft: `2px solid ${ev.color}` }}
+                        title={ev.createdByName ? `${ev.title} — ${ev.createdByName}` : ev.title}
                       >
                         {!ev.allDay && <span className="font-medium">{format(ev.start, 'HH:mm')} </span>}
                         {ev.title}
+                        {ev.createdByName && !ev.isSystem && (
+                          <span className="opacity-70"> · {ev.createdByName.split(' ')[0]}</span>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -408,6 +416,12 @@ export default function CRMCalendar() {
                       >
                         <div className="font-medium">{format(ev.start, 'HH:mm')} - {format(ev.end, 'HH:mm')}</div>
                         <div>{ev.title}</div>
+                        {ev.createdByName && !ev.isSystem && (
+                          <div className="text-xs opacity-80 flex items-center gap-1 mt-0.5">
+                            <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: ev.color }} />
+                            Creato da {ev.createdByName}
+                          </div>
+                        )}
                         {ev.location && (
                           <div className="text-xs opacity-70 flex items-center gap-1 mt-0.5">
                             <MapPin className="h-3 w-3" /> {ev.location}
@@ -448,6 +462,12 @@ export default function CRMCalendar() {
                     style={{ borderLeftColor: ev.color, borderLeftWidth: 3 }}
                   >
                     <p className="font-medium text-sm">{ev.title}</p>
+                    {ev.createdByName && !ev.isSystem && (
+                      <p className="text-xs flex items-center gap-1 mt-1" style={{ color: ev.color }}>
+                        <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: ev.color }} />
+                        {ev.createdByName}
+                      </p>
+                    )}
                     {!ev.allDay && (
                       <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
                         <Clock className="h-3 w-3" />
@@ -579,6 +599,12 @@ export default function CRMCalendar() {
                         style={{ borderLeftColor: ev.color, borderLeftWidth: 3 }}
                       >
                         <p className="font-medium truncate">{ev.title}</p>
+                        {ev.createdByName && !ev.isSystem && (
+                          <p className="text-[10px] flex items-center gap-1 mt-0.5" style={{ color: ev.color }}>
+                            <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ backgroundColor: ev.color }} />
+                            {ev.createdByName}
+                          </p>
+                        )}
                         {!ev.allDay && (
                           <p className="text-muted-foreground mt-0.5">
                             {format(ev.start, 'HH:mm')} - {format(ev.end, 'HH:mm')}
