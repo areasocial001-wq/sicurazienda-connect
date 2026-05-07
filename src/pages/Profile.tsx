@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
+import GoogleDriveSync from "@/components/GoogleDriveSync";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { 
@@ -458,6 +459,10 @@ const Profile = () => {
             )}
           </CardContent>
         </Card>
+
+        <div className="mt-6">
+          <GoogleDriveSync userId={user?.id} />
+        </div>
       </main>
       
       <BottomNav />
