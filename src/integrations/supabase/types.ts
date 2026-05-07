@@ -2133,6 +2133,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          calendar_color: string | null
           company_name: string | null
           created_at: string | null
           full_name: string | null
@@ -2141,6 +2142,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          calendar_color?: string | null
           company_name?: string | null
           created_at?: string | null
           full_name?: string | null
@@ -2149,6 +2151,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          calendar_color?: string | null
           company_name?: string | null
           created_at?: string | null
           full_name?: string | null

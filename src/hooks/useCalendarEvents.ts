@@ -24,6 +24,8 @@ export interface CalendarEvent {
   contact_name?: string;
   employee_name?: string;
   linked_users_names?: string[];
+  creator_name?: string;
+  creator_color?: string;
 }
 
 export interface CalendarEventInput {
@@ -73,6 +75,10 @@ export function useCalendarEvents(userId: string | undefined) {
       const linkedUserIds = Array.from(
         new Set(rawEvents.flatMap((e: any) => (e.linked_user_ids || []) as string[]).filter(Boolean))
       );
+      const creatorIds = Array.from(
+        new Set(rawEvents.map((e: any) => e.user_id).filter(Boolean))
+      );
+      const allProfileIds = Array.from(new Set([...linkedUserIds, ...creatorIds]));
 
       const [contactsRes, employeesRes, profilesRes] = await Promise.all([
         contactIds.length
@@ -81,8 +87,8 @@ export function useCalendarEvents(userId: string | undefined) {
         employeeIds.length
           ? supabase.from('crm_employees').select('id, first_name, last_name').in('id', employeeIds)
           : Promise.resolve({ data: [], error: null }),
-        linkedUserIds.length
-          ? supabase.from('profiles').select('id, full_name').in('id', linkedUserIds)
+        allProfileIds.length
+          ? supabase.from('profiles').select('id, full_name, calendar_color').in('id', allProfileIds)
           : Promise.resolve({ data: [], error: null }),
       ]);
 
@@ -97,6 +103,7 @@ export function useCalendarEvents(userId: string | undefined) {
       const mapped: CalendarEvent[] = rawEvents.map((e: any) => {
         const contact = e.contact_id ? contactsById.get(e.contact_id) : null;
         const employee = e.employee_id ? employeesById.get(e.employee_id) : null;
+        const creator: any = e.user_id ? profilesById.get(e.user_id) : null;
 
         return {
           ...e,
@@ -105,6 +112,8 @@ export function useCalendarEvents(userId: string | undefined) {
           linked_users_names: ((e.linked_user_ids || []) as string[])
             .map((uid) => profilesById.get(uid)?.full_name)
             .filter(Boolean) as string[],
+          creator_name: creator?.full_name || e.created_by_name || null,
+          creator_color: creator?.calendar_color || null,
         };
       });
 

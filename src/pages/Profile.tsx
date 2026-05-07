@@ -23,7 +23,8 @@ import {
   Save,
   X,
   Building2,
-  Shield
+  Shield,
+  Palette
 } from "lucide-react";
 
 interface FormDraft {
@@ -38,6 +39,7 @@ interface FormDraft {
 interface ProfileData {
   full_name: string | null;
   company_name: string | null;
+  calendar_color?: string | null;
 }
 
 const Profile = () => {
@@ -70,6 +72,8 @@ const Profile = () => {
   const [editFullName, setEditFullName] = useState("");
   const [editCompanyName, setEditCompanyName] = useState("");
   const [saving, setSaving] = useState(false);
+  const [calendarColor, setCalendarColor] = useState<string>('#3B82F6');
+  const [savingColor, setSavingColor] = useState(false);
 
   useEffect(() => {
     if (authLoading) return;
@@ -88,16 +92,17 @@ const Profile = () => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('full_name, company_name')
+        .select('full_name, company_name, calendar_color')
         .eq('user_id', user.id)
         .maybeSingle();
 
       if (error) throw error;
       
       if (data) {
-        setProfile(data);
+        setProfile(data as ProfileData);
         setEditFullName(data.full_name || "");
         setEditCompanyName(data.company_name || "");
+        setCalendarColor((data as any).calendar_color || '#3B82F6');
       }
     } catch (error) {
       console.error('Errore caricamento profilo:', error);
@@ -147,6 +152,31 @@ const Profile = () => {
     setEditFullName(profile.full_name || "");
     setEditCompanyName(profile.company_name || "");
     setIsEditing(false);
+  };
+
+  const CALENDAR_COLOR_PALETTE = [
+    '#3B82F6', '#EF4444', '#10B981', '#F59E0B',
+    '#8B5CF6', '#EC4899', '#06B6D4', '#F97316',
+    '#14B8A6', '#84CC16', '#A855F7', '#0EA5E9',
+  ];
+
+  const handleSaveColor = async (color: string) => {
+    if (!user) return;
+    setCalendarColor(color);
+    setSavingColor(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ calendar_color: color, updated_at: new Date().toISOString() })
+        .eq('user_id', user.id);
+      if (error) throw error;
+      toast({ title: 'Colore aggiornato', description: 'I tuoi eventi useranno questo colore nel calendario.' });
+    } catch (e) {
+      console.error(e);
+      toast({ title: 'Errore', description: 'Impossibile salvare il colore.', variant: 'destructive' });
+    } finally {
+      setSavingColor(false);
+    }
   };
 
   const fetchDrafts = async () => {
@@ -463,6 +493,50 @@ const Profile = () => {
         <div className="mt-6">
           <GoogleDriveSync userId={user?.id} />
         </div>
+
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Palette className="h-5 w-5" />
+              Colore Calendario
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-4">
+              Scegli un colore per identificarti nel calendario condiviso. Tutti i tuoi eventi e le tue note appariranno con questo colore.
+            </p>
+            <div className="flex items-center gap-3 flex-wrap">
+              {CALENDAR_COLOR_PALETTE.map((color) => (
+                <button
+                  key={color}
+                  onClick={() => handleSaveColor(color)}
+                  disabled={savingColor}
+                  className="relative w-10 h-10 rounded-full transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                  style={{ backgroundColor: color }}
+                  aria-label={`Seleziona colore ${color}`}
+                >
+                  {calendarColor === color && (
+                    <span className="absolute inset-0 flex items-center justify-center text-white">
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+            <div className="mt-4 flex items-center gap-2 text-sm">
+              <span className="text-muted-foreground">Anteprima:</span>
+              <span
+                className="inline-flex items-center gap-2 px-3 py-1 rounded-md text-xs font-medium"
+                style={{ backgroundColor: `${calendarColor}20`, color: calendarColor, borderLeft: `3px solid ${calendarColor}` }}
+              >
+                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: calendarColor }} />
+                {profile.full_name || user.email}
+              </span>
+            </div>
+          </CardContent>
+        </Card>
       </main>
       
       <BottomNav />
