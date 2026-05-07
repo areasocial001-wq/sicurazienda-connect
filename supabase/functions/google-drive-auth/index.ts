@@ -45,6 +45,28 @@ serve(async (req) => {
       );
     }
 
+    if (action === 'get_oauth_config') {
+      const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
+      const expectedRedirectUri = `${SUPABASE_URL}/functions/v1/google-drive-callback`;
+      const clientIdMasked = GOOGLE_CLIENT_ID.length > 20
+        ? `${GOOGLE_CLIENT_ID.slice(0, 12)}…${GOOGLE_CLIENT_ID.slice(-16)}`
+        : GOOGLE_CLIENT_ID;
+      return new Response(
+        JSON.stringify({
+          success: true,
+          clientId: GOOGLE_CLIENT_ID,
+          clientIdMasked,
+          expectedRedirectUri,
+          expectedOrigins: [
+            'https://sicurazienda-connect.com',
+            'https://www.sicurazienda-connect.com',
+            'https://sicurazienda-connect.lovable.app',
+          ],
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     return new Response(
       JSON.stringify({ success: false, error: 'Invalid action' }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
