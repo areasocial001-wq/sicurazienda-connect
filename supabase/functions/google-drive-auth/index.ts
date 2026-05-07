@@ -87,18 +87,34 @@ serve(async (req) => {
 
       let redirectOk = false;
       let redirectDetail = '';
+      let probeDebug: any = null;
       try {
         const res = await fetch(probeUrl.toString(), { redirect: 'manual' });
+        const location = res.headers.get('location') ?? '';
         const body = await res.text();
-        if (body.includes('redirect_uri_mismatch')) {
-          redirectDetail = 'Google ha risposto: redirect_uri_mismatch. Aggiungi l\'URI esatto nelle "Authorized redirect URIs".';
-        } else if (body.includes('invalid_client') || body.includes('deleted_client')) {
+        probeDebug = { status: res.status, location: location.slice(0, 500), bodyPreview: body.slice(0, 300) };
+        const haystack = location + '\n' + body;
+        // Decode any base64 authError payload to inspect the actual error code
+        let decoded = '';
+        const m = location.match(/[?&]authError=([^&]+)/);
+        if (m) {
+          try { decoded = atob(m[1].replace(/-/g, '+').replace(/_/g, '/')); } catch { /* noop */ }
+        }
+        const all = haystack + '\n' + decoded;
+        if (/redirect_uri_mismatch/i.test(all)) {
+          redirectDetail = `Google ha risposto: redirect_uri_mismatch. L'URI "${expectedRedirectUri}" NON è registrato nelle "Authorized redirect URIs" del Client ID.`;
+        } else if (/invalid_client|deleted_client/i.test(all)) {
           redirectDetail = 'Client ID non valido o eliminato in Google Cloud.';
-        } else if (body.includes('Errore 401') || body.includes('Error 401')) {
-          redirectDetail = 'Errore 401 da Google: verifica il Client ID.';
-        } else {
+        } else if (/admin_policy_enforced|disallowed_useragent|access_denied/i.test(all)) {
+          redirectDetail = `Risposta Google inattesa: ${decoded || location.slice(0, 200)}`;
+        } else if (res.status === 302 && !location.includes('/signin/oauth/error')) {
+          redirectOk = true;
+          redirectDetail = 'Redirect URI accettato da Google (302 → consent screen).';
+        } else if (res.status === 200 && !decoded) {
           redirectOk = true;
           redirectDetail = 'Redirect URI accettato da Google.';
+        } else {
+          redirectDetail = `Risposta Google ambigua (status ${res.status}). Location: ${location.slice(0, 200)}`;
         }
       } catch (e) {
         redirectDetail = `Impossibile contattare Google: ${(e as Error).message}`;
@@ -132,6 +148,7 @@ serve(async (req) => {
           expectedOrigins,
           credentialsConsoleUrl,
           checks,
+          probeDebug,
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
