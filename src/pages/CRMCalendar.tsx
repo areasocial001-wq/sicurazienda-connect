@@ -650,6 +650,27 @@ export default function CRMCalendar() {
           </Button>
         </div>
 
+        {/* Search */}
+        <div className="mb-4 relative max-w-md">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Cerca per titolo, cliente, luogo…"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-8 pr-8 h-9"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery('')}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              aria-label="Pulisci ricerca"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+
         {/* User color legend / filter */}
         {(userLegend.length > 0) && (
           <div className="mb-4 p-3 rounded-lg border border-border bg-card">
@@ -686,12 +707,12 @@ export default function CRMCalendar() {
             <div className="flex flex-wrap gap-2">
               {userLegend.map(u => {
                 const hidden = hiddenUserIds.has(u.id);
+                const periodCount = visibleCountsByUser.get(u.id) ?? 0;
                 return (
                   <button
                     key={u.id}
                     onClick={() => toggleUser(u.id)}
                     onDoubleClick={() => {
-                      // Isolate: hide all others
                       const others = userLegend.filter(o => o.id !== u.id).map(o => o.id);
                       setHiddenUserIds(new Set(others));
                       setHideSystem(true);
@@ -709,7 +730,9 @@ export default function CRMCalendar() {
                   >
                     <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: u.color }} />
                     <span className="font-medium">{u.name}</span>
-                    <span className="opacity-60">({u.count})</span>
+                    <span className="opacity-60">
+                      {calendarView === 'month' ? `(${u.count})` : `(${periodCount}/${u.count})`}
+                    </span>
                   </button>
                 );
               })}
