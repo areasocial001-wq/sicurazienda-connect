@@ -610,14 +610,31 @@ export default function CRMCalendar() {
         {/* User color legend / filter */}
         {(userLegend.length > 0) && (
           <div className="mb-4 p-3 rounded-lg border border-border bg-card">
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex items-center gap-2 mb-2 flex-wrap">
               <span className="text-xs font-medium text-muted-foreground">Filtra per utente</span>
-              {hiddenUserIds.size > 0 && (
+              <span className="text-[10px] text-muted-foreground italic hidden sm:inline">
+                (click per nascondere · doppio click per isolare)
+              </span>
+              {user && userLegend.some(u => u.id === user.id) && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-6 text-xs"
+                  onClick={() => {
+                    const others = userLegend.filter(u => u.id !== user.id).map(u => u.id);
+                    setHiddenUserIds(new Set(others));
+                    setHideSystem(true);
+                  }}
+                >
+                  Solo i miei
+                </Button>
+              )}
+              {(hiddenUserIds.size > 0 || hideSystem) && (
                 <Button
                   size="sm"
                   variant="ghost"
                   className="h-6 text-xs"
-                  onClick={() => setHiddenUserIds(new Set())}
+                  onClick={() => { setHiddenUserIds(new Set()); setHideSystem(false); }}
                 >
                   Mostra tutti
                 </Button>
@@ -630,6 +647,12 @@ export default function CRMCalendar() {
                   <button
                     key={u.id}
                     onClick={() => toggleUser(u.id)}
+                    onDoubleClick={() => {
+                      // Isolate: hide all others
+                      const others = userLegend.filter(o => o.id !== u.id).map(o => o.id);
+                      setHiddenUserIds(new Set(others));
+                      setHideSystem(true);
+                    }}
                     className={cn(
                       "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs border transition-all",
                       hidden ? "opacity-40 line-through" : "hover:opacity-80",
@@ -639,7 +662,7 @@ export default function CRMCalendar() {
                       borderColor: u.color,
                       color: u.color,
                     }}
-                    title={hidden ? `Mostra eventi di ${u.name}` : `Nascondi eventi di ${u.name}`}
+                    title={hidden ? `Mostra eventi di ${u.name}` : `Click: nascondi · Doppio click: mostra solo ${u.name}`}
                   >
                     <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: u.color }} />
                     <span className="font-medium">{u.name}</span>
