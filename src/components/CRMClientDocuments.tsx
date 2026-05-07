@@ -774,6 +774,16 @@ function DocumentItem({ document, onDownload, onDelete, onUpdateExpiry, canDelet
           <div className="flex-1 min-w-0">
             <p className="font-medium text-sm truncate">{document.name}</p>
             <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
+              {document.category && (
+                <Badge variant="secondary" className="text-xs py-0 h-5">
+                  {CATEGORY_LABELS[document.category as DocumentCategory] || document.category}
+                </Badge>
+              )}
+              {document.version && document.version > 1 && (
+                <Badge variant="outline" className="text-xs py-0 h-5">
+                  <GitBranch className="h-3 w-3 mr-1" /> v{document.version}
+                </Badge>
+              )}
               <span>{format(new Date(document.created_at), 'dd/MM/yyyy', { locale: it })}</span>
               {document.file_size && (
                 <>
@@ -802,6 +812,16 @@ function DocumentItem({ document, onDownload, onDelete, onUpdateExpiry, canDelet
           {canPreview && (
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handlePreview} title="Anteprima">
               <Eye className="h-4 w-4" />
+            </Button>
+          )}
+          {fetchHistory && (
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={openHistory} title="Storico e versioni">
+              <History className="h-4 w-4" />
+            </Button>
+          )}
+          {canEdit && onNewVersion && (
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onNewVersion(document)} title="Carica nuova versione">
+              <GitBranch className="h-4 w-4" />
             </Button>
           )}
           {canEdit && (
