@@ -604,11 +604,19 @@ interface DocumentItemProps {
   onUpdateExpiry: (date: string | null) => void;
   canDelete: boolean;
   canEdit: boolean;
+  onNewVersion?: (doc: CRMDocument) => void;
+  fetchHistory?: (id: string) => Promise<CRMDocumentHistoryEntry[]>;
+  fetchVersions?: (doc: CRMDocument) => Promise<CRMDocument[]>;
+  onDownloadAny?: (doc: CRMDocument) => Promise<boolean | void> | void;
 }
 
-function DocumentItem({ document, onDownload, onDelete, onUpdateExpiry, canDelete, canEdit }: DocumentItemProps) {
+function DocumentItem({ document, onDownload, onDelete, onUpdateExpiry, canDelete, canEdit, onNewVersion, fetchHistory, fetchVersions, onDownloadAny }: DocumentItemProps) {
   const [showExpiryPicker, setShowExpiryPicker] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [showHistoryDialog, setShowHistoryDialog] = useState(false);
+  const [history, setHistory] = useState<CRMDocumentHistoryEntry[]>([]);
+  const [versions, setVersions] = useState<CRMDocument[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [pdfPreviewImage, setPdfPreviewImage] = useState<string | null>(null);
   const [pdfPages, setPdfPages] = useState<number | null>(null);
@@ -617,6 +625,19 @@ function DocumentItem({ document, onDownload, onDelete, onUpdateExpiry, canDelet
   const [previewLoading, setPreviewLoading] = useState(false);
   const pdfDocumentRef = useRef<any>(null);
   const expiryStatus = getExpiryStatus(document.expiry_date);
+
+  const openHistory = async () => {
+    setShowHistoryDialog(true);
+    if (!fetchHistory || !fetchVersions) return;
+    setHistoryLoading(true);
+    try {
+      const [h, v] = await Promise.all([fetchHistory(document.id), fetchVersions(document)]);
+      setHistory(h);
+      setVersions(v);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
 
   const isImage = document.file_type?.startsWith('image/');
   const isPdf = document.file_type === 'application/pdf';
