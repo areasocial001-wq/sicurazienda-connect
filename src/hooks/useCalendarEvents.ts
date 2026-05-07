@@ -143,6 +143,16 @@ export function useCalendarEvents(userId: string | undefined) {
           fetchEvents();
         }
       )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'profiles' },
+        (payload: any) => {
+          // Refetch when calendar_color changes so events recolor immediately
+          if (payload?.new?.calendar_color !== payload?.old?.calendar_color) {
+            fetchEvents();
+          }
+        }
+      )
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
