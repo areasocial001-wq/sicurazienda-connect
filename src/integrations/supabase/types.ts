@@ -195,38 +195,50 @@ export type Database = {
       }
       contact_requests: {
         Row: {
+          assigned_to: string | null
           company: string | null
           created_at: string
           email: string
           id: string
+          internal_notes: string | null
           message: string | null
           name: string
           phone: string | null
+          resolved_at: string | null
           service_type: string
+          status: Database["public"]["Enums"]["contact_request_status"]
           updated_at: string
           user_type: string
         }
         Insert: {
+          assigned_to?: string | null
           company?: string | null
           created_at?: string
           email: string
           id?: string
+          internal_notes?: string | null
           message?: string | null
           name: string
           phone?: string | null
+          resolved_at?: string | null
           service_type: string
+          status?: Database["public"]["Enums"]["contact_request_status"]
           updated_at?: string
           user_type: string
         }
         Update: {
+          assigned_to?: string | null
           company?: string | null
           created_at?: string
           email?: string
           id?: string
+          internal_notes?: string | null
           message?: string | null
           name?: string
           phone?: string | null
+          resolved_at?: string | null
           service_type?: string
+          status?: Database["public"]["Enums"]["contact_request_status"]
           updated_at?: string
           user_type?: string
         }
@@ -2406,6 +2418,7 @@ export type Database = {
         | "gestione_corsi"
         | "consulenti_tecnici"
         | "medicina"
+      contact_request_status: "nuovo" | "in_lavorazione" | "risolto"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2542,6 +2555,7 @@ export const Constants = {
         "consulenti_tecnici",
         "medicina",
       ],
+      contact_request_status: ["nuovo", "in_lavorazione", "risolto"],
     },
   },
 } as const
