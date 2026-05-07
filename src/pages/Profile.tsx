@@ -154,6 +154,31 @@ const Profile = () => {
     setIsEditing(false);
   };
 
+  const CALENDAR_COLOR_PALETTE = [
+    '#3B82F6', '#EF4444', '#10B981', '#F59E0B',
+    '#8B5CF6', '#EC4899', '#06B6D4', '#F97316',
+    '#14B8A6', '#84CC16', '#A855F7', '#0EA5E9',
+  ];
+
+  const handleSaveColor = async (color: string) => {
+    if (!user) return;
+    setCalendarColor(color);
+    setSavingColor(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ calendar_color: color, updated_at: new Date().toISOString() })
+        .eq('user_id', user.id);
+      if (error) throw error;
+      toast({ title: 'Colore aggiornato', description: 'I tuoi eventi useranno questo colore nel calendario.' });
+    } catch (e) {
+      console.error(e);
+      toast({ title: 'Errore', description: 'Impossibile salvare il colore.', variant: 'destructive' });
+    } finally {
+      setSavingColor(false);
+    }
+  };
+
   const fetchDrafts = async () => {
     if (!user) return;
 
