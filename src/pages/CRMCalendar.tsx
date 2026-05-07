@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   Calendar as CalendarIcon, Loader2, Plus, Upload,
   LayoutGrid, CalendarDays, List, Clock,
-  MapPin, Users, Share2, ChevronLeft, ChevronRight, Download,
+  MapPin, Users, Share2, ChevronLeft, ChevronRight, Download, Search, X,
 } from 'lucide-react';
 import {
   format, isSameDay, startOfWeek, endOfWeek, eachDayOfInterval,
@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useCalendarEvents, CalendarEvent } from '@/hooks/useCalendarEvents';
@@ -62,8 +63,24 @@ export default function CRMCalendar() {
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
   const [dialogDefaultDate, setDialogDefaultDate] = useState<Date>(new Date());
   const [icsImportOpen, setIcsImportOpen] = useState(false);
-  const [hiddenUserIds, setHiddenUserIds] = useState<Set<string>>(new Set());
-  const [hideSystem, setHideSystem] = useState(false);
+  const [hiddenUserIds, setHiddenUserIds] = useState<Set<string>>(() => {
+    try {
+      const raw = localStorage.getItem('cal:hiddenUserIds');
+      if (raw) return new Set(JSON.parse(raw));
+    } catch {}
+    return new Set();
+  });
+  const [hideSystem, setHideSystem] = useState<boolean>(() => {
+    try { return localStorage.getItem('cal:hideSystem') === '1'; } catch { return false; }
+  });
+  const [searchQuery, setSearchQuery] = useState('');
+
+  useEffect(() => {
+    try { localStorage.setItem('cal:hiddenUserIds', JSON.stringify(Array.from(hiddenUserIds))); } catch {}
+  }, [hiddenUserIds]);
+  useEffect(() => {
+    try { localStorage.setItem('cal:hideSystem', hideSystem ? '1' : '0'); } catch {}
+  }, [hideSystem]);
 
   // System data
   const [contacts, setContacts] = useState<any[]>([]);
@@ -184,12 +201,33 @@ export default function CRMCalendar() {
 
   // Apply visibility filters
   const visibleDisplayEvents = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
     return displayEvents.filter(ev => {
       if (ev.isSystem) return !hideSystem;
       if (ev.creatorUserId && hiddenUserIds.has(ev.creatorUserId)) return false;
+      if (q) {
+        const hay = `${ev.title} ${ev.contactName ?? ''} ${ev.description ?? ''} ${ev.location ?? ''} ${ev.createdByName ?? ''}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
       return true;
     });
-  }, [displayEvents, hiddenUserIds, hideSystem]);
+  }, [displayEvents, hiddenUserIds, hideSystem, searchQuery]);
+
+  const periodRange = useMemo(() => {
+    if (calendarView === 'day') return { start: startOfDay(currentDate), end: endOfDay(currentDate) };
+    if (calendarView === 'week') return { start: startOfWeek(currentDate, { weekStartsOn: 1 }), end: endOfWeek(currentDate, { weekStartsOn: 1 }) };
+    return { start: startOfMonth(currentDate), end: endOfMonth(currentDate) };
+  }, [calendarView, currentDate]);
+
+  const visibleCountsByUser = useMemo(() => {
+    const counts = new Map<string, number>();
+    visibleDisplayEvents.forEach(ev => {
+      if (!ev.creatorUserId) return;
+      if (ev.start < periodRange.start || ev.start > periodRange.end) return;
+      counts.set(ev.creatorUserId, (counts.get(ev.creatorUserId) ?? 0) + 1);
+    });
+    return counts;
+  }, [visibleDisplayEvents, periodRange]);
 
   const toggleUser = (uid: string) => {
     setHiddenUserIds(prev => {
@@ -583,8 +621,13 @@ export default function CRMCalendar() {
             <Button
               size="sm"
               variant="outline"
-              onClick={() => downloadICS(calendarEvents)}
-              disabled={!calendarEvents.length}
+              onClick={() => {
+                const visibleCustom = visibleDisplayEvents
+                  .filter(ev => !ev.isSystem && ev.sourceEvent)
+                  .map(ev => ev.sourceEvent!) as CalendarEvent[];
+                downloadICS(visibleCustom);
+              }}
+              disabled={!visibleDisplayEvents.some(ev => !ev.isSystem)}
             >
               <Download className="h-4 w-4 mr-1" /> Esporta ICS
             </Button>
