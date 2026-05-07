@@ -19,6 +19,7 @@ import PermissionStatus from "./pages/PermissionStatus";
 import AuditLog from "./pages/AuditLog";
 import DocumentAccessLog from "./pages/DocumentAccessLog";
 import ContactRequest from "./pages/ContactRequest";
+import ContactRequestsAdmin from "./pages/ContactRequestsAdmin";
 import Profile from "./pages/Profile";
 import AppDocumentation from "./pages/AppDocumentation";
 import Assistente from "./pages/Assistente";
@@ -89,6 +90,7 @@ const App = () => (
           <Route path="/admin/permission-status" element={<ProtectedRoute requireAdmin><PermissionStatus /></ProtectedRoute>} />
           <Route path="/admin/audit-log" element={<ProtectedRoute requireAdmin><AuditLog /></ProtectedRoute>} />
           <Route path="/admin/document-access-log" element={<ProtectedRoute requireAdmin><DocumentAccessLog /></ProtectedRoute>} />
+          <Route path="/admin/contact-requests" element={<ProtectedRoute><ContactRequestsAdmin /></ProtectedRoute>} />
           <Route path="/user-roles" element={<ProtectedRoute requireAdmin><UserRoleManager /></ProtectedRoute>} />
           
           {/* Catch-all route */}
