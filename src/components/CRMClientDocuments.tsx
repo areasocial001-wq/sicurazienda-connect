@@ -972,6 +972,83 @@ function DocumentItem({ document, onDownload, onDelete, onUpdateExpiry, canDelet
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* History & Versions Dialog */}
+      <Dialog open={showHistoryDialog} onOpenChange={setShowHistoryDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <History className="h-4 w-4" /> Storico e versioni — {document.name}
+            </DialogTitle>
+          </DialogHeader>
+          {historyLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <div className="space-y-4 max-h-[65vh] overflow-y-auto">
+              {versions.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-semibold mb-2 flex items-center gap-1">
+                    <GitBranch className="h-4 w-4" /> Versioni ({versions.length})
+                  </h4>
+                  <div className="space-y-1">
+                    {versions.map(v => (
+                      <div key={v.id} className={cn("flex items-center justify-between p-2 rounded border text-sm", v.is_current_version && "border-primary/50 bg-primary/5")}>
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Badge variant={v.is_current_version ? "default" : "outline"} className="text-xs">v{v.version || 1}</Badge>
+                          <span className="truncate">{v.name}</span>
+                          <span className="text-xs text-muted-foreground shrink-0">{format(new Date(v.created_at), 'dd/MM/yy HH:mm', { locale: it })}</span>
+                        </div>
+                        {onDownloadAny && (
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onDownloadAny(v)}>
+                            <Download className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div>
+                <h4 className="text-sm font-semibold mb-2">Cronologia attività ({history.length})</h4>
+                {history.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Nessuna attività registrata.</p>
+                ) : (
+                  <div className="space-y-1">
+                    {history.map(h => (
+                      <div key={h.id} className="flex items-start gap-2 p-2 rounded border text-sm">
+                        <Badge variant="outline" className="text-xs shrink-0">{actionLabel(h.action)}</Badge>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs text-muted-foreground">
+                            {format(new Date(h.created_at), 'dd/MM/yyyy HH:mm', { locale: it })}
+                            {h.performer_name && ` • ${h.performer_name}`}
+                          </p>
+                          {h.details && Object.keys(h.details).length > 0 && (
+                            <p className="text-xs text-muted-foreground truncate">{JSON.stringify(h.details)}</p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </>
   );
+}
+
+function actionLabel(a: string) {
+  switch (a) {
+    case 'uploaded': return 'Caricato';
+    case 'new_version': return 'Nuova versione';
+    case 'metadata_updated': return 'Modifica metadati';
+    case 'downloaded': return 'Download';
+    case 'deleted': return 'Eliminato';
+    case 'restored': return 'Ripristinato';
+    default: return a;
+  }
 }
