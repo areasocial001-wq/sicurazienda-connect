@@ -4,7 +4,8 @@ import { it } from 'date-fns/locale';
 import { 
   FolderOpen, Upload, Download, Trash2, FileText, 
   File, Image, FileSpreadsheet, Loader2, Plus, Search,
-  Calendar, AlertTriangle, Clock, X, Link2, UserPlus, Eye, FolderUp, ChevronLeft, ChevronRight
+  Calendar, AlertTriangle, Clock, X, Link2, UserPlus, Eye, FolderUp, ChevronLeft, ChevronRight,
+  History, GitBranch
 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { supabase } from '@/integrations/supabase/client';
@@ -41,7 +42,8 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
-import { useCRMDocuments, CRMDocument } from '@/hooks/useCRMDocuments';
+import { useCRMDocuments, CRMDocument, CATEGORY_LABELS, DocumentCategory, CRMDocumentHistoryEntry } from '@/hooks/useCRMDocuments';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CreateClientAccount } from './CreateClientAccount';
 import { cn } from '@/lib/utils';
 import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
@@ -117,11 +119,15 @@ export default function CRMClientDocuments({ contactId, contactName, contactEmai
     downloadDocument,
     getDocumentsByArea,
     getExpiringDocuments,
+    fetchHistory,
+    fetchVersions,
   } = useCRMDocuments(contactId);
 
   const [showUploadDialog, setShowUploadDialog] = useState(false);
   const [description, setDescription] = useState('');
   const [expiryDate, setExpiryDate] = useState<Date | undefined>();
+  const [category, setCategory] = useState<DocumentCategory>('altro');
+  const [parentDocId, setParentDocId] = useState<string | undefined>();
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -226,7 +232,9 @@ export default function CRMClientDocuments({ contactId, contactName, contactEmai
       const result = await uploadDocument(
         file, 
         description || undefined,
-        expiryDate ? format(expiryDate, 'yyyy-MM-dd') : undefined
+        expiryDate ? format(expiryDate, 'yyyy-MM-dd') : undefined,
+        category,
+        parentDocId,
       );
       if (result) successCount++;
       setUploadProgress(prev => prev ? { ...prev, done: (prev.done || 0) + 1 } : null);
@@ -237,6 +245,8 @@ export default function CRMClientDocuments({ contactId, contactName, contactEmai
       setSelectedFiles([]);
       setDescription('');
       setExpiryDate(undefined);
+      setCategory('altro');
+      setParentDocId(undefined);
       setUploadProgress(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
@@ -373,6 +383,23 @@ export default function CRMClientDocuments({ contactId, contactName, contactEmai
                         placeholder="Breve descrizione del documento..."
                         rows={2}
                       />
+                    </div>
+                    <div>
+                      <Label>Categoria</Label>
+                      <Select value={category} onValueChange={(v) => setCategory(v as DocumentCategory)} disabled={!!parentDocId}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {Object.entries(CATEGORY_LABELS).map(([k, v]) => (
+                            <SelectItem key={k} value={k}>{v}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {parentDocId && (
+                        <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                          <GitBranch className="h-3 w-3" /> Caricamento come nuova versione del documento esistente
+                          <Button variant="link" size="sm" className="h-auto p-0 text-xs" onClick={() => setParentDocId(undefined)}>Annulla</Button>
+                        </p>
+                      )}
                     </div>
                     <div>
                       <Label>Data di scadenza (opzionale, applicata a tutti)</Label>
