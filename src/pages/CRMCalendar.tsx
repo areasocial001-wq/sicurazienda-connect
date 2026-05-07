@@ -604,6 +604,61 @@ export default function CRMCalendar() {
           </Button>
         </div>
 
+        {/* User color legend / filter */}
+        {(userLegend.length > 0) && (
+          <div className="mb-4 p-3 rounded-lg border border-border bg-card">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-xs font-medium text-muted-foreground">Filtra per utente</span>
+              {hiddenUserIds.size > 0 && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-6 text-xs"
+                  onClick={() => setHiddenUserIds(new Set())}
+                >
+                  Mostra tutti
+                </Button>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {userLegend.map(u => {
+                const hidden = hiddenUserIds.has(u.id);
+                return (
+                  <button
+                    key={u.id}
+                    onClick={() => toggleUser(u.id)}
+                    className={cn(
+                      "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs border transition-all",
+                      hidden ? "opacity-40 line-through" : "hover:opacity-80",
+                    )}
+                    style={{
+                      backgroundColor: hidden ? 'transparent' : `${u.color}15`,
+                      borderColor: u.color,
+                      color: u.color,
+                    }}
+                    title={hidden ? `Mostra eventi di ${u.name}` : `Nascondi eventi di ${u.name}`}
+                  >
+                    <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: u.color }} />
+                    <span className="font-medium">{u.name}</span>
+                    <span className="opacity-60">({u.count})</span>
+                  </button>
+                );
+              })}
+              <button
+                onClick={() => setHideSystem(s => !s)}
+                className={cn(
+                  "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs border border-dashed border-muted-foreground/40 transition-all",
+                  hideSystem ? "opacity-40 line-through" : "hover:opacity-80",
+                )}
+                title="Mostra/nascondi eventi di sistema (scadenze, follow-up, corsi)"
+              >
+                <span className="w-2.5 h-2.5 rounded-full bg-muted-foreground/50" />
+                <span className="font-medium">Sistema</span>
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Calendar view */}
         {calendarView === 'month' && (
           <div className="grid lg:grid-cols-4 gap-4">
