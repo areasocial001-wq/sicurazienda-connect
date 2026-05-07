@@ -535,6 +535,36 @@ const Profile = () => {
                 {profile.full_name || user.email}
               </span>
             </div>
+            <div className="mt-4 pt-4 border-t flex items-center gap-3 flex-wrap">
+              <Label htmlFor="customColor" className="text-sm">Colore personalizzato:</Label>
+              <div className="flex items-center gap-2">
+                <input
+                  id="customColor"
+                  type="color"
+                  value={calendarColor}
+                  onChange={(e) => setCalendarColor(e.target.value)}
+                  className="h-10 w-14 rounded border border-border cursor-pointer bg-background"
+                  aria-label="Scegli colore personalizzato"
+                />
+                <Input
+                  value={calendarColor}
+                  onChange={(e) => {
+                    const v = e.target.value.trim();
+                    if (/^#[0-9A-Fa-f]{0,6}$/.test(v)) setCalendarColor(v);
+                  }}
+                  placeholder="#3B82F6"
+                  maxLength={7}
+                  className="w-28 font-mono uppercase text-sm"
+                />
+                <Button
+                  size="sm"
+                  onClick={() => handleSaveColor(calendarColor)}
+                  disabled={savingColor || !/^#[0-9A-Fa-f]{6}$/.test(calendarColor)}
+                >
+                  {savingColor ? 'Salvo...' : 'Salva'}
+                </Button>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </main>
