@@ -293,13 +293,16 @@ export default function CRMCalendar() {
                     <div
                       key={ev.id}
                       onClick={(e) => { e.stopPropagation(); openEditEvent(ev); }}
-                      className="text-[10px] md:text-xs px-1 py-0.5 rounded truncate cursor-pointer hover:opacity-80"
+                      className="text-[10px] md:text-xs px-1 py-0.5 rounded cursor-pointer hover:opacity-80"
                       style={{ backgroundColor: `${ev.color}20`, color: ev.color, borderLeft: `2px solid ${ev.color}` }}
                       title={ev.createdByName ? `${ev.title} — ${ev.createdByName}` : ev.title}
                     >
-                      {ev.title}
+                      <div className="font-medium leading-tight break-words">{ev.title}</div>
                       {ev.createdByName && !ev.isSystem && (
-                        <span className="hidden md:inline opacity-70"> · {ev.createdByName.split(' ')[0]}</span>
+                        <div className="flex items-center gap-1 mt-0.5 leading-tight opacity-80">
+                          <span className="inline-block w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: ev.color }} />
+                          <span className="text-[9px] md:text-[10px] break-words">{ev.createdByName}</span>
+                        </div>
                       )}
                     </div>
                   ))}
