@@ -362,13 +362,15 @@ export function useCRMDocuments(contactId: string | undefined) {
 
   const getDocumentsByArea = useCallback(() => {
     const byArea: Record<string, CRMDocument[]> = {};
+    // Only show current versions in main listing
+    const currentDocs = documents.filter(d => d.is_current_version !== false);
     const filteredDocs = searchQuery 
-      ? documents.filter(doc => 
+      ? currentDocs.filter(doc => 
           doc.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
           doc.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
           areaLabels[doc.area]?.toLowerCase().includes(searchQuery.toLowerCase())
         )
-      : documents;
+      : currentDocs;
     
     filteredDocs.forEach(doc => {
       if (!byArea[doc.area]) byArea[doc.area] = [];
