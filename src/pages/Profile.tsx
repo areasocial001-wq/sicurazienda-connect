@@ -23,7 +23,8 @@ import {
   Save,
   X,
   Building2,
-  Shield
+  Shield,
+  Palette
 } from "lucide-react";
 
 interface FormDraft {
@@ -38,6 +39,7 @@ interface FormDraft {
 interface ProfileData {
   full_name: string | null;
   company_name: string | null;
+  calendar_color?: string | null;
 }
 
 const Profile = () => {
@@ -70,6 +72,8 @@ const Profile = () => {
   const [editFullName, setEditFullName] = useState("");
   const [editCompanyName, setEditCompanyName] = useState("");
   const [saving, setSaving] = useState(false);
+  const [calendarColor, setCalendarColor] = useState<string>('#3B82F6');
+  const [savingColor, setSavingColor] = useState(false);
 
   useEffect(() => {
     if (authLoading) return;
@@ -88,16 +92,17 @@ const Profile = () => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('full_name, company_name')
+        .select('full_name, company_name, calendar_color')
         .eq('user_id', user.id)
         .maybeSingle();
 
       if (error) throw error;
       
       if (data) {
-        setProfile(data);
+        setProfile(data as ProfileData);
         setEditFullName(data.full_name || "");
         setEditCompanyName(data.company_name || "");
+        setCalendarColor((data as any).calendar_color || '#3B82F6');
       }
     } catch (error) {
       console.error('Errore caricamento profilo:', error);
