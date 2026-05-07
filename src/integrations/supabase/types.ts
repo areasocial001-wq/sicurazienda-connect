@@ -665,6 +665,7 @@ export type Database = {
       crm_client_documents: {
         Row: {
           area: string
+          category: Database["public"]["Enums"]["document_category"]
           contact_id: string
           created_at: string
           description: string | null
@@ -673,12 +674,16 @@ export type Database = {
           file_size: number | null
           file_type: string | null
           id: string
+          is_current_version: boolean
           name: string
+          parent_document_id: string | null
           updated_at: string
           uploaded_by: string
+          version: number
         }
         Insert: {
           area: string
+          category?: Database["public"]["Enums"]["document_category"]
           contact_id: string
           created_at?: string
           description?: string | null
@@ -687,12 +692,16 @@ export type Database = {
           file_size?: number | null
           file_type?: string | null
           id?: string
+          is_current_version?: boolean
           name: string
+          parent_document_id?: string | null
           updated_at?: string
           uploaded_by: string
+          version?: number
         }
         Update: {
           area?: string
+          category?: Database["public"]["Enums"]["document_category"]
           contact_id?: string
           created_at?: string
           description?: string | null
@@ -701,9 +710,12 @@ export type Database = {
           file_size?: number | null
           file_type?: string | null
           id?: string
+          is_current_version?: boolean
           name?: string
+          parent_document_id?: string | null
           updated_at?: string
           uploaded_by?: string
+          version?: number
         }
         Relationships: [
           {
@@ -711,6 +723,13 @@ export type Database = {
             columns: ["contact_id"]
             isOneToOne: false
             referencedRelation: "crm_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_client_documents_parent_document_id_fkey"
+            columns: ["parent_document_id"]
+            isOneToOne: false
+            referencedRelation: "crm_client_documents"
             referencedColumns: ["id"]
           },
         ]
@@ -911,6 +930,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      crm_document_history: {
+        Row: {
+          action: string
+          contact_id: string
+          created_at: string
+          details: Json | null
+          document_id: string
+          id: string
+          performed_by: string
+          performer_name: string | null
+        }
+        Insert: {
+          action: string
+          contact_id: string
+          created_at?: string
+          details?: Json | null
+          document_id: string
+          id?: string
+          performed_by: string
+          performer_name?: string | null
+        }
+        Update: {
+          action?: string
+          contact_id?: string
+          created_at?: string
+          details?: Json | null
+          document_id?: string
+          id?: string
+          performed_by?: string
+          performer_name?: string | null
+        }
+        Relationships: []
       }
       crm_employee_activities: {
         Row: {
@@ -2419,6 +2471,14 @@ export type Database = {
         | "consulenti_tecnici"
         | "medicina"
       contact_request_status: "nuovo" | "in_lavorazione" | "risolto"
+      document_category:
+        | "dvr"
+        | "neo_assunzione"
+        | "consegna"
+        | "formazione"
+        | "sorveglianza_sanitaria"
+        | "contratti"
+        | "altro"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2556,6 +2616,15 @@ export const Constants = {
         "medicina",
       ],
       contact_request_status: ["nuovo", "in_lavorazione", "risolto"],
+      document_category: [
+        "dvr",
+        "neo_assunzione",
+        "consegna",
+        "formazione",
+        "sorveglianza_sanitaria",
+        "contratti",
+        "altro",
+      ],
     },
   },
 } as const

@@ -4,7 +4,8 @@ import { it } from 'date-fns/locale';
 import { 
   FolderOpen, Upload, Download, Trash2, FileText, 
   File, Image, FileSpreadsheet, Loader2, Plus, Search,
-  Calendar, AlertTriangle, Clock, X, Link2, UserPlus, Eye, FolderUp, ChevronLeft, ChevronRight
+  Calendar, AlertTriangle, Clock, X, Link2, UserPlus, Eye, FolderUp, ChevronLeft, ChevronRight,
+  History, GitBranch
 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { supabase } from '@/integrations/supabase/client';
@@ -41,7 +42,8 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
-import { useCRMDocuments, CRMDocument } from '@/hooks/useCRMDocuments';
+import { useCRMDocuments, CRMDocument, CATEGORY_LABELS, DocumentCategory, CRMDocumentHistoryEntry } from '@/hooks/useCRMDocuments';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CreateClientAccount } from './CreateClientAccount';
 import { cn } from '@/lib/utils';
 import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
@@ -117,11 +119,15 @@ export default function CRMClientDocuments({ contactId, contactName, contactEmai
     downloadDocument,
     getDocumentsByArea,
     getExpiringDocuments,
+    fetchHistory,
+    fetchVersions,
   } = useCRMDocuments(contactId);
 
   const [showUploadDialog, setShowUploadDialog] = useState(false);
   const [description, setDescription] = useState('');
   const [expiryDate, setExpiryDate] = useState<Date | undefined>();
+  const [category, setCategory] = useState<DocumentCategory>('altro');
+  const [parentDocId, setParentDocId] = useState<string | undefined>();
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -226,7 +232,9 @@ export default function CRMClientDocuments({ contactId, contactName, contactEmai
       const result = await uploadDocument(
         file, 
         description || undefined,
-        expiryDate ? format(expiryDate, 'yyyy-MM-dd') : undefined
+        expiryDate ? format(expiryDate, 'yyyy-MM-dd') : undefined,
+        category,
+        parentDocId,
       );
       if (result) successCount++;
       setUploadProgress(prev => prev ? { ...prev, done: (prev.done || 0) + 1 } : null);
@@ -237,6 +245,8 @@ export default function CRMClientDocuments({ contactId, contactName, contactEmai
       setSelectedFiles([]);
       setDescription('');
       setExpiryDate(undefined);
+      setCategory('altro');
+      setParentDocId(undefined);
       setUploadProgress(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
@@ -373,6 +383,23 @@ export default function CRMClientDocuments({ contactId, contactName, contactEmai
                         placeholder="Breve descrizione del documento..."
                         rows={2}
                       />
+                    </div>
+                    <div>
+                      <Label>Categoria</Label>
+                      <Select value={category} onValueChange={(v) => setCategory(v as DocumentCategory)} disabled={!!parentDocId}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {Object.entries(CATEGORY_LABELS).map(([k, v]) => (
+                            <SelectItem key={k} value={k}>{v}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {parentDocId && (
+                        <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                          <GitBranch className="h-3 w-3" /> Caricamento come nuova versione del documento esistente
+                          <Button variant="link" size="sm" className="h-auto p-0 text-xs" onClick={() => setParentDocId(undefined)}>Annulla</Button>
+                        </p>
+                      )}
                     </div>
                     <div>
                       <Label>Data di scadenza (opzionale, applicata a tutti)</Label>
@@ -548,6 +575,14 @@ export default function CRMClientDocuments({ contactId, contactName, contactEmai
                             onUpdateExpiry={(date) => updateDocumentExpiry(doc.id, date)}
                             canDelete={userArea === doc.area || userArea === 'admin'}
                             canEdit={userArea === doc.area || userArea === 'admin'}
+                            onNewVersion={(d) => {
+                              setParentDocId(d.parent_document_id || d.id);
+                              setCategory((d.category as DocumentCategory) || 'altro');
+                              setShowUploadDialog(true);
+                            }}
+                            fetchHistory={fetchHistory}
+                            fetchVersions={fetchVersions}
+                            onDownloadAny={downloadDocument}
                           />
                         ))}
                     </div>
@@ -569,11 +604,19 @@ interface DocumentItemProps {
   onUpdateExpiry: (date: string | null) => void;
   canDelete: boolean;
   canEdit: boolean;
+  onNewVersion?: (doc: CRMDocument) => void;
+  fetchHistory?: (id: string) => Promise<CRMDocumentHistoryEntry[]>;
+  fetchVersions?: (doc: CRMDocument) => Promise<CRMDocument[]>;
+  onDownloadAny?: (doc: CRMDocument) => Promise<boolean | void> | void;
 }
 
-function DocumentItem({ document, onDownload, onDelete, onUpdateExpiry, canDelete, canEdit }: DocumentItemProps) {
+function DocumentItem({ document, onDownload, onDelete, onUpdateExpiry, canDelete, canEdit, onNewVersion, fetchHistory, fetchVersions, onDownloadAny }: DocumentItemProps) {
   const [showExpiryPicker, setShowExpiryPicker] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [showHistoryDialog, setShowHistoryDialog] = useState(false);
+  const [history, setHistory] = useState<CRMDocumentHistoryEntry[]>([]);
+  const [versions, setVersions] = useState<CRMDocument[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [pdfPreviewImage, setPdfPreviewImage] = useState<string | null>(null);
   const [pdfPages, setPdfPages] = useState<number | null>(null);
@@ -582,6 +625,19 @@ function DocumentItem({ document, onDownload, onDelete, onUpdateExpiry, canDelet
   const [previewLoading, setPreviewLoading] = useState(false);
   const pdfDocumentRef = useRef<any>(null);
   const expiryStatus = getExpiryStatus(document.expiry_date);
+
+  const openHistory = async () => {
+    setShowHistoryDialog(true);
+    if (!fetchHistory || !fetchVersions) return;
+    setHistoryLoading(true);
+    try {
+      const [h, v] = await Promise.all([fetchHistory(document.id), fetchVersions(document)]);
+      setHistory(h);
+      setVersions(v);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
 
   const isImage = document.file_type?.startsWith('image/');
   const isPdf = document.file_type === 'application/pdf';
@@ -718,6 +774,16 @@ function DocumentItem({ document, onDownload, onDelete, onUpdateExpiry, canDelet
           <div className="flex-1 min-w-0">
             <p className="font-medium text-sm truncate">{document.name}</p>
             <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
+              {document.category && (
+                <Badge variant="secondary" className="text-xs py-0 h-5">
+                  {CATEGORY_LABELS[document.category as DocumentCategory] || document.category}
+                </Badge>
+              )}
+              {document.version && document.version > 1 && (
+                <Badge variant="outline" className="text-xs py-0 h-5">
+                  <GitBranch className="h-3 w-3 mr-1" /> v{document.version}
+                </Badge>
+              )}
               <span>{format(new Date(document.created_at), 'dd/MM/yyyy', { locale: it })}</span>
               {document.file_size && (
                 <>
@@ -746,6 +812,16 @@ function DocumentItem({ document, onDownload, onDelete, onUpdateExpiry, canDelet
           {canPreview && (
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handlePreview} title="Anteprima">
               <Eye className="h-4 w-4" />
+            </Button>
+          )}
+          {fetchHistory && (
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={openHistory} title="Storico e versioni">
+              <History className="h-4 w-4" />
+            </Button>
+          )}
+          {canEdit && onNewVersion && (
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onNewVersion(document)} title="Carica nuova versione">
+              <GitBranch className="h-4 w-4" />
             </Button>
           )}
           {canEdit && (
@@ -896,6 +972,83 @@ function DocumentItem({ document, onDownload, onDelete, onUpdateExpiry, canDelet
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* History & Versions Dialog */}
+      <Dialog open={showHistoryDialog} onOpenChange={setShowHistoryDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <History className="h-4 w-4" /> Storico e versioni — {document.name}
+            </DialogTitle>
+          </DialogHeader>
+          {historyLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <div className="space-y-4 max-h-[65vh] overflow-y-auto">
+              {versions.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-semibold mb-2 flex items-center gap-1">
+                    <GitBranch className="h-4 w-4" /> Versioni ({versions.length})
+                  </h4>
+                  <div className="space-y-1">
+                    {versions.map(v => (
+                      <div key={v.id} className={cn("flex items-center justify-between p-2 rounded border text-sm", v.is_current_version && "border-primary/50 bg-primary/5")}>
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Badge variant={v.is_current_version ? "default" : "outline"} className="text-xs">v{v.version || 1}</Badge>
+                          <span className="truncate">{v.name}</span>
+                          <span className="text-xs text-muted-foreground shrink-0">{format(new Date(v.created_at), 'dd/MM/yy HH:mm', { locale: it })}</span>
+                        </div>
+                        {onDownloadAny && (
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onDownloadAny(v)}>
+                            <Download className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div>
+                <h4 className="text-sm font-semibold mb-2">Cronologia attività ({history.length})</h4>
+                {history.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Nessuna attività registrata.</p>
+                ) : (
+                  <div className="space-y-1">
+                    {history.map(h => (
+                      <div key={h.id} className="flex items-start gap-2 p-2 rounded border text-sm">
+                        <Badge variant="outline" className="text-xs shrink-0">{actionLabel(h.action)}</Badge>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs text-muted-foreground">
+                            {format(new Date(h.created_at), 'dd/MM/yyyy HH:mm', { locale: it })}
+                            {h.performer_name && ` • ${h.performer_name}`}
+                          </p>
+                          {h.details && Object.keys(h.details).length > 0 && (
+                            <p className="text-xs text-muted-foreground truncate">{JSON.stringify(h.details)}</p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </>
   );
+}
+
+function actionLabel(a: string) {
+  switch (a) {
+    case 'uploaded': return 'Caricato';
+    case 'new_version': return 'Nuova versione';
+    case 'metadata_updated': return 'Modifica metadati';
+    case 'downloaded': return 'Download';
+    case 'deleted': return 'Eliminato';
+    case 'restored': return 'Ripristinato';
+    default: return a;
+  }
 }
