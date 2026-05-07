@@ -493,6 +493,50 @@ const Profile = () => {
         <div className="mt-6">
           <GoogleDriveSync userId={user?.id} />
         </div>
+
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Palette className="h-5 w-5" />
+              Colore Calendario
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-4">
+              Scegli un colore per identificarti nel calendario condiviso. Tutti i tuoi eventi e le tue note appariranno con questo colore.
+            </p>
+            <div className="flex items-center gap-3 flex-wrap">
+              {CALENDAR_COLOR_PALETTE.map((color) => (
+                <button
+                  key={color}
+                  onClick={() => handleSaveColor(color)}
+                  disabled={savingColor}
+                  className="relative w-10 h-10 rounded-full transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                  style={{ backgroundColor: color }}
+                  aria-label={`Seleziona colore ${color}`}
+                >
+                  {calendarColor === color && (
+                    <span className="absolute inset-0 flex items-center justify-center text-white">
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+            <div className="mt-4 flex items-center gap-2 text-sm">
+              <span className="text-muted-foreground">Anteprima:</span>
+              <span
+                className="inline-flex items-center gap-2 px-3 py-1 rounded-md text-xs font-medium"
+                style={{ backgroundColor: `${calendarColor}20`, color: calendarColor, borderLeft: `3px solid ${calendarColor}` }}
+              >
+                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: calendarColor }} />
+                {profile.full_name || user.email}
+              </span>
+            </div>
+          </CardContent>
+        </Card>
       </main>
       
       <BottomNav />
