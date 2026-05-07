@@ -575,6 +575,14 @@ export default function CRMClientDocuments({ contactId, contactName, contactEmai
                             onUpdateExpiry={(date) => updateDocumentExpiry(doc.id, date)}
                             canDelete={userArea === doc.area || userArea === 'admin'}
                             canEdit={userArea === doc.area || userArea === 'admin'}
+                            onNewVersion={(d) => {
+                              setParentDocId(d.parent_document_id || d.id);
+                              setCategory((d.category as DocumentCategory) || 'altro');
+                              setShowUploadDialog(true);
+                            }}
+                            fetchHistory={fetchHistory}
+                            fetchVersions={fetchVersions}
+                            onDownloadAny={downloadDocument}
                           />
                         ))}
                     </div>
