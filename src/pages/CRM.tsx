@@ -599,7 +599,7 @@ export default function CRM() {
                         <Input
                           value={newContact.address}
                           onChange={(e) => setNewContact({...newContact, address: e.target.value})}
-                          placeholder="Via, Civico, CAP, Città"
+                          placeholder="Via e civico"
                         />
                       </div>
                       <div>
@@ -607,8 +607,62 @@ export default function CRM() {
                         <Input
                           value={operationalAddress}
                           onChange={(e) => setOperationalAddress(e.target.value)}
-                          placeholder="Via, Civico, CAP, Città"
+                          placeholder="Via e civico"
                         />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-3 gap-2">
+                        <div>
+                          <Label>CAP (legale)</Label>
+                          <Input
+                            value={newContact.postal_code}
+                            onChange={(e) => setNewContact({...newContact, postal_code: e.target.value})}
+                            maxLength={5}
+                          />
+                        </div>
+                        <div>
+                          <Label>Città (legale)</Label>
+                          <Input
+                            value={newContact.city}
+                            onChange={(e) => setNewContact({...newContact, city: e.target.value})}
+                          />
+                        </div>
+                        <div>
+                          <Label>Prov. (legale)</Label>
+                          <Input
+                            value={newContact.province}
+                            onChange={(e) => setNewContact({...newContact, province: e.target.value.toUpperCase().slice(0, 2)})}
+                            maxLength={2}
+                            placeholder="MI"
+                          />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        <div>
+                          <Label>CAP (operativa)</Label>
+                          <Input
+                            value={operationalPostalCode}
+                            onChange={(e) => setOperationalPostalCode(e.target.value)}
+                            maxLength={5}
+                          />
+                        </div>
+                        <div>
+                          <Label>Città (operativa)</Label>
+                          <Input
+                            value={operationalCity}
+                            onChange={(e) => setOperationalCity(e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <Label>Prov. (operativa)</Label>
+                          <Input
+                            value={operationalProvince}
+                            onChange={(e) => setOperationalProvince(e.target.value.toUpperCase().slice(0, 2))}
+                            maxLength={2}
+                            placeholder="MI"
+                          />
+                        </div>
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
