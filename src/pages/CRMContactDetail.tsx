@@ -110,6 +110,24 @@ export default function CRMContactDetail() {
     sdi_code: '',
     ateco_code: '',
     technical_consultant: '',
+    cdl_reference: '',
+    fondo_appartenenza: '',
+    segnalatore_name: '',
+    referente_email: '',
+    referente_phone: '',
+    referente_mobile: '',
+    payment_method: '',
+    payment_terms: '',
+    rea_number: '',
+    legal_form: '',
+    activity_start_date: '',
+    partners_count: '' as string | number,
+    exemption_number: '',
+    exemption_issue_date: '',
+    exemption_valid_until: '',
+    exemption_amount: '' as string | number,
+    internal_registration_number: '',
+    internal_registration_date: '',
   });
   const [operationalAddress, setOperationalAddress] = useState('');
   const [operationalLocationId, setOperationalLocationId] = useState<string | null>(null);
@@ -159,6 +177,24 @@ export default function CRMContactDetail() {
         sdi_code: (data as any).sdi_code || '',
         ateco_code: (data as any).ateco_code || '',
         technical_consultant: (data as any).technical_consultant || '',
+        cdl_reference: (data as any).cdl_reference || '',
+        fondo_appartenenza: (data as any).fondo_appartenenza || '',
+        segnalatore_name: (data as any).segnalatore_name || '',
+        referente_email: (data as any).referente_email || '',
+        referente_phone: (data as any).referente_phone || '',
+        referente_mobile: (data as any).referente_mobile || '',
+        payment_method: (data as any).payment_method || '',
+        payment_terms: (data as any).payment_terms || '',
+        rea_number: (data as any).rea_number || '',
+        legal_form: (data as any).legal_form || '',
+        activity_start_date: (data as any).activity_start_date || '',
+        partners_count: (data as any).partners_count ?? '',
+        exemption_number: (data as any).exemption_number || '',
+        exemption_issue_date: (data as any).exemption_issue_date || '',
+        exemption_valid_until: (data as any).exemption_valid_until || '',
+        exemption_amount: (data as any).exemption_amount ?? '',
+        internal_registration_number: (data as any).internal_registration_number || '',
+        internal_registration_date: (data as any).internal_registration_date || '',
       });
       // Carica sede operativa principale (la prima trovata con location_type='operativa')
       const { data: locs } = await supabase
@@ -195,7 +231,16 @@ export default function CRMContactDetail() {
       toast.error(errors.map(e => `${e.field}: ${e.message}`).join('\n'));
       return;
     }
-    const success = await updateContact(id, editForm);
+    const payload: any = {
+      ...editForm,
+      partners_count: editForm.partners_count === '' ? null : Number(editForm.partners_count),
+      exemption_amount: editForm.exemption_amount === '' ? null : Number(editForm.exemption_amount),
+      activity_start_date: editForm.activity_start_date || null,
+      exemption_issue_date: editForm.exemption_issue_date || null,
+      exemption_valid_until: editForm.exemption_valid_until || null,
+      internal_registration_date: editForm.internal_registration_date || null,
+    };
+    const success = await updateContact(id, payload);
     if (success) {
       // Salva/aggiorna sede operativa
       const trimmed = operationalAddress.trim();
