@@ -200,24 +200,48 @@ Per ogni item fornisci:
 - Tempo stimato per completare`;
     }
     else if (action === "extract_contact" && data.text) {
-      systemPrompt = `Sei un assistente per l'estrazione di dati di contatto da testi non strutturati (email, biglietti da visita, note).
+      systemPrompt = `Sei un assistente per l'estrazione di dati anagrafici aziendali da testi non strutturati (email, biglietti da visita, note, Visure camerali italiane).
 
-Estrai TUTTI i dati di contatto trovati nel testo e rispondi SOLO con un JSON valido con questi campi (usa null se non trovato):
+Estrai TUTTI i dati trovati nel testo e rispondi SOLO con un JSON valido con questi campi (usa null se non trovato).
+Per le date usa formato YYYY-MM-DD. Per importi numerici usa solo numeri (no simbolo €).
+Per "company" usa la ragione sociale completa. Per "name" il datore di lavoro / legale rappresentante / referente.
 {
-  "name": "Nome e Cognome",
-  "email": "email@esempio.it",
-  "phone": "+39 xxx",
-  "company": "Nome Azienda",
-  "role": "Ruolo/Posizione",
-  "address": "Indirizzo completo",
+  "name": "Nome e Cognome del Datore di Lavoro / Referente",
+  "email": "email aziendale",
+  "phone": "telefono fisso aziendale",
+  "mobile": "cellulare aziendale",
+  "referente_email": "email del referente",
+  "referente_phone": "telefono del referente",
+  "referente_mobile": "cellulare del referente",
+  "company": "Ragione Sociale",
+  "role": "Ruolo/Settore",
+  "address": "Indirizzo sede legale (via e civico)",
+  "postal_code": "CAP sede legale",
+  "city": "Città sede legale",
+  "province": "Sigla provincia (2 lettere)",
   "website": "https://...",
-  "vat_number": "P.IVA",
-  "fiscal_code": "Codice Fiscale",
-  "pec": "email PEC",
-  "sdi_code": "Codice SDI",
+  "vat_number": "Partita IVA (11 cifre)",
+  "fiscal_code": "Codice Fiscale azienda o persona",
+  "pec": "indirizzo PEC",
+  "sdi_code": "Codice SDI (6-7 caratteri)",
+  "ateco_code": "Codice ATECO",
+  "legal_form": "Natura giuridica (es. SRL, SAS, SNC, Ditta Individuale)",
+  "rea_number": "Numero REA (formato XX-NNNNNN)",
+  "partners_count": numero_soci_intero,
+  "activity_start_date": "Data inizio attività YYYY-MM-DD",
+  "cdl_reference": "Consulente del lavoro di riferimento",
+  "fondo_appartenenza": "Fondo previdenziale di appartenenza",
+  "segnalatore_name": "Nominativo segnalatore",
+  "technical_consultant": "CT di riferimento / consulente tecnico",
+  "payment_method": "Modalità pagamento",
+  "payment_terms": "Termini pagamento",
+  "exemption_number": "Numero esenzione IVA",
+  "exemption_issue_date": "Data emissione esenzione YYYY-MM-DD",
+  "exemption_valid_until": "Validità esenzione fino al YYYY-MM-DD",
+  "exemption_amount": importo_esenzione_numero,
   "notes": "Altre info rilevanti non mappabili"
 }`;
-      userMessage = `Estrai i dati di contatto dal seguente testo:\n\n${data.text}`;
+      userMessage = `Estrai i dati dal seguente testo (può essere una Visura camerale italiana):\n\n${data.text}`;
     }
     else if (action === "cleanup_data" && data.contacts) {
       systemPrompt = `Sei un assistente per la pulizia e normalizzazione di dati CRM aziendali italiani.
