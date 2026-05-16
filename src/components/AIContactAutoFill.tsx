@@ -172,11 +172,14 @@ export function AIContactAutoFill({ onExtracted }: AIContactAutoFillProps) {
     toast.success(`${sourceName}: ${added} campi aggiunti`);
   };
 
-  const callExtract = async (text: string, sourceName: string) => {
+  const callExtract = async (
+    payload: { text?: string; pdfBase64?: string },
+    sourceName: string,
+  ) => {
     setIsExtracting(true);
     try {
       const { data, error } = await supabase.functions.invoke('crm-agent', {
-        body: { action: 'extract_contact', data: { text } },
+        body: { action: 'extract_contact', data: payload },
       });
       if (error) throw error;
       if (!data?.success) throw new Error(data?.error || 'Errore estrazione');
@@ -195,7 +198,7 @@ export function AIContactAutoFill({ onExtracted }: AIContactAutoFillProps) {
       toast.error('Incolla del testo da analizzare');
       return;
     }
-    await callExtract(rawText, `Testo #${sources.length + 1}`);
+    await callExtract({ text: rawText }, `Testo #${sources.length + 1}`);
   };
 
   const handlePdfUpload = async (file: File) => {
@@ -230,12 +233,25 @@ export function AIContactAutoFill({ onExtracted }: AIContactAutoFillProps) {
           .join('\n');
         fullText += `\n\n--- Pagina ${i} ---\n${pageText}`;
       }
-      if (!fullText.trim()) {
-        toast.error(`${file.name}: nessun testo (PDF scansionato?)`);
-        return;
+      const letters = (fullText.match(/[a-zA-Z]/g) || []).length;
+      const poorQuality = fullText.trim().length < 500 || letters < 100;
+      if (poorQuality) {
+        toast.info(`${file.name}: PDF scansionato, OCR AI in corso...`);
+        const bytes = new Uint8Array(buf);
+        let binary = '';
+        const chunk = 0x8000;
+        for (let i = 0; i < bytes.length; i += chunk) {
+          binary += String.fromCharCode.apply(
+            null,
+            Array.from(bytes.subarray(i, i + chunk)) as any,
+          );
+        }
+        const base64 = btoa(binary);
+        await callExtract({ pdfBase64: base64 }, file.name);
+      } else {
+        toast.info(`${file.name}: estrazione AI in corso...`);
+        await callExtract({ text: fullText }, file.name);
       }
-      toast.info(`${file.name}: estrazione AI in corso...`);
-      await callExtract(fullText, file.name);
     } catch (e: any) {
       console.error('PDF parse error:', e);
       toast.error('Errore lettura PDF: ' + (e.message || 'sconosciuto'));
