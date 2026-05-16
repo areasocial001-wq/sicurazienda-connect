@@ -52,6 +52,7 @@ export function AIContactAutoFill({ onExtracted }: AIContactAutoFillProps) {
   const [rawText, setRawText] = useState('');
   const [isExtracting, setIsExtracting] = useState(false);
   const [isParsingPdf, setIsParsingPdf] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const callExtract = async (text: string) => {
@@ -119,6 +120,19 @@ export function AIContactAutoFill({ onExtracted }: AIContactAutoFillProps) {
 
   const busy = isExtracting || isParsingPdf;
 
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (busy) return;
+    const file = e.dataTransfer.files?.[0];
+    if (!file) return;
+    if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+      toast.error('Trascina un file PDF');
+      return;
+    }
+    handlePdfUpload(file);
+  };
+
   return (
     <Card className="border-primary/20 bg-primary/5">
       <CardHeader className="pb-2">
@@ -132,7 +146,19 @@ export function AIContactAutoFill({ onExtracted }: AIContactAutoFillProps) {
           <Label className="text-xs text-muted-foreground">
             Carica una Visura camerale (PDF) oppure incolla email, biglietto da visita o note
           </Label>
-          <div className="flex gap-2 mt-1">
+          <div
+            onDragOver={(e) => { e.preventDefault(); if (!busy) setIsDragging(true); }}
+            onDragLeave={() => setIsDragging(false)}
+            onDrop={handleDrop}
+            className={`mt-1 border-2 border-dashed rounded-md p-4 text-center transition-colors cursor-pointer ${
+              isDragging
+                ? 'border-primary bg-primary/10'
+                : 'border-muted-foreground/30 hover:border-primary/50 hover:bg-primary/5'
+            } ${busy ? 'opacity-60 pointer-events-none' : ''}`}
+            onClick={() => fileInputRef.current?.click()}
+            role="button"
+            tabIndex={0}
+          >
             <input
               ref={fileInputRef}
               type="file"
@@ -143,21 +169,23 @@ export function AIContactAutoFill({ onExtracted }: AIContactAutoFillProps) {
                 if (f) handlePdfUpload(f);
               }}
             />
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={busy}
-              onClick={() => fileInputRef.current?.click()}
-              className="w-full"
-            >
+            <div className="flex flex-col items-center gap-1.5 pointer-events-none">
               {isParsingPdf ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
               ) : (
-                <FileUp className="h-4 w-4 mr-2" />
+                <FileUp className="h-6 w-6 text-primary" />
               )}
-              Carica Visura (PDF)
-            </Button>
+              <p className="text-sm font-medium">
+                {isParsingPdf
+                  ? 'Lettura PDF in corso...'
+                  : isDragging
+                  ? 'Rilascia il file qui'
+                  : 'Trascina la Visura PDF qui'}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                o clicca per selezionare un file (max 20MB)
+              </p>
+            </div>
           </div>
           <Textarea
             value={rawText}
