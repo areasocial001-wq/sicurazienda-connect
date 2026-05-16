@@ -107,13 +107,22 @@ export default function CRM() {
     name: '',
     email: '',
     phone: '',
+    mobile: '',
     company: '',
     role: '',
     status: 'lead' as const,
     source: '',
     notes: '',
     tags: [] as string[],
+    address: '',
+    pec: '',
+    vat_number: '',
+    fiscal_code: '',
+    sdi_code: '',
+    ateco_code: '',
+    technical_consultant: '',
   });
+  const [operationalAddress, setOperationalAddress] = useState('');
 
   // Interaction form state
   const [newInteraction, setNewInteraction] = useState({
@@ -210,11 +219,27 @@ export default function CRM() {
   };
 
   const handleAddContact = async () => {
-    await addContact(newContact);
+    const created = await addContact(newContact);
+    if (created && operationalAddress.trim()) {
+      try {
+        await supabase.from('crm_locations').insert({
+          contact_id: created.id,
+          user_id: created.user_id,
+          name: 'Sede operativa',
+          location_type: 'operativa',
+          address: operationalAddress.trim(),
+        });
+      } catch (e) {
+        console.error('Errore salvataggio sede operativa:', e);
+      }
+    }
     setNewContact({
-      name: '', email: '', phone: '', company: '', 
-      role: '', status: 'lead', source: '', notes: '', tags: []
+      name: '', email: '', phone: '', mobile: '', company: '',
+      role: '', status: 'lead', source: '', notes: '', tags: [],
+      address: '', pec: '', vat_number: '', fiscal_code: '',
+      sdi_code: '', ateco_code: '', technical_consultant: '',
     });
+    setOperationalAddress('');
     setShowAddDialog(false);
   };
 
@@ -500,7 +525,7 @@ export default function CRM() {
                   Nuovo Contatto
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-md">
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Aggiungi Contatto</DialogTitle>
                 </DialogHeader>
@@ -518,48 +543,137 @@ export default function CRM() {
                       source: prev.source,
                       status: prev.status,
                       tags: prev.tags,
+                      address: data.address || prev.address,
+                      pec: data.pec || prev.pec,
+                      vat_number: data.vat_number || prev.vat_number,
+                      fiscal_code: data.fiscal_code || prev.fiscal_code,
+                      sdi_code: data.sdi_code || prev.sdi_code,
                     }));
                   }} />
                   
-                  <div>
-                    <Label>Nome *</Label>
-                    <Input 
-                      value={newContact.name} 
-                      onChange={(e) => setNewContact({...newContact, name: e.target.value})}
-                      placeholder="Nome e Cognome"
-                    />
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-semibold text-muted-foreground border-b pb-1">Azienda</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label>Azienda / Ragione Sociale</Label>
+                        <Input
+                          value={newContact.company}
+                          onChange={(e) => setNewContact({...newContact, company: e.target.value})}
+                        />
+                      </div>
+                      <div>
+                        <Label>Ruolo / Settore</Label>
+                        <Input
+                          value={newContact.role}
+                          onChange={(e) => setNewContact({...newContact, role: e.target.value})}
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label>Indirizzo sede legale</Label>
+                        <Input
+                          value={newContact.address}
+                          onChange={(e) => setNewContact({...newContact, address: e.target.value})}
+                          placeholder="Via, Civico, CAP, Città"
+                        />
+                      </div>
+                      <div>
+                        <Label>Indirizzo sede operativa</Label>
+                        <Input
+                          value={operationalAddress}
+                          onChange={(e) => setOperationalAddress(e.target.value)}
+                          placeholder="Via, Civico, CAP, Città"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label>Partita IVA</Label>
+                        <Input
+                          value={newContact.vat_number}
+                          onChange={(e) => setNewContact({...newContact, vat_number: e.target.value})}
+                        />
+                      </div>
+                      <div>
+                        <Label>Codice Fiscale</Label>
+                        <Input
+                          value={newContact.fiscal_code}
+                          onChange={(e) => setNewContact({...newContact, fiscal_code: e.target.value})}
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label>Codice Univoco (SDI)</Label>
+                        <Input
+                          value={newContact.sdi_code}
+                          onChange={(e) => setNewContact({...newContact, sdi_code: e.target.value})}
+                          placeholder="7 caratteri"
+                          maxLength={7}
+                        />
+                      </div>
+                      <div>
+                        <Label>Codice ATECO</Label>
+                        <Input
+                          value={newContact.ateco_code}
+                          onChange={(e) => setNewContact({...newContact, ateco_code: e.target.value})}
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label>PEC</Label>
+                        <Input
+                          type="email"
+                          value={newContact.pec}
+                          onChange={(e) => setNewContact({...newContact, pec: e.target.value})}
+                        />
+                      </div>
+                      <div>
+                        <Label>CT di riferimento</Label>
+                        <Input
+                          value={newContact.technical_consultant}
+                          onChange={(e) => setNewContact({...newContact, technical_consultant: e.target.value})}
+                          placeholder="Consulente tecnico"
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-semibold text-muted-foreground border-b pb-1">Datore di Lavoro / Referente</h3>
                     <div>
-                      <Label>Email</Label>
-                      <Input 
-                        type="email"
-                        value={newContact.email} 
-                        onChange={(e) => setNewContact({...newContact, email: e.target.value})}
+                      <Label>Datore di Lavoro / Referente *</Label>
+                      <Input
+                        value={newContact.name}
+                        onChange={(e) => setNewContact({...newContact, name: e.target.value})}
+                        placeholder="Nome e Cognome"
                       />
                     </div>
-                    <div>
-                      <Label>Telefono</Label>
-                      <Input 
-                        value={newContact.phone} 
-                        onChange={(e) => setNewContact({...newContact, phone: e.target.value})}
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label>Azienda</Label>
-                      <Input 
-                        value={newContact.company} 
-                        onChange={(e) => setNewContact({...newContact, company: e.target.value})}
-                      />
-                    </div>
-                    <div>
-                      <Label>Ruolo</Label>
-                      <Input 
-                        value={newContact.role} 
-                        onChange={(e) => setNewContact({...newContact, role: e.target.value})}
-                      />
+                    <div className="grid grid-cols-3 gap-4">
+                      <div>
+                        <Label>Email</Label>
+                        <Input
+                          type="email"
+                          value={newContact.email}
+                          onChange={(e) => setNewContact({...newContact, email: e.target.value})}
+                        />
+                      </div>
+                      <div>
+                        <Label>Telefono</Label>
+                        <Input
+                          value={newContact.phone}
+                          onChange={(e) => setNewContact({...newContact, phone: e.target.value})}
+                        />
+                      </div>
+                      <div>
+                        <Label>Cellulare</Label>
+                        <Input
+                          value={newContact.mobile}
+                          onChange={(e) => setNewContact({...newContact, mobile: e.target.value})}
+                        />
+                      </div>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
