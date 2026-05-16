@@ -655,7 +655,7 @@ export default function CRMContactDetail() {
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label>Nome *</Label>
+                  <Label>Datore di Lavoro / Referente *</Label>
                   <Input 
                     value={editForm.name} 
                     onChange={(e) => setEditForm({...editForm, name: e.target.value})}
@@ -679,7 +679,7 @@ export default function CRMContactDetail() {
                   </Select>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div>
                   <Label>Email</Label>
                   <Input 
@@ -693,6 +693,13 @@ export default function CRMContactDetail() {
                   <Input 
                     value={editForm.phone} 
                     onChange={(e) => setEditForm({...editForm, phone: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <Label>Cellulare</Label>
+                  <Input
+                    value={editForm.mobile}
+                    onChange={(e) => setEditForm({...editForm, mobile: e.target.value})}
                   />
                 </div>
               </div>
@@ -748,11 +755,36 @@ export default function CRMContactDetail() {
                   />
                 </div>
               </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Codice ATECO</Label>
+                  <Input
+                    value={editForm.ateco_code}
+                    onChange={(e) => setEditForm({...editForm, ateco_code: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <Label>CT di riferimento</Label>
+                  <Input
+                    value={editForm.technical_consultant}
+                    onChange={(e) => setEditForm({...editForm, technical_consultant: e.target.value})}
+                    placeholder="Consulente tecnico"
+                  />
+                </div>
+              </div>
               <div>
-                <Label>Indirizzo</Label>
+                <Label>Indirizzo sede legale</Label>
                 <Input 
                   value={editForm.address} 
                   onChange={(e) => setEditForm({...editForm, address: e.target.value})}
+                />
+              </div>
+              <div>
+                <Label>Indirizzo sede operativa</Label>
+                <Input
+                  value={operationalAddress}
+                  onChange={(e) => setOperationalAddress(e.target.value)}
+                  placeholder="Via, Civico, CAP, Città"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
