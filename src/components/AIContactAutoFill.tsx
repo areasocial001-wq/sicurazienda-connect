@@ -212,41 +212,55 @@ export function AIContactAutoFill({ onExtracted }: AIContactAutoFillProps) {
       pdfjsLib.GlobalWorkerOptions.workerSrc = (
         await import('pdfjs-dist/legacy/build/pdf.worker.mjs?url')
       ).default;
-      const buf = await file.arrayBuffer();
-      const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
-      let fullText = '';
-      const maxPages = Math.min(pdf.numPages, 40);
-      for (let i = 1; i <= maxPages; i++) {
-        const page = await pdf.getPage(i);
-        const content = await page.getTextContent();
-        const lines = new Map<number, string[]>();
-        for (const it of content.items as any[]) {
-          if (!it.str) continue;
-          const y = Math.round(it.transform?.[5] ?? 0);
-          if (!lines.has(y)) lines.set(y, []);
-          lines.get(y)!.push(it.str);
-        }
-        const sortedY = Array.from(lines.keys()).sort((a, b) => b - a);
-        const pageText = sortedY
-          .map((y) => lines.get(y)!.join(' ').replace(/\s+/g, ' ').trim())
-          .filter(Boolean)
-          .join('\n');
-        fullText += `\n\n--- Pagina ${i} ---\n${pageText}`;
-      }
-      const letters = (fullText.match(/[a-zA-Z]/g) || []).length;
-      const poorQuality = fullText.trim().length < 500 || letters < 100;
-      if (poorQuality) {
-        toast.info(`${file.name}: PDF scansionato, OCR AI in corso...`);
-        const bytes = new Uint8Array(buf);
+      // Read file bytes ONCE and keep a stable copy for OCR fallback
+      const originalBuf = await file.arrayBuffer();
+      const bytes = new Uint8Array(originalBuf.slice(0));
+
+      const toBase64 = (u8: Uint8Array) => {
         let binary = '';
         const chunk = 0x8000;
-        for (let i = 0; i < bytes.length; i += chunk) {
+        for (let i = 0; i < u8.length; i += chunk) {
           binary += String.fromCharCode.apply(
             null,
-            Array.from(bytes.subarray(i, i + chunk)) as any,
+            Array.from(u8.subarray(i, i + chunk)) as any,
           );
         }
-        const base64 = btoa(binary);
+        return btoa(binary);
+      };
+
+      let fullText = '';
+      let pdfReadOk = false;
+      try {
+        // Pass a fresh copy so pdfjs cannot detach our buffer
+        const pdf = await pdfjsLib.getDocument({ data: bytes.slice(0) }).promise;
+        pdfReadOk = true;
+        const maxPages = Math.min(pdf.numPages, 40);
+        for (let i = 1; i <= maxPages; i++) {
+          const page = await pdf.getPage(i);
+          const content = await page.getTextContent();
+          const lines = new Map<number, string[]>();
+          for (const it of content.items as any[]) {
+            if (!it.str) continue;
+            const y = Math.round(it.transform?.[5] ?? 0);
+            if (!lines.has(y)) lines.set(y, []);
+            lines.get(y)!.push(it.str);
+          }
+          const sortedY = Array.from(lines.keys()).sort((a, b) => b - a);
+          const pageText = sortedY
+            .map((y) => lines.get(y)!.join(' ').replace(/\s+/g, ' ').trim())
+            .filter(Boolean)
+            .join('\n');
+          fullText += `\n\n--- Pagina ${i} ---\n${pageText}`;
+        }
+      } catch (pdfErr: any) {
+        console.warn('pdfjs failed, falling back to OCR:', pdfErr);
+      }
+
+      const letters = (fullText.match(/[a-zA-Z]/g) || []).length;
+      const poorQuality = !pdfReadOk || fullText.trim().length < 500 || letters < 100;
+      if (poorQuality) {
+        toast.info(`${file.name}: PDF scansionato, OCR AI in corso...`);
+        const base64 = toBase64(bytes);
         await callExtract({ pdfBase64: base64 }, file.name);
       } else {
         toast.info(`${file.name}: estrazione AI in corso...`);
