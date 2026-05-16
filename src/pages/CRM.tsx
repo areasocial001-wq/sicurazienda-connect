@@ -116,6 +116,9 @@ export default function CRM() {
     notes: '',
     tags: [] as string[],
     address: '',
+    postal_code: '',
+    city: '',
+    province: '',
     pec: '',
     vat_number: '',
     fiscal_code: '',
@@ -124,6 +127,9 @@ export default function CRM() {
     technical_consultant: '',
   });
   const [operationalAddress, setOperationalAddress] = useState('');
+  const [operationalPostalCode, setOperationalPostalCode] = useState('');
+  const [operationalCity, setOperationalCity] = useState('');
+  const [operationalProvince, setOperationalProvince] = useState('');
 
   // Interaction form state
   const [newInteraction, setNewInteraction] = useState({
@@ -231,14 +237,17 @@ export default function CRM() {
       return;
     }
     const created = await addContact(newContact);
-    if (created && operationalAddress.trim()) {
+    if (created && (operationalAddress.trim() || operationalCity.trim() || operationalPostalCode.trim() || operationalProvince.trim())) {
       try {
         await supabase.from('crm_locations').insert({
           contact_id: created.id,
           user_id: created.user_id,
           name: 'Sede operativa',
           location_type: 'operativa',
-          address: operationalAddress.trim(),
+          address: operationalAddress.trim() || null,
+          postal_code: operationalPostalCode.trim() || null,
+          city: operationalCity.trim() || null,
+          province: operationalProvince.trim().toUpperCase() || null,
         });
       } catch (e) {
         console.error('Errore salvataggio sede operativa:', e);
@@ -247,10 +256,14 @@ export default function CRM() {
     setNewContact({
       name: '', email: '', phone: '', mobile: '', company: '',
       role: '', status: 'lead', source: '', notes: '', tags: [],
-      address: '', pec: '', vat_number: '', fiscal_code: '',
+      address: '', postal_code: '', city: '', province: '',
+      pec: '', vat_number: '', fiscal_code: '',
       sdi_code: '', ateco_code: '', technical_consultant: '',
     });
     setOperationalAddress('');
+    setOperationalPostalCode('');
+    setOperationalCity('');
+    setOperationalProvince('');
     setShowAddDialog(false);
   };
 
@@ -586,7 +599,7 @@ export default function CRM() {
                         <Input
                           value={newContact.address}
                           onChange={(e) => setNewContact({...newContact, address: e.target.value})}
-                          placeholder="Via, Civico, CAP, Città"
+                          placeholder="Via e civico"
                         />
                       </div>
                       <div>
@@ -594,8 +607,62 @@ export default function CRM() {
                         <Input
                           value={operationalAddress}
                           onChange={(e) => setOperationalAddress(e.target.value)}
-                          placeholder="Via, Civico, CAP, Città"
+                          placeholder="Via e civico"
                         />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-3 gap-2">
+                        <div>
+                          <Label>CAP (legale)</Label>
+                          <Input
+                            value={newContact.postal_code}
+                            onChange={(e) => setNewContact({...newContact, postal_code: e.target.value})}
+                            maxLength={5}
+                          />
+                        </div>
+                        <div>
+                          <Label>Città (legale)</Label>
+                          <Input
+                            value={newContact.city}
+                            onChange={(e) => setNewContact({...newContact, city: e.target.value})}
+                          />
+                        </div>
+                        <div>
+                          <Label>Prov. (legale)</Label>
+                          <Input
+                            value={newContact.province}
+                            onChange={(e) => setNewContact({...newContact, province: e.target.value.toUpperCase().slice(0, 2)})}
+                            maxLength={2}
+                            placeholder="MI"
+                          />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        <div>
+                          <Label>CAP (operativa)</Label>
+                          <Input
+                            value={operationalPostalCode}
+                            onChange={(e) => setOperationalPostalCode(e.target.value)}
+                            maxLength={5}
+                          />
+                        </div>
+                        <div>
+                          <Label>Città (operativa)</Label>
+                          <Input
+                            value={operationalCity}
+                            onChange={(e) => setOperationalCity(e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <Label>Prov. (operativa)</Label>
+                          <Input
+                            value={operationalProvince}
+                            onChange={(e) => setOperationalProvince(e.target.value.toUpperCase().slice(0, 2))}
+                            maxLength={2}
+                            placeholder="MI"
+                          />
+                        </div>
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
