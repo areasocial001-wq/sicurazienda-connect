@@ -374,6 +374,10 @@ export default function CRMContactDetail() {
               {aiProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Brain className="h-4 w-4 mr-2" />}
               Analizza
             </Button>
+            <Button variant="outline" onClick={() => setShowAppointmentDialog(true)}>
+              <CalendarPlus className="h-4 w-4 mr-2" />
+              Crea Appuntamento
+            </Button>
             <Button onClick={() => setShowEditDialog(true)}>
               <Edit className="h-4 w-4 mr-2" />
               Modifica
