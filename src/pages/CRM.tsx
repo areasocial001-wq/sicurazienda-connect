@@ -61,6 +61,7 @@ import { CRMLocationsImport } from '@/components/CRMLocationsImport';
 import { AIContactAutoFill } from '@/components/AIContactAutoFill';
 import { CRMDataCleanup } from '@/components/CRMDataCleanup';
 import { CRMLegacyDataImport } from '@/components/CRMLegacyDataImport';
+import { validateContactFields } from '@/lib/crmValidators';
 
 const statusColors: Record<string, string> = {
   lead: 'bg-blue-500/20 text-blue-700 border-blue-500/30',
@@ -219,6 +220,16 @@ export default function CRM() {
   };
 
   const handleAddContact = async () => {
+    const errors = validateContactFields({
+      pec: newContact.pec,
+      sdi_code: newContact.sdi_code,
+      vat_number: newContact.vat_number,
+      fiscal_code: newContact.fiscal_code,
+    });
+    if (errors.length > 0) {
+      toast.error(errors.map(e => `${e.field}: ${e.message}`).join('\n'));
+      return;
+    }
     const created = await addContact(newContact);
     if (created && operationalAddress.trim()) {
       try {

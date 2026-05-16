@@ -45,6 +45,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useUserRole } from '@/hooks/useUserRole';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { validateContactFields } from '@/lib/crmValidators';
 
 const statusColors: Record<string, string> = {
   lead: 'bg-blue-500/20 text-blue-700 border-blue-500/30',
@@ -95,6 +96,7 @@ export default function CRMContactDetail() {
     name: '',
     email: '',
     phone: '',
+    mobile: '',
     company: '',
     role: '',
     status: 'lead' as 'lead' | 'prospect' | 'client' | 'inactive',
@@ -106,7 +108,11 @@ export default function CRMContactDetail() {
     fiscal_code: '',
     pec: '',
     sdi_code: '',
+    ateco_code: '',
+    technical_consultant: '',
   });
+  const [operationalAddress, setOperationalAddress] = useState('');
+  const [operationalLocationId, setOperationalLocationId] = useState<string | null>(null);
 
   const [newInteraction, setNewInteraction] = useState({
     type: 'note' as 'call' | 'email' | 'meeting' | 'note' | 'task',
@@ -139,6 +145,7 @@ export default function CRMContactDetail() {
         name: data.name || '',
         email: data.email || '',
         phone: data.phone || '',
+        mobile: (data as any).mobile || '',
         company: data.company || '',
         role: data.role || '',
         status: validStatus,
@@ -150,7 +157,18 @@ export default function CRMContactDetail() {
         fiscal_code: (data as any).fiscal_code || '',
         pec: (data as any).pec || '',
         sdi_code: (data as any).sdi_code || '',
+        ateco_code: (data as any).ateco_code || '',
+        technical_consultant: (data as any).technical_consultant || '',
       });
+      // Carica sede operativa principale (la prima trovata con location_type='operativa')
+      const { data: locs } = await supabase
+        .from('crm_locations')
+        .select('id, address, location_type')
+        .eq('contact_id', id)
+        .order('created_at', { ascending: true });
+      const op = (locs || []).find((l: any) => l.location_type === 'operativa');
+      setOperationalLocationId(op?.id || null);
+      setOperationalAddress(op?.address || '');
     } catch (error) {
       console.error('Error fetching contact:', error);
       toast.error('Errore nel caricamento del contatto');
@@ -167,8 +185,39 @@ export default function CRMContactDetail() {
 
   const handleUpdateContact = async () => {
     if (!id) return;
+    const errors = validateContactFields({
+      pec: editForm.pec,
+      sdi_code: editForm.sdi_code,
+      vat_number: editForm.vat_number,
+      fiscal_code: editForm.fiscal_code,
+    });
+    if (errors.length > 0) {
+      toast.error(errors.map(e => `${e.field}: ${e.message}`).join('\n'));
+      return;
+    }
     const success = await updateContact(id, editForm);
     if (success) {
+      // Salva/aggiorna sede operativa
+      const trimmed = operationalAddress.trim();
+      try {
+        if (operationalLocationId) {
+          if (trimmed) {
+            await supabase.from('crm_locations').update({ address: trimmed }).eq('id', operationalLocationId);
+          } else {
+            await supabase.from('crm_locations').delete().eq('id', operationalLocationId);
+          }
+        } else if (trimmed && user) {
+          await supabase.from('crm_locations').insert({
+            contact_id: id,
+            user_id: user.id,
+            name: 'Sede operativa',
+            location_type: 'operativa',
+            address: trimmed,
+          });
+        }
+      } catch (e) {
+        console.error('Errore salvataggio sede operativa:', e);
+      }
       setShowEditDialog(false);
       fetchContact();
     }
@@ -244,6 +293,7 @@ export default function CRMContactDetail() {
                 {statusLabels[contact.status]}
               </Badge>
             </div>
+          <p className="text-xs text-muted-foreground">Datore di Lavoro / Referente</p>
             {contact.company && (
               <p className="text-muted-foreground flex items-center gap-1">
                 <Building className="h-4 w-4" />
@@ -338,6 +388,14 @@ export default function CRMContactDetail() {
                       </a>
                     </div>
                   )}
+                  {(contact as any).mobile && (
+                    <div className="flex items-center gap-3">
+                      <Phone className="h-4 w-4 text-muted-foreground" />
+                      <a href={`tel:${(contact as any).mobile}`} className="hover:underline">
+                        {(contact as any).mobile} <span className="text-xs text-muted-foreground">(cellulare)</span>
+                      </a>
+                    </div>
+                  )}
                   {contact.role && (
                     <div className="flex items-center gap-3">
                       <User className="h-4 w-4 text-muted-foreground" />
@@ -347,7 +405,13 @@ export default function CRMContactDetail() {
                   {(contact as any).address && (
                     <div className="flex items-center gap-3">
                       <MapPin className="h-4 w-4 text-muted-foreground" />
-                      <span>{(contact as any).address}</span>
+                      <span><span className="text-xs text-muted-foreground">Sede legale:</span> {(contact as any).address}</span>
+                    </div>
+                  )}
+                  {operationalAddress && (
+                    <div className="flex items-center gap-3">
+                      <MapPin className="h-4 w-4 text-muted-foreground" />
+                      <span><span className="text-xs text-muted-foreground">Sede operativa:</span> {operationalAddress}</span>
                     </div>
                   )}
                   {(contact as any).website && (
@@ -398,6 +462,18 @@ export default function CRMContactDetail() {
                     <div>
                       <span className="text-sm text-muted-foreground">Codice SDI</span>
                       <p className="font-medium">{(contact as any).sdi_code}</p>
+                    </div>
+                  )}
+                  {(contact as any).ateco_code && (
+                    <div>
+                      <span className="text-sm text-muted-foreground">Codice ATECO</span>
+                      <p className="font-medium">{(contact as any).ateco_code}</p>
+                    </div>
+                  )}
+                  {(contact as any).technical_consultant && (
+                    <div>
+                      <span className="text-sm text-muted-foreground">CT di riferimento</span>
+                      <p className="font-medium">{(contact as any).technical_consultant}</p>
                     </div>
                   )}
                   {contact.source && (
@@ -579,7 +655,7 @@ export default function CRMContactDetail() {
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label>Nome *</Label>
+                  <Label>Datore di Lavoro / Referente *</Label>
                   <Input 
                     value={editForm.name} 
                     onChange={(e) => setEditForm({...editForm, name: e.target.value})}
@@ -603,7 +679,7 @@ export default function CRMContactDetail() {
                   </Select>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div>
                   <Label>Email</Label>
                   <Input 
@@ -617,6 +693,13 @@ export default function CRMContactDetail() {
                   <Input 
                     value={editForm.phone} 
                     onChange={(e) => setEditForm({...editForm, phone: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <Label>Cellulare</Label>
+                  <Input
+                    value={editForm.mobile}
+                    onChange={(e) => setEditForm({...editForm, mobile: e.target.value})}
                   />
                 </div>
               </div>
@@ -672,11 +755,36 @@ export default function CRMContactDetail() {
                   />
                 </div>
               </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Codice ATECO</Label>
+                  <Input
+                    value={editForm.ateco_code}
+                    onChange={(e) => setEditForm({...editForm, ateco_code: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <Label>CT di riferimento</Label>
+                  <Input
+                    value={editForm.technical_consultant}
+                    onChange={(e) => setEditForm({...editForm, technical_consultant: e.target.value})}
+                    placeholder="Consulente tecnico"
+                  />
+                </div>
+              </div>
               <div>
-                <Label>Indirizzo</Label>
+                <Label>Indirizzo sede legale</Label>
                 <Input 
                   value={editForm.address} 
                   onChange={(e) => setEditForm({...editForm, address: e.target.value})}
+                />
+              </div>
+              <div>
+                <Label>Indirizzo sede operativa</Label>
+                <Input
+                  value={operationalAddress}
+                  onChange={(e) => setOperationalAddress(e.target.value)}
+                  placeholder="Via, Civico, CAP, Città"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
