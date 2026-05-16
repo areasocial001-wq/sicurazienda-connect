@@ -1166,6 +1166,17 @@ export default function CRMContactDetail() {
             </div>
           </DialogContent>
         </Dialog>
+
+        <CreateAppointmentDialog
+          open={showAppointmentDialog}
+          onOpenChange={setShowAppointmentDialog}
+          contactId={contact.id}
+          contactName={contact.name}
+          contactCompany={contact.company || undefined}
+          contactEmail={contact.email || undefined}
+          contactPhone={(contact as any).mobile || contact.phone || undefined}
+          defaultLocation={[(contact as any).address, (contact as any).city, (contact as any).province].filter(Boolean).join(', ')}
+        />
       </main>
 
       <BottomNav />
