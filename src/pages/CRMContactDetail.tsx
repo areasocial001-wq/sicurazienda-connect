@@ -47,6 +47,8 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { validateContactFields } from '@/lib/crmValidators';
 import { AIContactAutoFill } from '@/components/AIContactAutoFill';
+import { CreateAppointmentDialog } from '@/components/crm/CreateAppointmentDialog';
+import { CalendarPlus } from 'lucide-react';
 
 const statusColors: Record<string, string> = {
   lead: 'bg-blue-500/20 text-blue-700 border-blue-500/30',
@@ -90,6 +92,7 @@ export default function CRMContactDetail() {
   const [loading, setLoading] = useState(true);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showInteractionDialog, setShowInteractionDialog] = useState(false);
+  const [showAppointmentDialog, setShowAppointmentDialog] = useState(false);
   const [aiInsights, setAiInsights] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('info');
   
@@ -104,6 +107,9 @@ export default function CRMContactDetail() {
     source: '',
     notes: '',
     address: '',
+    postal_code: '',
+    city: '',
+    province: '',
     website: '',
     vat_number: '',
     fiscal_code: '',
@@ -131,6 +137,9 @@ export default function CRMContactDetail() {
     internal_registration_date: '',
   });
   const [operationalAddress, setOperationalAddress] = useState('');
+  const [operationalPostalCode, setOperationalPostalCode] = useState('');
+  const [operationalCity, setOperationalCity] = useState('');
+  const [operationalProvince, setOperationalProvince] = useState('');
   const [operationalLocationId, setOperationalLocationId] = useState<string | null>(null);
 
   const [newInteraction, setNewInteraction] = useState({
@@ -171,6 +180,9 @@ export default function CRMContactDetail() {
         source: data.source || '',
         notes: data.notes || '',
         address: (data as any).address || '',
+        postal_code: (data as any).postal_code || '',
+        city: (data as any).city || '',
+        province: (data as any).province || '',
         website: (data as any).website || '',
         vat_number: (data as any).vat_number || '',
         fiscal_code: (data as any).fiscal_code || '',
@@ -200,12 +212,15 @@ export default function CRMContactDetail() {
       // Carica sede operativa principale (la prima trovata con location_type='operativa')
       const { data: locs } = await supabase
         .from('crm_locations')
-        .select('id, address, location_type')
+        .select('id, address, postal_code, city, province, location_type')
         .eq('contact_id', id)
         .order('created_at', { ascending: true });
       const op = (locs || []).find((l: any) => l.location_type === 'operativa');
       setOperationalLocationId(op?.id || null);
       setOperationalAddress(op?.address || '');
+      setOperationalPostalCode(op?.postal_code || '');
+      setOperationalCity(op?.city || '');
+      setOperationalProvince(op?.province || '');
     } catch (error) {
       console.error('Error fetching contact:', error);
       toast.error('Errore nel caricamento del contatto');
