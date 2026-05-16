@@ -260,20 +260,27 @@ export default function CRMContactDetail() {
     if (success) {
       // Salva/aggiorna sede operativa
       const trimmed = operationalAddress.trim();
+      const opPayload: any = {
+        address: trimmed || null,
+        postal_code: operationalPostalCode.trim() || null,
+        city: operationalCity.trim() || null,
+        province: operationalProvince.trim().toUpperCase().slice(0, 2) || null,
+      };
+      const hasAnyOp = !!(trimmed || opPayload.postal_code || opPayload.city || opPayload.province);
       try {
         if (operationalLocationId) {
-          if (trimmed) {
-            await supabase.from('crm_locations').update({ address: trimmed }).eq('id', operationalLocationId);
+          if (hasAnyOp) {
+            await supabase.from('crm_locations').update(opPayload).eq('id', operationalLocationId);
           } else {
             await supabase.from('crm_locations').delete().eq('id', operationalLocationId);
           }
-        } else if (trimmed && user) {
+        } else if (hasAnyOp && user) {
           await supabase.from('crm_locations').insert({
             contact_id: id,
             user_id: user.id,
             name: 'Sede operativa',
             location_type: 'operativa',
-            address: trimmed,
+            ...opPayload,
           });
         }
       } catch (e) {
