@@ -199,7 +199,7 @@ Per ogni item fornisci:
 - Azione consigliata
 - Tempo stimato per completare`;
     }
-    else if (action === "extract_contact" && data.text) {
+    else if (action === "extract_contact" && (data.text || data.pdfBase64)) {
       systemPrompt = `Sei un esperto nell'estrazione di dati anagrafici aziendali da Visure camerali italiane (Registro Imprese / Camera di Commercio), email, biglietti da visita e note.
 
 REGOLE FONDAMENTALI:
@@ -255,7 +255,11 @@ Schema JSON richiesto:
   "exemption_amount": importo_esenzione_numero,
   "notes": "Altre info rilevanti non mappabili"
 }`;
-      userMessage = `Estrai TUTTI i dati anagrafici e contabili dal seguente testo (è probabilmente una Visura camerale italiana). Restituisci SOLO il JSON con tutti i campi compilati per quanto possibile:\n\n${data.text}`;
+      if (data.pdfBase64) {
+        userMessage = `Estrai TUTTI i dati anagrafici e contabili da questa Visura camerale italiana (PDF allegato, potrebbe essere scansionato: usa OCR). Restituisci SOLO il JSON con tutti i campi compilati per quanto possibile.`;
+      } else {
+        userMessage = `Estrai TUTTI i dati anagrafici e contabili dal seguente testo (è probabilmente una Visura camerale italiana). Restituisci SOLO il JSON con tutti i campi compilati per quanto possibile:\n\n${data.text}`;
+      }
     }
     else if (action === "cleanup_data" && data.contacts) {
       systemPrompt = `Sei un assistente per la pulizia e normalizzazione di dati CRM aziendali italiani.
@@ -293,7 +297,18 @@ Cerca: duplicati per nome/email/P.IVA simili, numeri di telefono non formattati,
         model: action === "extract_contact" ? "google/gemini-2.5-pro" : "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: systemPrompt },
-          { role: "user", content: userMessage },
+          action === "extract_contact" && data.pdfBase64
+            ? {
+                role: "user",
+                content: [
+                  { type: "text", text: userMessage },
+                  {
+                    type: "image_url",
+                    image_url: { url: `data:application/pdf;base64,${data.pdfBase64}` },
+                  },
+                ],
+              }
+            : { role: "user", content: userMessage },
         ],
         ...(action === "extract_contact" ? { response_format: { type: "json_object" }, max_tokens: 4096 } : {}),
       }),
