@@ -96,11 +96,23 @@ export function AIContactAutoFill({ onExtracted }: AIContactAutoFillProps) {
       const buf = await file.arrayBuffer();
       const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
       let fullText = '';
-      const maxPages = Math.min(pdf.numPages, 20);
+      const maxPages = Math.min(pdf.numPages, 40);
       for (let i = 1; i <= maxPages; i++) {
         const page = await pdf.getPage(i);
         const content = await page.getTextContent();
-        const pageText = content.items.map((it: any) => it.str).join(' ');
+        // Raggruppa per riga usando la coordinata Y per preservare la struttura
+        const lines = new Map<number, string[]>();
+        for (const it of content.items as any[]) {
+          if (!it.str) continue;
+          const y = Math.round(it.transform?.[5] ?? 0);
+          if (!lines.has(y)) lines.set(y, []);
+          lines.get(y)!.push(it.str);
+        }
+        const sortedY = Array.from(lines.keys()).sort((a, b) => b - a);
+        const pageText = sortedY
+          .map((y) => lines.get(y)!.join(' ').replace(/\s+/g, ' ').trim())
+          .filter(Boolean)
+          .join('\n');
         fullText += `\n\n--- Pagina ${i} ---\n${pageText}`;
       }
       if (!fullText.trim()) {

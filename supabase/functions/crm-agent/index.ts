@@ -200,11 +200,25 @@ Per ogni item fornisci:
 - Tempo stimato per completare`;
     }
     else if (action === "extract_contact" && data.text) {
-      systemPrompt = `Sei un assistente per l'estrazione di dati anagrafici aziendali da testi non strutturati (email, biglietti da visita, note, Visure camerali italiane).
+      systemPrompt = `Sei un esperto nell'estrazione di dati anagrafici aziendali da Visure camerali italiane (Registro Imprese / Camera di Commercio), email, biglietti da visita e note.
 
-Estrai TUTTI i dati trovati nel testo e rispondi SOLO con un JSON valido con questi campi (usa null se non trovato).
-Per le date usa formato YYYY-MM-DD. Per importi numerici usa solo numeri (no simbolo €).
-Per "company" usa la ragione sociale completa. Per "name" il datore di lavoro / legale rappresentante / referente.
+REGOLE FONDAMENTALI:
+- Leggi TUTTO il testo, anche se lungo o disordinato (le Visure hanno molte pagine).
+- Estrai OGNI campo presente, anche se l'etichetta è abbreviata o in maiuscolo.
+- Per le date converti sempre in formato ISO YYYY-MM-DD (es. "15/03/2020" -> "2020-03-15").
+- Per gli importi usa solo numeri senza separatori né simboli (es. "€ 1.500,00" -> 1500).
+- Per "company" usa la ragione sociale completa (incluso SRL/SPA/SAS).
+- Per "name" usa il nome del legale rappresentante / amministratore unico / titolare / datore di lavoro.
+- Per "legal_form" usa la forma abbreviata: SRL, SPA, SAS, SNC, SS, SRLS, Ditta Individuale, etc.
+- "rea_number" è nel formato "PROVINCIA-NUMERO" (es. "MI-1234567").
+- "vat_number" è la Partita IVA italiana (11 cifre).
+- "fiscal_code" è il codice fiscale (16 caratteri per persone, 11 per aziende).
+- "ateco_code" è il codice di attività economica (es. "62.01.00").
+- "partners_count" è il numero di soci come intero.
+- Se un campo non è presente usa null (NON inventare valori).
+- Rispondi SOLO con il JSON, senza testo prima o dopo, senza markdown fences.
+
+Schema JSON richiesto:
 {
   "name": "Nome e Cognome del Datore di Lavoro / Referente",
   "email": "email aziendale",
@@ -241,7 +255,7 @@ Per "company" usa la ragione sociale completa. Per "name" il datore di lavoro / 
   "exemption_amount": importo_esenzione_numero,
   "notes": "Altre info rilevanti non mappabili"
 }`;
-      userMessage = `Estrai i dati dal seguente testo (può essere una Visura camerale italiana):\n\n${data.text}`;
+      userMessage = `Estrai TUTTI i dati anagrafici e contabili dal seguente testo (è probabilmente una Visura camerale italiana). Restituisci SOLO il JSON con tutti i campi compilati per quanto possibile:\n\n${data.text}`;
     }
     else if (action === "cleanup_data" && data.contacts) {
       systemPrompt = `Sei un assistente per la pulizia e normalizzazione di dati CRM aziendali italiani.
@@ -276,11 +290,12 @@ Cerca: duplicati per nome/email/P.IVA simili, numeri di telefono non formattati,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: action === "extract_contact" ? "google/gemini-2.5-pro" : "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userMessage },
         ],
+        ...(action === "extract_contact" ? { response_format: { type: "json_object" }, max_tokens: 4096 } : {}),
       }),
     });
 
