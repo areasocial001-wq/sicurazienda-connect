@@ -1025,15 +1025,68 @@ export default function CRMContactDetail() {
                 <Input 
                   value={editForm.address} 
                   onChange={(e) => setEditForm({...editForm, address: e.target.value})}
+                  placeholder="Via e civico"
                 />
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <Label>CAP (legale)</Label>
+                  <Input
+                    value={editForm.postal_code}
+                    onChange={(e) => setEditForm({...editForm, postal_code: e.target.value})}
+                    maxLength={5}
+                  />
+                </div>
+                <div>
+                  <Label>Città (legale)</Label>
+                  <Input
+                    value={editForm.city}
+                    onChange={(e) => setEditForm({...editForm, city: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <Label>Prov. (legale)</Label>
+                  <Input
+                    value={editForm.province}
+                    onChange={(e) => setEditForm({...editForm, province: e.target.value.toUpperCase().slice(0, 2)})}
+                    maxLength={2}
+                    placeholder="MI"
+                  />
+                </div>
               </div>
               <div>
                 <Label>Indirizzo sede operativa</Label>
                 <Input
                   value={operationalAddress}
                   onChange={(e) => setOperationalAddress(e.target.value)}
-                  placeholder="Via, Civico, CAP, Città"
+                  placeholder="Via e civico"
                 />
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <Label>CAP (operativa)</Label>
+                  <Input
+                    value={operationalPostalCode}
+                    onChange={(e) => setOperationalPostalCode(e.target.value)}
+                    maxLength={5}
+                  />
+                </div>
+                <div>
+                  <Label>Città (operativa)</Label>
+                  <Input
+                    value={operationalCity}
+                    onChange={(e) => setOperationalCity(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label>Prov. (operativa)</Label>
+                  <Input
+                    value={operationalProvince}
+                    onChange={(e) => setOperationalProvince(e.target.value.toUpperCase().slice(0, 2))}
+                    maxLength={2}
+                    placeholder="MI"
+                  />
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
