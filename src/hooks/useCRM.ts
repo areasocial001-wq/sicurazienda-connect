@@ -30,6 +30,9 @@ export interface CRMContact {
   fiscal_code?: string | null;
   pec?: string | null;
   sdi_code?: string | null;
+  mobile?: string | null;
+  technical_consultant?: string | null;
+  ateco_code?: string | null;
 }
 
 export interface CRMInteraction {

@@ -753,6 +753,7 @@ export type Database = {
           last_contact_at: string | null
           legal_form: string | null
           legal_name: string | null
+          mobile: string | null
           name: string
           next_followup_at: string | null
           notes: string | null
@@ -769,6 +770,7 @@ export type Database = {
           source: string | null
           status: string
           tags: string[] | null
+          technical_consultant: string | null
           updated_at: string
           user_id: string
           vat_number: string | null
@@ -792,6 +794,7 @@ export type Database = {
           last_contact_at?: string | null
           legal_form?: string | null
           legal_name?: string | null
+          mobile?: string | null
           name: string
           next_followup_at?: string | null
           notes?: string | null
@@ -808,6 +811,7 @@ export type Database = {
           source?: string | null
           status?: string
           tags?: string[] | null
+          technical_consultant?: string | null
           updated_at?: string
           user_id: string
           vat_number?: string | null
@@ -831,6 +835,7 @@ export type Database = {
           last_contact_at?: string | null
           legal_form?: string | null
           legal_name?: string | null
+          mobile?: string | null
           name?: string
           next_followup_at?: string | null
           notes?: string | null
@@ -847,6 +852,7 @@ export type Database = {
           source?: string | null
           status?: string
           tags?: string[] | null
+          technical_consultant?: string | null
           updated_at?: string
           user_id?: string
           vat_number?: string | null
