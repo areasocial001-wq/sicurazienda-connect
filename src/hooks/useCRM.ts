@@ -33,6 +33,24 @@ export interface CRMContact {
   mobile?: string | null;
   technical_consultant?: string | null;
   ateco_code?: string | null;
+  cdl_reference?: string | null;
+  fondo_appartenenza?: string | null;
+  segnalatore_name?: string | null;
+  referente_email?: string | null;
+  referente_phone?: string | null;
+  referente_mobile?: string | null;
+  payment_method?: string | null;
+  payment_terms?: string | null;
+  rea_number?: string | null;
+  partners_count?: number | null;
+  legal_form?: string | null;
+  activity_start_date?: string | null;
+  exemption_number?: string | null;
+  exemption_issue_date?: string | null;
+  exemption_valid_until?: string | null;
+  exemption_amount?: number | null;
+  internal_registration_number?: string | null;
+  internal_registration_date?: string | null;
 }
 
 export interface CRMInteraction {
