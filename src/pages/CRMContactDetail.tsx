@@ -293,6 +293,7 @@ export default function CRMContactDetail() {
                 {statusLabels[contact.status]}
               </Badge>
             </div>
+          <p className="text-xs text-muted-foreground">Datore di Lavoro / Referente</p>
             {contact.company && (
               <p className="text-muted-foreground flex items-center gap-1">
                 <Building className="h-4 w-4" />
@@ -387,6 +388,14 @@ export default function CRMContactDetail() {
                       </a>
                     </div>
                   )}
+                  {(contact as any).mobile && (
+                    <div className="flex items-center gap-3">
+                      <Phone className="h-4 w-4 text-muted-foreground" />
+                      <a href={`tel:${(contact as any).mobile}`} className="hover:underline">
+                        {(contact as any).mobile} <span className="text-xs text-muted-foreground">(cellulare)</span>
+                      </a>
+                    </div>
+                  )}
                   {contact.role && (
                     <div className="flex items-center gap-3">
                       <User className="h-4 w-4 text-muted-foreground" />
@@ -396,7 +405,13 @@ export default function CRMContactDetail() {
                   {(contact as any).address && (
                     <div className="flex items-center gap-3">
                       <MapPin className="h-4 w-4 text-muted-foreground" />
-                      <span>{(contact as any).address}</span>
+                      <span><span className="text-xs text-muted-foreground">Sede legale:</span> {(contact as any).address}</span>
+                    </div>
+                  )}
+                  {operationalAddress && (
+                    <div className="flex items-center gap-3">
+                      <MapPin className="h-4 w-4 text-muted-foreground" />
+                      <span><span className="text-xs text-muted-foreground">Sede operativa:</span> {operationalAddress}</span>
                     </div>
                   )}
                   {(contact as any).website && (
@@ -447,6 +462,18 @@ export default function CRMContactDetail() {
                     <div>
                       <span className="text-sm text-muted-foreground">Codice SDI</span>
                       <p className="font-medium">{(contact as any).sdi_code}</p>
+                    </div>
+                  )}
+                  {(contact as any).ateco_code && (
+                    <div>
+                      <span className="text-sm text-muted-foreground">Codice ATECO</span>
+                      <p className="font-medium">{(contact as any).ateco_code}</p>
+                    </div>
+                  )}
+                  {(contact as any).technical_consultant && (
+                    <div>
+                      <span className="text-sm text-muted-foreground">CT di riferimento</span>
+                      <p className="font-medium">{(contact as any).technical_consultant}</p>
                     </div>
                   )}
                   {contact.source && (
