@@ -1,0 +1,17 @@
+ALTER TABLE public.crm_contacts
+  ADD COLUMN IF NOT EXISTS cdl_reference text,
+  ADD COLUMN IF NOT EXISTS fondo_appartenenza text,
+  ADD COLUMN IF NOT EXISTS segnalatore_name text,
+  ADD COLUMN IF NOT EXISTS referente_email text,
+  ADD COLUMN IF NOT EXISTS referente_phone text,
+  ADD COLUMN IF NOT EXISTS referente_mobile text,
+  ADD COLUMN IF NOT EXISTS payment_method text,
+  ADD COLUMN IF NOT EXISTS payment_terms text,
+  ADD COLUMN IF NOT EXISTS rea_number text,
+  ADD COLUMN IF NOT EXISTS partners_count integer,
+  ADD COLUMN IF NOT EXISTS exemption_number text,
+  ADD COLUMN IF NOT EXISTS exemption_issue_date date,
+  ADD COLUMN IF NOT EXISTS exemption_valid_until date,
+  ADD COLUMN IF NOT EXISTS exemption_amount numeric,
+  ADD COLUMN IF NOT EXISTS internal_registration_number text,
+  ADD COLUMN IF NOT EXISTS internal_registration_date date;
