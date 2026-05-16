@@ -772,12 +772,73 @@ export default function CRM() {
                         />
                       </div>
                     </div>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div>
+                        <Label>Email aziendale</Label>
+                        <Input type="email" value={newContact.email}
+                          onChange={(e) => setNewContact({...newContact, email: e.target.value})} />
+                      </div>
+                      <div>
+                        <Label>Telefono aziendale</Label>
+                        <Input value={newContact.phone}
+                          onChange={(e) => setNewContact({...newContact, phone: e.target.value})} />
+                      </div>
+                      <div>
+                        <Label>Cellulare aziendale</Label>
+                        <Input value={newContact.mobile}
+                          onChange={(e) => setNewContact({...newContact, mobile: e.target.value})} />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label>Natura Giuridica</Label>
+                        <Input value={newContact.legal_form}
+                          onChange={(e) => setNewContact({...newContact, legal_form: e.target.value})}
+                          placeholder="SRL, SAS, SNC, Ditta Individuale..." />
+                      </div>
+                      <div>
+                        <Label>REA</Label>
+                        <Input value={newContact.rea_number}
+                          onChange={(e) => setNewContact({...newContact, rea_number: e.target.value})}
+                          placeholder="MI-1234567" />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label>Data inizio attività</Label>
+                        <Input type="date" value={newContact.activity_start_date}
+                          onChange={(e) => setNewContact({...newContact, activity_start_date: e.target.value})} />
+                      </div>
+                      <div>
+                        <Label>Numero Soci</Label>
+                        <Input type="number" min="0" value={newContact.partners_count}
+                          onChange={(e) => setNewContact({...newContact, partners_count: e.target.value})} />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div>
+                        <Label>CDL di riferimento</Label>
+                        <Input value={newContact.cdl_reference}
+                          onChange={(e) => setNewContact({...newContact, cdl_reference: e.target.value})}
+                          placeholder="Consulente del Lavoro" />
+                      </div>
+                      <div>
+                        <Label>Fondo di appartenenza</Label>
+                        <Input value={newContact.fondo_appartenenza}
+                          onChange={(e) => setNewContact({...newContact, fondo_appartenenza: e.target.value})} />
+                      </div>
+                      <div>
+                        <Label>Nominativo Segnalatore</Label>
+                        <Input value={newContact.segnalatore_name}
+                          onChange={(e) => setNewContact({...newContact, segnalatore_name: e.target.value})} />
+                      </div>
+                    </div>
                   </div>
 
                   <div className="space-y-2">
                     <h3 className="text-sm font-semibold text-muted-foreground border-b pb-1">Datore di Lavoro / Referente</h3>
                     <div>
-                      <Label>Datore di Lavoro / Referente *</Label>
+                      <Label>Nome e Cognome *</Label>
                       <Input
                         value={newContact.name}
                         onChange={(e) => setNewContact({...newContact, name: e.target.value})}
@@ -786,29 +847,113 @@ export default function CRM() {
                     </div>
                     <div className="grid grid-cols-3 gap-4">
                       <div>
-                        <Label>Email</Label>
+                        <Label>Email referente</Label>
                         <Input
                           type="email"
-                          value={newContact.email}
-                          onChange={(e) => setNewContact({...newContact, email: e.target.value})}
+                          value={newContact.referente_email}
+                          onChange={(e) => setNewContact({...newContact, referente_email: e.target.value})}
                         />
                       </div>
                       <div>
-                        <Label>Telefono</Label>
+                        <Label>Telefono referente</Label>
                         <Input
-                          value={newContact.phone}
-                          onChange={(e) => setNewContact({...newContact, phone: e.target.value})}
+                          value={newContact.referente_phone}
+                          onChange={(e) => setNewContact({...newContact, referente_phone: e.target.value})}
                         />
                       </div>
                       <div>
-                        <Label>Cellulare</Label>
+                        <Label>Cellulare referente</Label>
                         <Input
-                          value={newContact.mobile}
-                          onChange={(e) => setNewContact({...newContact, mobile: e.target.value})}
+                          value={newContact.referente_mobile}
+                          onChange={(e) => setNewContact({...newContact, referente_mobile: e.target.value})}
                         />
                       </div>
                     </div>
                   </div>
+
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-semibold text-muted-foreground border-b pb-1">Dati contabili</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label>Modalità pagamento</Label>
+                        <Select value={newContact.payment_method || undefined}
+                          onValueChange={(v) => setNewContact({...newContact, payment_method: v})}>
+                          <SelectTrigger><SelectValue placeholder="Seleziona..." /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Bonifico">Bonifico</SelectItem>
+                            <SelectItem value="Riba">Riba</SelectItem>
+                            <SelectItem value="RID">RID / SDD</SelectItem>
+                            <SelectItem value="Rimessa diretta">Rimessa diretta</SelectItem>
+                            <SelectItem value="Carta di credito">Carta di credito</SelectItem>
+                            <SelectItem value="Contanti">Contanti</SelectItem>
+                            <SelectItem value="Assegno">Assegno</SelectItem>
+                            <SelectItem value="PayPal">PayPal</SelectItem>
+                            <SelectItem value="Altro">Altro</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label>Termini di pagamento</Label>
+                        <Select value={newContact.payment_terms || undefined}
+                          onValueChange={(v) => setNewContact({...newContact, payment_terms: v})}>
+                          <SelectTrigger><SelectValue placeholder="Seleziona..." /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Data fattura">Data fattura</SelectItem>
+                            <SelectItem value="Fine mese">Fine mese</SelectItem>
+                            <SelectItem value="30 gg data fattura">30 gg data fattura</SelectItem>
+                            <SelectItem value="30 gg fine mese">30 gg fine mese</SelectItem>
+                            <SelectItem value="60 gg data fattura">60 gg data fattura</SelectItem>
+                            <SelectItem value="60 gg fine mese">60 gg fine mese</SelectItem>
+                            <SelectItem value="90 gg data fattura">90 gg data fattura</SelectItem>
+                            <SelectItem value="90 gg fine mese">90 gg fine mese</SelectItem>
+                            <SelectItem value="Anticipato">Anticipato</SelectItem>
+                            <SelectItem value="Altro">Altro</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div className="border-t pt-2 mt-2">
+                      <p className="text-xs font-medium text-muted-foreground mb-2">Esenzione</p>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label>N° Esenzione</Label>
+                          <Input value={newContact.exemption_number}
+                            onChange={(e) => setNewContact({...newContact, exemption_number: e.target.value})} />
+                        </div>
+                        <div>
+                          <Label>Importo</Label>
+                          <Input type="number" step="0.01" value={newContact.exemption_amount}
+                            onChange={(e) => setNewContact({...newContact, exemption_amount: e.target.value})} />
+                        </div>
+                        <div>
+                          <Label>Data emissione</Label>
+                          <Input type="date" value={newContact.exemption_issue_date}
+                            onChange={(e) => setNewContact({...newContact, exemption_issue_date: e.target.value})} />
+                        </div>
+                        <div>
+                          <Label>Validità fino al</Label>
+                          <Input type="date" value={newContact.exemption_valid_until}
+                            onChange={(e) => setNewContact({...newContact, exemption_valid_until: e.target.value})} />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="border-t pt-2 mt-2">
+                      <p className="text-xs font-medium text-muted-foreground mb-2">Registrazione interna</p>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label>N° registrazione</Label>
+                          <Input value={newContact.internal_registration_number}
+                            onChange={(e) => setNewContact({...newContact, internal_registration_number: e.target.value})} />
+                        </div>
+                        <div>
+                          <Label>Data registrazione</Label>
+                          <Input type="date" value={newContact.internal_registration_date}
+                            onChange={(e) => setNewContact({...newContact, internal_registration_date: e.target.value})} />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label>Stato</Label>
