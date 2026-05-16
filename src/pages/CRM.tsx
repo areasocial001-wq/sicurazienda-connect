@@ -107,13 +107,22 @@ export default function CRM() {
     name: '',
     email: '',
     phone: '',
+    mobile: '',
     company: '',
     role: '',
     status: 'lead' as const,
     source: '',
     notes: '',
     tags: [] as string[],
+    address: '',
+    pec: '',
+    vat_number: '',
+    fiscal_code: '',
+    sdi_code: '',
+    ateco_code: '',
+    technical_consultant: '',
   });
+  const [operationalAddress, setOperationalAddress] = useState('');
 
   // Interaction form state
   const [newInteraction, setNewInteraction] = useState({
@@ -210,11 +219,27 @@ export default function CRM() {
   };
 
   const handleAddContact = async () => {
-    await addContact(newContact);
+    const created = await addContact(newContact);
+    if (created && operationalAddress.trim()) {
+      try {
+        await supabase.from('crm_locations').insert({
+          contact_id: created.id,
+          user_id: created.user_id,
+          name: 'Sede operativa',
+          location_type: 'operativa',
+          address: operationalAddress.trim(),
+        });
+      } catch (e) {
+        console.error('Errore salvataggio sede operativa:', e);
+      }
+    }
     setNewContact({
-      name: '', email: '', phone: '', company: '', 
-      role: '', status: 'lead', source: '', notes: '', tags: []
+      name: '', email: '', phone: '', mobile: '', company: '',
+      role: '', status: 'lead', source: '', notes: '', tags: [],
+      address: '', pec: '', vat_number: '', fiscal_code: '',
+      sdi_code: '', ateco_code: '', technical_consultant: '',
     });
+    setOperationalAddress('');
     setShowAddDialog(false);
   };
 
