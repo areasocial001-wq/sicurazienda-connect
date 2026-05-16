@@ -254,7 +254,16 @@ export default function CRM() {
       toast.error(errors.map(e => `${e.field}: ${e.message}`).join('\n'));
       return;
     }
-    const created = await addContact(newContact);
+    const payload: any = {
+      ...newContact,
+      partners_count: newContact.partners_count === '' ? null : Number(newContact.partners_count),
+      exemption_amount: newContact.exemption_amount === '' ? null : Number(newContact.exemption_amount),
+      activity_start_date: newContact.activity_start_date || null,
+      exemption_issue_date: newContact.exemption_issue_date || null,
+      exemption_valid_until: newContact.exemption_valid_until || null,
+      internal_registration_date: newContact.internal_registration_date || null,
+    };
+    const created = await addContact(payload);
     if (created && (operationalAddress.trim() || operationalCity.trim() || operationalPostalCode.trim() || operationalProvince.trim())) {
       try {
         await supabase.from('crm_locations').insert({
@@ -277,6 +286,12 @@ export default function CRM() {
       address: '', postal_code: '', city: '', province: '',
       pec: '', vat_number: '', fiscal_code: '',
       sdi_code: '', ateco_code: '', technical_consultant: '',
+      cdl_reference: '', fondo_appartenenza: '', segnalatore_name: '',
+      referente_email: '', referente_phone: '', referente_mobile: '',
+      payment_method: '', payment_terms: '',
+      rea_number: '', partners_count: '', legal_form: '', activity_start_date: '',
+      exemption_number: '', exemption_issue_date: '', exemption_valid_until: '', exemption_amount: '',
+      internal_registration_number: '', internal_registration_date: '',
     });
     setOperationalAddress('');
     setOperationalPostalCode('');
