@@ -47,6 +47,8 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { validateContactFields } from '@/lib/crmValidators';
 import { AIContactAutoFill } from '@/components/AIContactAutoFill';
+import { CreateAppointmentDialog } from '@/components/crm/CreateAppointmentDialog';
+import { CalendarPlus } from 'lucide-react';
 
 const statusColors: Record<string, string> = {
   lead: 'bg-blue-500/20 text-blue-700 border-blue-500/30',
@@ -90,6 +92,7 @@ export default function CRMContactDetail() {
   const [loading, setLoading] = useState(true);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showInteractionDialog, setShowInteractionDialog] = useState(false);
+  const [showAppointmentDialog, setShowAppointmentDialog] = useState(false);
   const [aiInsights, setAiInsights] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('info');
   
@@ -104,6 +107,9 @@ export default function CRMContactDetail() {
     source: '',
     notes: '',
     address: '',
+    postal_code: '',
+    city: '',
+    province: '',
     website: '',
     vat_number: '',
     fiscal_code: '',
@@ -131,6 +137,9 @@ export default function CRMContactDetail() {
     internal_registration_date: '',
   });
   const [operationalAddress, setOperationalAddress] = useState('');
+  const [operationalPostalCode, setOperationalPostalCode] = useState('');
+  const [operationalCity, setOperationalCity] = useState('');
+  const [operationalProvince, setOperationalProvince] = useState('');
   const [operationalLocationId, setOperationalLocationId] = useState<string | null>(null);
 
   const [newInteraction, setNewInteraction] = useState({
@@ -171,6 +180,9 @@ export default function CRMContactDetail() {
         source: data.source || '',
         notes: data.notes || '',
         address: (data as any).address || '',
+        postal_code: (data as any).postal_code || '',
+        city: (data as any).city || '',
+        province: (data as any).province || '',
         website: (data as any).website || '',
         vat_number: (data as any).vat_number || '',
         fiscal_code: (data as any).fiscal_code || '',
@@ -200,12 +212,15 @@ export default function CRMContactDetail() {
       // Carica sede operativa principale (la prima trovata con location_type='operativa')
       const { data: locs } = await supabase
         .from('crm_locations')
-        .select('id, address, location_type')
+        .select('id, address, postal_code, city, province, location_type')
         .eq('contact_id', id)
         .order('created_at', { ascending: true });
       const op = (locs || []).find((l: any) => l.location_type === 'operativa');
       setOperationalLocationId(op?.id || null);
       setOperationalAddress(op?.address || '');
+      setOperationalPostalCode(op?.postal_code || '');
+      setOperationalCity(op?.city || '');
+      setOperationalProvince(op?.province || '');
     } catch (error) {
       console.error('Error fetching contact:', error);
       toast.error('Errore nel caricamento del contatto');
@@ -245,20 +260,27 @@ export default function CRMContactDetail() {
     if (success) {
       // Salva/aggiorna sede operativa
       const trimmed = operationalAddress.trim();
+      const opPayload: any = {
+        address: trimmed || null,
+        postal_code: operationalPostalCode.trim() || null,
+        city: operationalCity.trim() || null,
+        province: operationalProvince.trim().toUpperCase().slice(0, 2) || null,
+      };
+      const hasAnyOp = !!(trimmed || opPayload.postal_code || opPayload.city || opPayload.province);
       try {
         if (operationalLocationId) {
-          if (trimmed) {
-            await supabase.from('crm_locations').update({ address: trimmed }).eq('id', operationalLocationId);
+          if (hasAnyOp) {
+            await supabase.from('crm_locations').update(opPayload).eq('id', operationalLocationId);
           } else {
             await supabase.from('crm_locations').delete().eq('id', operationalLocationId);
           }
-        } else if (trimmed && user) {
+        } else if (hasAnyOp && user) {
           await supabase.from('crm_locations').insert({
             contact_id: id,
             user_id: user.id,
             name: 'Sede operativa',
             location_type: 'operativa',
-            address: trimmed,
+            ...opPayload,
           });
         }
       } catch (e) {
@@ -351,6 +373,10 @@ export default function CRMContactDetail() {
             <Button variant="outline" onClick={handleAnalyze} disabled={aiProcessing}>
               {aiProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Brain className="h-4 w-4 mr-2" />}
               Analizza
+            </Button>
+            <Button variant="outline" onClick={() => setShowAppointmentDialog(true)}>
+              <CalendarPlus className="h-4 w-4 mr-2" />
+              Crea Appuntamento
             </Button>
             <Button onClick={() => setShowEditDialog(true)}>
               <Edit className="h-4 w-4 mr-2" />
@@ -999,15 +1025,68 @@ export default function CRMContactDetail() {
                 <Input 
                   value={editForm.address} 
                   onChange={(e) => setEditForm({...editForm, address: e.target.value})}
+                  placeholder="Via e civico"
                 />
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <Label>CAP (legale)</Label>
+                  <Input
+                    value={editForm.postal_code}
+                    onChange={(e) => setEditForm({...editForm, postal_code: e.target.value})}
+                    maxLength={5}
+                  />
+                </div>
+                <div>
+                  <Label>Città (legale)</Label>
+                  <Input
+                    value={editForm.city}
+                    onChange={(e) => setEditForm({...editForm, city: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <Label>Prov. (legale)</Label>
+                  <Input
+                    value={editForm.province}
+                    onChange={(e) => setEditForm({...editForm, province: e.target.value.toUpperCase().slice(0, 2)})}
+                    maxLength={2}
+                    placeholder="MI"
+                  />
+                </div>
               </div>
               <div>
                 <Label>Indirizzo sede operativa</Label>
                 <Input
                   value={operationalAddress}
                   onChange={(e) => setOperationalAddress(e.target.value)}
-                  placeholder="Via, Civico, CAP, Città"
+                  placeholder="Via e civico"
                 />
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <Label>CAP (operativa)</Label>
+                  <Input
+                    value={operationalPostalCode}
+                    onChange={(e) => setOperationalPostalCode(e.target.value)}
+                    maxLength={5}
+                  />
+                </div>
+                <div>
+                  <Label>Città (operativa)</Label>
+                  <Input
+                    value={operationalCity}
+                    onChange={(e) => setOperationalCity(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label>Prov. (operativa)</Label>
+                  <Input
+                    value={operationalProvince}
+                    onChange={(e) => setOperationalProvince(e.target.value.toUpperCase().slice(0, 2))}
+                    maxLength={2}
+                    placeholder="MI"
+                  />
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -1087,6 +1166,17 @@ export default function CRMContactDetail() {
             </div>
           </DialogContent>
         </Dialog>
+
+        <CreateAppointmentDialog
+          open={showAppointmentDialog}
+          onOpenChange={setShowAppointmentDialog}
+          contactId={contact.id}
+          contactName={contact.name}
+          contactCompany={contact.company || undefined}
+          contactEmail={contact.email || undefined}
+          contactPhone={(contact as any).mobile || contact.phone || undefined}
+          defaultLocation={[(contact as any).address, (contact as any).city, (contact as any).province].filter(Boolean).join(', ')}
+        />
       </main>
 
       <BottomNav />
