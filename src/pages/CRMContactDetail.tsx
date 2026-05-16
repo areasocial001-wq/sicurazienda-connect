@@ -45,6 +45,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useUserRole } from '@/hooks/useUserRole';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { validateContactFields } from '@/lib/crmValidators';
 
 const statusColors: Record<string, string> = {
   lead: 'bg-blue-500/20 text-blue-700 border-blue-500/30',
@@ -95,6 +96,7 @@ export default function CRMContactDetail() {
     name: '',
     email: '',
     phone: '',
+    mobile: '',
     company: '',
     role: '',
     status: 'lead' as 'lead' | 'prospect' | 'client' | 'inactive',
@@ -106,7 +108,11 @@ export default function CRMContactDetail() {
     fiscal_code: '',
     pec: '',
     sdi_code: '',
+    ateco_code: '',
+    technical_consultant: '',
   });
+  const [operationalAddress, setOperationalAddress] = useState('');
+  const [operationalLocationId, setOperationalLocationId] = useState<string | null>(null);
 
   const [newInteraction, setNewInteraction] = useState({
     type: 'note' as 'call' | 'email' | 'meeting' | 'note' | 'task',
@@ -139,6 +145,7 @@ export default function CRMContactDetail() {
         name: data.name || '',
         email: data.email || '',
         phone: data.phone || '',
+        mobile: (data as any).mobile || '',
         company: data.company || '',
         role: data.role || '',
         status: validStatus,
@@ -150,7 +157,18 @@ export default function CRMContactDetail() {
         fiscal_code: (data as any).fiscal_code || '',
         pec: (data as any).pec || '',
         sdi_code: (data as any).sdi_code || '',
+        ateco_code: (data as any).ateco_code || '',
+        technical_consultant: (data as any).technical_consultant || '',
       });
+      // Carica sede operativa principale (la prima trovata con location_type='operativa')
+      const { data: locs } = await supabase
+        .from('crm_locations')
+        .select('id, address, location_type')
+        .eq('contact_id', id)
+        .order('created_at', { ascending: true });
+      const op = (locs || []).find((l: any) => l.location_type === 'operativa');
+      setOperationalLocationId(op?.id || null);
+      setOperationalAddress(op?.address || '');
     } catch (error) {
       console.error('Error fetching contact:', error);
       toast.error('Errore nel caricamento del contatto');
@@ -167,8 +185,39 @@ export default function CRMContactDetail() {
 
   const handleUpdateContact = async () => {
     if (!id) return;
+    const errors = validateContactFields({
+      pec: editForm.pec,
+      sdi_code: editForm.sdi_code,
+      vat_number: editForm.vat_number,
+      fiscal_code: editForm.fiscal_code,
+    });
+    if (errors.length > 0) {
+      toast.error(errors.map(e => `${e.field}: ${e.message}`).join('\n'));
+      return;
+    }
     const success = await updateContact(id, editForm);
     if (success) {
+      // Salva/aggiorna sede operativa
+      const trimmed = operationalAddress.trim();
+      try {
+        if (operationalLocationId) {
+          if (trimmed) {
+            await supabase.from('crm_locations').update({ address: trimmed }).eq('id', operationalLocationId);
+          } else {
+            await supabase.from('crm_locations').delete().eq('id', operationalLocationId);
+          }
+        } else if (trimmed && user) {
+          await supabase.from('crm_locations').insert({
+            contact_id: id,
+            user_id: user.id,
+            name: 'Sede operativa',
+            location_type: 'operativa',
+            address: trimmed,
+          });
+        }
+      } catch (e) {
+        console.error('Errore salvataggio sede operativa:', e);
+      }
       setShowEditDialog(false);
       fetchContact();
     }
