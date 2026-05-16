@@ -110,6 +110,24 @@ export default function CRMContactDetail() {
     sdi_code: '',
     ateco_code: '',
     technical_consultant: '',
+    cdl_reference: '',
+    fondo_appartenenza: '',
+    segnalatore_name: '',
+    referente_email: '',
+    referente_phone: '',
+    referente_mobile: '',
+    payment_method: '',
+    payment_terms: '',
+    rea_number: '',
+    legal_form: '',
+    activity_start_date: '',
+    partners_count: '' as string | number,
+    exemption_number: '',
+    exemption_issue_date: '',
+    exemption_valid_until: '',
+    exemption_amount: '' as string | number,
+    internal_registration_number: '',
+    internal_registration_date: '',
   });
   const [operationalAddress, setOperationalAddress] = useState('');
   const [operationalLocationId, setOperationalLocationId] = useState<string | null>(null);
@@ -159,6 +177,24 @@ export default function CRMContactDetail() {
         sdi_code: (data as any).sdi_code || '',
         ateco_code: (data as any).ateco_code || '',
         technical_consultant: (data as any).technical_consultant || '',
+        cdl_reference: (data as any).cdl_reference || '',
+        fondo_appartenenza: (data as any).fondo_appartenenza || '',
+        segnalatore_name: (data as any).segnalatore_name || '',
+        referente_email: (data as any).referente_email || '',
+        referente_phone: (data as any).referente_phone || '',
+        referente_mobile: (data as any).referente_mobile || '',
+        payment_method: (data as any).payment_method || '',
+        payment_terms: (data as any).payment_terms || '',
+        rea_number: (data as any).rea_number || '',
+        legal_form: (data as any).legal_form || '',
+        activity_start_date: (data as any).activity_start_date || '',
+        partners_count: (data as any).partners_count ?? '',
+        exemption_number: (data as any).exemption_number || '',
+        exemption_issue_date: (data as any).exemption_issue_date || '',
+        exemption_valid_until: (data as any).exemption_valid_until || '',
+        exemption_amount: (data as any).exemption_amount ?? '',
+        internal_registration_number: (data as any).internal_registration_number || '',
+        internal_registration_date: (data as any).internal_registration_date || '',
       });
       // Carica sede operativa principale (la prima trovata con location_type='operativa')
       const { data: locs } = await supabase
@@ -195,7 +231,16 @@ export default function CRMContactDetail() {
       toast.error(errors.map(e => `${e.field}: ${e.message}`).join('\n'));
       return;
     }
-    const success = await updateContact(id, editForm);
+    const payload: any = {
+      ...editForm,
+      partners_count: editForm.partners_count === '' ? null : Number(editForm.partners_count),
+      exemption_amount: editForm.exemption_amount === '' ? null : Number(editForm.exemption_amount),
+      activity_start_date: editForm.activity_start_date || null,
+      exemption_issue_date: editForm.exemption_issue_date || null,
+      exemption_valid_until: editForm.exemption_valid_until || null,
+      internal_registration_date: editForm.internal_registration_date || null,
+    };
+    const success = await updateContact(id, payload);
     if (success) {
       // Salva/aggiorna sede operativa
       const trimmed = operationalAddress.trim();
@@ -770,6 +815,146 @@ export default function CRMContactDetail() {
                     onChange={(e) => setEditForm({...editForm, technical_consultant: e.target.value})}
                     placeholder="Consulente tecnico"
                   />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>REA</Label>
+                  <Input value={editForm.rea_number}
+                    onChange={(e) => setEditForm({...editForm, rea_number: e.target.value})} />
+                </div>
+                <div>
+                  <Label>Natura Giuridica</Label>
+                  <Input value={editForm.legal_form}
+                    onChange={(e) => setEditForm({...editForm, legal_form: e.target.value})} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Data inizio attività</Label>
+                  <Input type="date" value={editForm.activity_start_date}
+                    onChange={(e) => setEditForm({...editForm, activity_start_date: e.target.value})} />
+                </div>
+                <div>
+                  <Label>Numero Soci</Label>
+                  <Input type="number" value={editForm.partners_count as any}
+                    onChange={(e) => setEditForm({...editForm, partners_count: e.target.value})} />
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <Label>CDL di riferimento</Label>
+                  <Input value={editForm.cdl_reference}
+                    onChange={(e) => setEditForm({...editForm, cdl_reference: e.target.value})} />
+                </div>
+                <div>
+                  <Label>Fondo di appartenenza</Label>
+                  <Input value={editForm.fondo_appartenenza}
+                    onChange={(e) => setEditForm({...editForm, fondo_appartenenza: e.target.value})} />
+                </div>
+                <div>
+                  <Label>Nominativo Segnalatore</Label>
+                  <Input value={editForm.segnalatore_name}
+                    onChange={(e) => setEditForm({...editForm, segnalatore_name: e.target.value})} />
+                </div>
+              </div>
+              <div className="border-t pt-3 mt-2">
+                <h4 className="text-sm font-semibold text-muted-foreground mb-2">Contatti Referente</h4>
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <Label>Email Referente</Label>
+                    <Input type="email" value={editForm.referente_email}
+                      onChange={(e) => setEditForm({...editForm, referente_email: e.target.value})} />
+                  </div>
+                  <div>
+                    <Label>Telefono Referente</Label>
+                    <Input value={editForm.referente_phone}
+                      onChange={(e) => setEditForm({...editForm, referente_phone: e.target.value})} />
+                  </div>
+                  <div>
+                    <Label>Cellulare Referente</Label>
+                    <Input value={editForm.referente_mobile}
+                      onChange={(e) => setEditForm({...editForm, referente_mobile: e.target.value})} />
+                  </div>
+                </div>
+              </div>
+              <div className="border-t pt-3 mt-2">
+                <h4 className="text-sm font-semibold text-muted-foreground mb-2">Dati contabili</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Modalità pagamento</Label>
+                    <Select value={editForm.payment_method || undefined}
+                      onValueChange={(v) => setEditForm({...editForm, payment_method: v})}>
+                      <SelectTrigger><SelectValue placeholder="Seleziona..." /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Bonifico">Bonifico</SelectItem>
+                        <SelectItem value="Riba">Riba</SelectItem>
+                        <SelectItem value="RID">RID / SDD</SelectItem>
+                        <SelectItem value="Rimessa diretta">Rimessa diretta</SelectItem>
+                        <SelectItem value="Carta di credito">Carta di credito</SelectItem>
+                        <SelectItem value="Contanti">Contanti</SelectItem>
+                        <SelectItem value="Assegno">Assegno</SelectItem>
+                        <SelectItem value="PayPal">PayPal</SelectItem>
+                        <SelectItem value="Altro">Altro</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Termini di pagamento</Label>
+                    <Select value={editForm.payment_terms || undefined}
+                      onValueChange={(v) => setEditForm({...editForm, payment_terms: v})}>
+                      <SelectTrigger><SelectValue placeholder="Seleziona..." /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Data fattura">Data fattura</SelectItem>
+                        <SelectItem value="Fine mese">Fine mese</SelectItem>
+                        <SelectItem value="30 gg data fattura">30 gg data fattura</SelectItem>
+                        <SelectItem value="30 gg fine mese">30 gg fine mese</SelectItem>
+                        <SelectItem value="60 gg data fattura">60 gg data fattura</SelectItem>
+                        <SelectItem value="60 gg fine mese">60 gg fine mese</SelectItem>
+                        <SelectItem value="90 gg data fattura">90 gg data fattura</SelectItem>
+                        <SelectItem value="90 gg fine mese">90 gg fine mese</SelectItem>
+                        <SelectItem value="Anticipato">Anticipato</SelectItem>
+                        <SelectItem value="Altro">Altro</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="mt-3">
+                  <p className="text-xs font-medium text-muted-foreground mb-2">Esenzione</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>N° Esenzione</Label>
+                      <Input value={editForm.exemption_number}
+                        onChange={(e) => setEditForm({...editForm, exemption_number: e.target.value})} />
+                    </div>
+                    <div>
+                      <Label>Importo</Label>
+                      <Input type="number" step="0.01" value={editForm.exemption_amount as any}
+                        onChange={(e) => setEditForm({...editForm, exemption_amount: e.target.value})} />
+                    </div>
+                    <div>
+                      <Label>Data emissione</Label>
+                      <Input type="date" value={editForm.exemption_issue_date}
+                        onChange={(e) => setEditForm({...editForm, exemption_issue_date: e.target.value})} />
+                    </div>
+                    <div>
+                      <Label>Validità fino al</Label>
+                      <Input type="date" value={editForm.exemption_valid_until}
+                        onChange={(e) => setEditForm({...editForm, exemption_valid_until: e.target.value})} />
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-3 grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>N° Registrazione interna</Label>
+                    <Input value={editForm.internal_registration_number}
+                      onChange={(e) => setEditForm({...editForm, internal_registration_number: e.target.value})} />
+                  </div>
+                  <div>
+                    <Label>Data registrazione interna</Label>
+                    <Input type="date" value={editForm.internal_registration_date}
+                      onChange={(e) => setEditForm({...editForm, internal_registration_date: e.target.value})} />
+                  </div>
                 </div>
               </div>
               <div>
