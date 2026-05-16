@@ -741,15 +741,23 @@ export type Database = {
           address: string | null
           ateco_code: string | null
           ateco_letter: string | null
+          cdl_reference: string | null
           city: string | null
           client_user_id: string | null
           code: string | null
           company: string | null
           created_at: string
           email: string | null
+          exemption_amount: number | null
+          exemption_issue_date: string | null
+          exemption_number: string | null
+          exemption_valid_until: string | null
           external_id: string | null
           fiscal_code: string | null
+          fondo_appartenenza: string | null
           id: string
+          internal_registration_date: string | null
+          internal_registration_number: string | null
           last_contact_at: string | null
           legal_form: string | null
           legal_name: string | null
@@ -758,15 +766,23 @@ export type Database = {
           next_followup_at: string | null
           notes: string | null
           owner_name: string | null
+          partners_count: number | null
+          payment_method: string | null
+          payment_terms: string | null
           pec: string | null
           pec_fe: string | null
           phone: string | null
           postal_code: string | null
           province: string | null
           rating: string | null
+          rea_number: string | null
+          referente_email: string | null
+          referente_mobile: string | null
+          referente_phone: string | null
           region: string | null
           role: string | null
           sdi_code: string | null
+          segnalatore_name: string | null
           source: string | null
           status: string
           tags: string[] | null
@@ -782,15 +798,23 @@ export type Database = {
           address?: string | null
           ateco_code?: string | null
           ateco_letter?: string | null
+          cdl_reference?: string | null
           city?: string | null
           client_user_id?: string | null
           code?: string | null
           company?: string | null
           created_at?: string
           email?: string | null
+          exemption_amount?: number | null
+          exemption_issue_date?: string | null
+          exemption_number?: string | null
+          exemption_valid_until?: string | null
           external_id?: string | null
           fiscal_code?: string | null
+          fondo_appartenenza?: string | null
           id?: string
+          internal_registration_date?: string | null
+          internal_registration_number?: string | null
           last_contact_at?: string | null
           legal_form?: string | null
           legal_name?: string | null
@@ -799,15 +823,23 @@ export type Database = {
           next_followup_at?: string | null
           notes?: string | null
           owner_name?: string | null
+          partners_count?: number | null
+          payment_method?: string | null
+          payment_terms?: string | null
           pec?: string | null
           pec_fe?: string | null
           phone?: string | null
           postal_code?: string | null
           province?: string | null
           rating?: string | null
+          rea_number?: string | null
+          referente_email?: string | null
+          referente_mobile?: string | null
+          referente_phone?: string | null
           region?: string | null
           role?: string | null
           sdi_code?: string | null
+          segnalatore_name?: string | null
           source?: string | null
           status?: string
           tags?: string[] | null
@@ -823,15 +855,23 @@ export type Database = {
           address?: string | null
           ateco_code?: string | null
           ateco_letter?: string | null
+          cdl_reference?: string | null
           city?: string | null
           client_user_id?: string | null
           code?: string | null
           company?: string | null
           created_at?: string
           email?: string | null
+          exemption_amount?: number | null
+          exemption_issue_date?: string | null
+          exemption_number?: string | null
+          exemption_valid_until?: string | null
           external_id?: string | null
           fiscal_code?: string | null
+          fondo_appartenenza?: string | null
           id?: string
+          internal_registration_date?: string | null
+          internal_registration_number?: string | null
           last_contact_at?: string | null
           legal_form?: string | null
           legal_name?: string | null
@@ -840,15 +880,23 @@ export type Database = {
           next_followup_at?: string | null
           notes?: string | null
           owner_name?: string | null
+          partners_count?: number | null
+          payment_method?: string | null
+          payment_terms?: string | null
           pec?: string | null
           pec_fe?: string | null
           phone?: string | null
           postal_code?: string | null
           province?: string | null
           rating?: string | null
+          rea_number?: string | null
+          referente_email?: string | null
+          referente_mobile?: string | null
+          referente_phone?: string | null
           region?: string | null
           role?: string | null
           sdi_code?: string | null
+          segnalatore_name?: string | null
           source?: string | null
           status?: string
           tags?: string[] | null
