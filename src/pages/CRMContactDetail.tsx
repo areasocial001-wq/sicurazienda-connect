@@ -46,6 +46,7 @@ import { useUserRole } from '@/hooks/useUserRole';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { validateContactFields } from '@/lib/crmValidators';
+import { AIContactAutoFill } from '@/components/AIContactAutoFill';
 
 const statusColors: Record<string, string> = {
   lead: 'bg-blue-500/20 text-blue-700 border-blue-500/30',
@@ -698,6 +699,42 @@ export default function CRMContactDetail() {
               <DialogTitle>Modifica Contatto</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
+              <AIContactAutoFill onExtracted={(data) => {
+                setEditForm(prev => ({
+                  ...prev,
+                  name: data.name || prev.name,
+                  email: data.email || prev.email,
+                  phone: data.phone || prev.phone,
+                  mobile: (data as any).mobile || prev.mobile,
+                  company: data.company || prev.company,
+                  role: data.role || prev.role,
+                  notes: data.notes || prev.notes,
+                  address: data.address || prev.address,
+                  pec: data.pec || prev.pec,
+                  vat_number: data.vat_number || prev.vat_number,
+                  fiscal_code: data.fiscal_code || prev.fiscal_code,
+                  sdi_code: data.sdi_code || prev.sdi_code,
+                  ateco_code: (data as any).ateco_code || prev.ateco_code,
+                  legal_form: (data as any).legal_form || prev.legal_form,
+                  rea_number: (data as any).rea_number || prev.rea_number,
+                  partners_count: (data as any).partners_count ?? prev.partners_count,
+                  activity_start_date: (data as any).activity_start_date || prev.activity_start_date,
+                  cdl_reference: (data as any).cdl_reference || prev.cdl_reference,
+                  fondo_appartenenza: (data as any).fondo_appartenenza || prev.fondo_appartenenza,
+                  segnalatore_name: (data as any).segnalatore_name || prev.segnalatore_name,
+                  technical_consultant: (data as any).technical_consultant || prev.technical_consultant,
+                  referente_email: (data as any).referente_email || prev.referente_email,
+                  referente_phone: (data as any).referente_phone || prev.referente_phone,
+                  referente_mobile: (data as any).referente_mobile || prev.referente_mobile,
+                  payment_method: (data as any).payment_method || prev.payment_method,
+                  payment_terms: (data as any).payment_terms || prev.payment_terms,
+                  exemption_number: (data as any).exemption_number || prev.exemption_number,
+                  exemption_issue_date: (data as any).exemption_issue_date || prev.exemption_issue_date,
+                  exemption_valid_until: (data as any).exemption_valid_until || prev.exemption_valid_until,
+                  exemption_amount: (data as any).exemption_amount ?? prev.exemption_amount,
+                }));
+                toast.success('Campi precompilati. Rivedi e salva per applicare.');
+              }} />
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label>Datore di Lavoro / Referente *</Label>
