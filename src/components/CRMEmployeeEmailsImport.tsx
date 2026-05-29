@@ -49,11 +49,20 @@ const isValidEmail = (e: string) =>
   /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((e || '').trim());
 
 const pickKey = (row: Record<string, any>, keys: string[]) => {
+  // 1) exact match first
   for (const k of Object.keys(row)) {
     const nk = norm(k);
-    if (keys.some((target) => nk === target || nk.includes(target))) {
-      return row[k];
-    }
+    if (keys.some((target) => nk === target)) return row[k];
+  }
+  // 2) starts-with match
+  for (const k of Object.keys(row)) {
+    const nk = norm(k);
+    if (keys.some((target) => nk.startsWith(target))) return row[k];
+  }
+  // 3) fallback: substring, but excluding ambiguous combos
+  for (const k of Object.keys(row)) {
+    const nk = norm(k);
+    if (keys.some((target) => nk.includes(target))) return row[k];
   }
   return '';
 };
