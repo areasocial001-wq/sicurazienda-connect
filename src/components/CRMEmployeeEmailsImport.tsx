@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import * as XLSX from 'xlsx';
 import { Upload, Mail, Loader2, CheckCircle, AlertCircle, FileSpreadsheet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -83,6 +83,8 @@ export function CRMEmployeeEmailsImport({ onImportComplete }: Props) {
   const [importing, setImporting] = useState(false);
   const [progress, setProgress] = useState(0);
   const [done, setDone] = useState<{ updated: number; skipped: number } | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragCounter = useRef(0);
 
   const counts = useMemo(() => {
     const c = { matched: 0, ambiguous: 0, not_found: 0, invalid: 0, already_set: 0, skip: 0 };
@@ -95,6 +97,47 @@ export function CRMEmployeeEmailsImport({ onImportComplete }: Props) {
     setFiles(list);
     setPreview([]);
     setDone(null);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current++;
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current--;
+    if (dragCounter.current === 0) setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current = 0;
+    setIsDragging(false);
+    const dropped = Array.from(e.dataTransfer.files || []);
+    const excelFiles = dropped.filter(
+      (f) => f.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+             f.type === 'application/vnd.ms-excel' ||
+             f.name.toLowerCase().endsWith('.xlsx') ||
+             f.name.toLowerCase().endsWith('.xls')
+    );
+    if (excelFiles.length) {
+      setFiles(excelFiles);
+      setPreview([]);
+      setDone(null);
+      toast.success(`${excelFiles.length} file Excel aggiunti`);
+    } else if (dropped.length) {
+      toast.error('Trascina solo file Excel (.xlsx, .xls)');
+    }
   };
 
   const parseFiles = async () => {
@@ -281,7 +324,15 @@ export function CRMEmployeeEmailsImport({ onImportComplete }: Props) {
 
         <div className="flex-1 flex flex-col gap-4 overflow-hidden">
           {/* File picker */}
-          <div className="border-2 border-dashed rounded-lg p-6 text-center">
+          <div
+            onDragOver={handleDragOver}
+            onDragEnter={handleDragEnter}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+              isDragging ? 'border-primary bg-primary/10' : 'border-border'
+            }`}
+          >
             <input
               type="file"
               accept=".xlsx,.xls"
@@ -291,9 +342,9 @@ export function CRMEmployeeEmailsImport({ onImportComplete }: Props) {
               id="emails-file-input"
             />
             <label htmlFor="emails-file-input" className="cursor-pointer flex flex-col items-center gap-2">
-              <Upload className="h-8 w-8 text-muted-foreground" />
+              <Upload className={`h-8 w-8 ${isDragging ? 'text-primary' : 'text-muted-foreground'}`} />
               <span className="text-sm text-muted-foreground">
-                {files.length > 0 ? `${files.length} file selezionati` : 'Clicca per selezionare i file Excel'}
+                {isDragging ? 'Rilascia i file Excel qui' : files.length > 0 ? `${files.length} file selezionati` : 'Trascina i file Excel qui o clicca per selezionarli'}
               </span>
             </label>
             {files.length > 0 && (
