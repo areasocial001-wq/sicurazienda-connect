@@ -48,7 +48,7 @@ const norm = (s: any) =>
 const isValidEmail = (e: string) =>
   /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((e || '').trim());
 
-const pickKey = (row: Record<string, any>, keys: string[]) => {
+const pickKey = (row: Record<string, any>, keys: string[], exclude: string[] = []) => {
   // 1) exact match first
   for (const k of Object.keys(row)) {
     const nk = norm(k);
@@ -57,11 +57,13 @@ const pickKey = (row: Record<string, any>, keys: string[]) => {
   // 2) starts-with match
   for (const k of Object.keys(row)) {
     const nk = norm(k);
+    if (exclude.some((ex) => nk.includes(ex))) continue;
     if (keys.some((target) => nk.startsWith(target))) return row[k];
   }
-  // 3) fallback: substring, but excluding ambiguous combos
+  // 3) fallback: substring
   for (const k of Object.keys(row)) {
     const nk = norm(k);
+    if (exclude.some((ex) => nk.includes(ex))) continue;
     if (keys.some((target) => nk.includes(target))) return row[k];
   }
   return '';
@@ -109,7 +111,7 @@ export function CRMEmployeeEmailsImport({ onImportComplete }: Props) {
           const json = XLSX.utils.sheet_to_json<Record<string, any>>(ws, { defval: '' });
           for (const r of json) {
             const lastName = String(pickKey(r, ['cognome', 'last name', 'surname']) || '').trim();
-            const firstName = String(pickKey(r, ['nome', 'first name', 'name']) || '').trim();
+            const firstName = String(pickKey(r, ['nome', 'first name', 'name'], ['cognome', 'azienda', 'utente', 'societa', 'company']) || '').trim();
             const email = String(pickKey(r, ['email', 'e-mail', 'mail', 'indirizzo mail']) || '').trim();
             const course = String(pickKey(r, ['corso', 'course']) || '').trim();
             const company = String(pickKey(r, ['azienda', 'company', 'ragione sociale', 'societa']) || '').trim();
