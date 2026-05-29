@@ -324,7 +324,15 @@ export function CRMEmployeeEmailsImport({ onImportComplete }: Props) {
 
         <div className="flex-1 flex flex-col gap-4 overflow-hidden">
           {/* File picker */}
-          <div className="border-2 border-dashed rounded-lg p-6 text-center">
+          <div
+            onDragOver={handleDragOver}
+            onDragEnter={handleDragEnter}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+              isDragging ? 'border-primary bg-primary/10' : 'border-border'
+            }`}
+          >
             <input
               type="file"
               accept=".xlsx,.xls"
@@ -334,9 +342,9 @@ export function CRMEmployeeEmailsImport({ onImportComplete }: Props) {
               id="emails-file-input"
             />
             <label htmlFor="emails-file-input" className="cursor-pointer flex flex-col items-center gap-2">
-              <Upload className="h-8 w-8 text-muted-foreground" />
+              <Upload className={`h-8 w-8 ${isDragging ? 'text-primary' : 'text-muted-foreground'}`} />
               <span className="text-sm text-muted-foreground">
-                {files.length > 0 ? `${files.length} file selezionati` : 'Clicca per selezionare i file Excel'}
+                {isDragging ? 'Rilascia i file Excel qui' : files.length > 0 ? `${files.length} file selezionati` : 'Trascina i file Excel qui o clicca per selezionarli'}
               </span>
             </label>
             {files.length > 0 && (
