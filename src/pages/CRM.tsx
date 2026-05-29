@@ -61,6 +61,7 @@ import { CRMLocationsImport } from '@/components/CRMLocationsImport';
 import { AIContactAutoFill } from '@/components/AIContactAutoFill';
 import { CRMDataCleanup } from '@/components/CRMDataCleanup';
 import { CRMLegacyDataImport } from '@/components/CRMLegacyDataImport';
+import { CRMEmployeeEmailsImport } from '@/components/CRMEmployeeEmailsImport';
 import { validateContactFields } from '@/lib/crmValidators';
 
 const statusColors: Record<string, string> = {
@@ -553,6 +554,7 @@ export default function CRM() {
             <CRMDataImport onImportComplete={fetchContacts} />
             <CRMLocationsImport onImportComplete={fetchContacts} />
             <CRMLegacyDataImport onImportComplete={fetchContacts} />
+            <CRMEmployeeEmailsImport onImportComplete={fetchContacts} />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline">
