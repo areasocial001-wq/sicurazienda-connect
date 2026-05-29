@@ -99,6 +99,47 @@ export function CRMEmployeeEmailsImport({ onImportComplete }: Props) {
     setDone(null);
   };
 
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current++;
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current--;
+    if (dragCounter.current === 0) setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current = 0;
+    setIsDragging(false);
+    const dropped = Array.from(e.dataTransfer.files || []);
+    const excelFiles = dropped.filter(
+      (f) => f.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+             f.type === 'application/vnd.ms-excel' ||
+             f.name.toLowerCase().endsWith('.xlsx') ||
+             f.name.toLowerCase().endsWith('.xls')
+    );
+    if (excelFiles.length) {
+      setFiles(excelFiles);
+      setPreview([]);
+      setDone(null);
+      toast.success(`${excelFiles.length} file Excel aggiunti`);
+    } else if (dropped.length) {
+      toast.error('Trascina solo file Excel (.xlsx, .xls)');
+    }
+  };
+
   const parseFiles = async () => {
     if (!files.length || !user) return;
     setParsing(true);
