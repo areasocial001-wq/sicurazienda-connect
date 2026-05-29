@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import * as XLSX from 'xlsx';
 import { Upload, Mail, Loader2, CheckCircle, AlertCircle, FileSpreadsheet } from 'lucide-react';
+import { useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
