@@ -83,6 +83,8 @@ export function CRMEmployeeEmailsImport({ onImportComplete }: Props) {
   const [importing, setImporting] = useState(false);
   const [progress, setProgress] = useState(0);
   const [done, setDone] = useState<{ updated: number; skipped: number } | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragCounter = useRef(0);
 
   const counts = useMemo(() => {
     const c = { matched: 0, ambiguous: 0, not_found: 0, invalid: 0, already_set: 0, skip: 0 };
