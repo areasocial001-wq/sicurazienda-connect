@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
-import { Upload, FileUp, CheckCircle2, AlertCircle } from "lucide-react";
+import { Upload, FileUp, CheckCircle2, AlertCircle, X, FileText } from "lucide-react";
 
 interface EnexNote {
   title: string;
@@ -86,78 +86,136 @@ const parseEnex = (xmlStr: string): EnexNote[] => {
 const EnexImportDialog = ({ open, onOpenChange, onImportComplete, selectedNotebook }: EnexImportDialogProps) => {
   const { user } = useAuth();
   const fileRef = useRef<HTMLInputElement>(null);
+  const dragCounter = useRef(0);
+  const [files, setFiles] = useState<File[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
   const [importing, setImporting] = useState(false);
   const [progress, setProgress] = useState(0);
   const [total, setTotal] = useState(0);
   const [imported, setImported] = useState(0);
   const [errors, setErrors] = useState(0);
   const [done, setDone] = useState(false);
+  const [currentFileName, setCurrentFileName] = useState<string>("");
 
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !user) return;
+  const addFiles = (incoming: File[]) => {
+    const valid = incoming.filter(f => f.name.toLowerCase().endsWith(".enex"));
+    const skipped = incoming.length - valid.length;
+    if (skipped > 0) toast.error(`${skipped} file ignorati (solo .enex)`);
+    if (valid.length === 0) return;
+    setFiles(prev => {
+      const map = new Map(prev.map(f => [f.name + f.size, f]));
+      valid.forEach(f => map.set(f.name + f.size, f));
+      return Array.from(map.values());
+    });
+  };
 
-    if (!file.name.endsWith(".enex")) {
-      toast.error("Seleziona un file .enex di Evernote");
-      return;
-    }
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const list = e.target.files ? Array.from(e.target.files) : [];
+    addFiles(list);
+    if (fileRef.current) fileRef.current.value = "";
+  };
 
+  const removeFile = (idx: number) => {
+    setFiles(prev => prev.filter((_, i) => i !== idx));
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current++;
+    setIsDragging(true);
+  };
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current--;
+    if (dragCounter.current === 0) setIsDragging(false);
+  };
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current = 0;
+    setIsDragging(false);
+    const dropped = Array.from(e.dataTransfer.files || []);
+    addFiles(dropped);
+  };
+
+  const startImport = async () => {
+    if (!user || files.length === 0) return;
     setImporting(true);
     setDone(false);
     setErrors(0);
     setImported(0);
+    setProgress(0);
 
     try {
-      const text = await file.text();
-      const enexNotes = parseEnex(text);
-      setTotal(enexNotes.length);
+      // Parse all files first to get the total count
+      const parsed: { fileName: string; notes: EnexNote[] }[] = [];
+      for (const f of files) {
+        try {
+          const text = await f.text();
+          parsed.push({ fileName: f.name, notes: parseEnex(text) });
+        } catch (err) {
+          console.error("Parse error:", f.name, err);
+          toast.error(`Errore parsing: ${f.name}`);
+        }
+      }
 
-      if (enexNotes.length === 0) {
-        toast.error("Nessuna nota trovata nel file .enex");
+      const totalNotes = parsed.reduce((s, p) => s + p.notes.length, 0);
+      setTotal(totalNotes);
+
+      if (totalNotes === 0) {
+        toast.error("Nessuna nota trovata nei file selezionati");
         setImporting(false);
         return;
       }
 
       let ok = 0;
       let err = 0;
+      let processed = 0;
 
-      for (let i = 0; i < enexNotes.length; i++) {
-        const n = enexNotes[i];
-        const { error } = await supabase
-          .from("notes")
-          .insert({
-            user_id: user.id,
-            title: n.title,
-            content: n.content,
-            tags: n.tags,
-            notebook_id: selectedNotebook,
-            created_at: n.created,
-            updated_at: n.updated,
-          });
-
-        if (error) {
-          console.error("Import error:", error);
-          err++;
-        } else {
-          ok++;
+      for (const { fileName, notes } of parsed) {
+        setCurrentFileName(fileName);
+        for (const n of notes) {
+          const { error } = await supabase
+            .from("notes")
+            .insert({
+              user_id: user.id,
+              title: n.title,
+              content: n.content,
+              tags: n.tags,
+              notebook_id: selectedNotebook,
+              created_at: n.created,
+              updated_at: n.updated,
+            });
+          if (error) {
+            console.error("Import error:", error);
+            err++;
+          } else {
+            ok++;
+          }
+          processed++;
+          setImported(ok);
+          setErrors(err);
+          setProgress(Math.round((processed / totalNotes) * 100));
         }
-
-        setImported(ok);
-        setErrors(err);
-        setProgress(Math.round(((i + 1) / enexNotes.length) * 100));
       }
 
       setDone(true);
       if (ok > 0) {
-        toast.success(`${ok} note importate da Evernote`);
+        toast.success(`${ok} note importate da ${files.length} file`);
         onImportComplete();
       }
     } catch (err) {
-      console.error("Parse error:", err);
-      toast.error("Errore nel parsing del file .enex");
+      console.error("Import failure:", err);
+      toast.error("Errore durante l'importazione");
     } finally {
       setImporting(false);
-      if (fileRef.current) fileRef.current.value = "";
+      setCurrentFileName("");
     }
   };
 
@@ -168,13 +226,14 @@ const EnexImportDialog = ({ open, onOpenChange, onImportComplete, selectedNotebo
       setTotal(0);
       setImported(0);
       setErrors(0);
+      setFiles([]);
       onOpenChange(false);
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Upload className="h-5 w-5" /> Importa da Evernote (.enex)
@@ -185,19 +244,70 @@ const EnexImportDialog = ({ open, onOpenChange, onImportComplete, selectedNotebo
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
               Esporta le tue note da Evernote in formato .enex e importale in SicurNote.
+              Puoi caricare più file contemporaneamente trascinandoli qui sotto.
               Verranno preservati titolo, contenuto, tag e date.
             </p>
-            <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
+            <div
+              onDragOver={handleDragOver}
+              onDragEnter={handleDragEnter}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                isDragging ? "border-primary bg-primary/10" : "border-border"
+              }`}
+            >
               <FileUp className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
-              <Button onClick={() => fileRef.current?.click()}>
-                Seleziona file .enex
+              <p className="text-sm mb-3">
+                {isDragging
+                  ? "Rilascia i file .enex qui"
+                  : "Trascina i file .enex qui oppure"}
+              </p>
+              <Button onClick={() => fileRef.current?.click()} variant="outline">
+                Seleziona file
               </Button>
-              <p className="text-xs text-muted-foreground mt-2">Max 20MB</p>
+              <p className="text-xs text-muted-foreground mt-2">
+                Più file supportati · Max 20MB ciascuno
+              </p>
             </div>
+
+            {files.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-muted-foreground">
+                  {files.length} file selezionat{files.length === 1 ? "o" : "i"}
+                </p>
+                <div className="max-h-[200px] overflow-y-auto space-y-1 border rounded-md p-2">
+                  {files.map((f, i) => (
+                    <div
+                      key={i}
+                      className="flex items-center gap-2 text-xs p-2 rounded hover:bg-muted/50"
+                    >
+                      <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <span className="flex-1 truncate">{f.name}</span>
+                      <span className="text-muted-foreground shrink-0">
+                        {(f.size / 1024).toFixed(0)} KB
+                      </span>
+                      <button
+                        onClick={() => removeFile(i)}
+                        className="text-muted-foreground hover:text-destructive"
+                        title="Rimuovi"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <Button onClick={startImport} className="w-full">
+                  <Upload className="h-4 w-4 mr-2" />
+                  Importa {files.length} file
+                </Button>
+              </div>
+            )}
+
             <input
               ref={fileRef}
               type="file"
               accept=".enex"
+              multiple
               className="hidden"
               onChange={handleFileSelect}
             />
@@ -207,6 +317,11 @@ const EnexImportDialog = ({ open, onOpenChange, onImportComplete, selectedNotebo
         {importing && (
           <div className="space-y-4 py-4">
             <p className="text-sm text-center">Importazione in corso...</p>
+            {currentFileName && (
+              <p className="text-xs text-center text-muted-foreground truncate">
+                {currentFileName}
+              </p>
+            )}
             <Progress value={progress} className="h-2" />
             <p className="text-xs text-center text-muted-foreground">
               {imported} di {total} note importate
