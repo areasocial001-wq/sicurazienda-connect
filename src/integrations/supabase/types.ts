@@ -2440,6 +2440,193 @@ export type Database = {
         }
         Relationships: []
       }
+      worker_chat_channels: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          role: Database["public"]["Enums"]["app_role"] | null
+          type: Database["public"]["Enums"]["worker_channel_type"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          role?: Database["public"]["Enums"]["app_role"] | null
+          type: Database["public"]["Enums"]["worker_channel_type"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          role?: Database["public"]["Enums"]["app_role"] | null
+          type?: Database["public"]["Enums"]["worker_channel_type"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      worker_chat_members: {
+        Row: {
+          channel_id: string
+          id: string
+          joined_at: string
+          last_read_at: string
+          user_id: string
+        }
+        Insert: {
+          channel_id: string
+          id?: string
+          joined_at?: string
+          last_read_at?: string
+          user_id: string
+        }
+        Update: {
+          channel_id?: string
+          id?: string
+          joined_at?: string
+          last_read_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "worker_chat_members_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "worker_chat_channels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      worker_chat_messages: {
+        Row: {
+          attachment_name: string | null
+          attachment_path: string | null
+          channel_id: string
+          content: string | null
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          attachment_name?: string | null
+          attachment_path?: string | null
+          channel_id: string
+          content?: string | null
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          attachment_name?: string | null
+          attachment_path?: string | null
+          channel_id?: string
+          content?: string | null
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "worker_chat_messages_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "worker_chat_channels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      worker_leave_balances: {
+        Row: {
+          created_at: string
+          id: string
+          permit_hours_total: number
+          permit_hours_used: number
+          updated_at: string
+          user_id: string
+          vacation_days_total: number
+          vacation_days_used: number
+          year: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          permit_hours_total?: number
+          permit_hours_used?: number
+          updated_at?: string
+          user_id: string
+          vacation_days_total?: number
+          vacation_days_used?: number
+          year: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          permit_hours_total?: number
+          permit_hours_used?: number
+          updated_at?: string
+          user_id?: string
+          vacation_days_total?: number
+          vacation_days_used?: number
+          year?: number
+        }
+        Relationships: []
+      }
+      worker_leave_requests: {
+        Row: {
+          attachment_path: string | null
+          created_at: string
+          end_date: string
+          hours: number | null
+          id: string
+          reason: string | null
+          review_note: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          start_date: string
+          status: Database["public"]["Enums"]["leave_request_status"]
+          type: Database["public"]["Enums"]["leave_request_type"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          attachment_path?: string | null
+          created_at?: string
+          end_date: string
+          hours?: number | null
+          id?: string
+          reason?: string | null
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          start_date: string
+          status?: Database["public"]["Enums"]["leave_request_status"]
+          type: Database["public"]["Enums"]["leave_request_type"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          attachment_path?: string | null
+          created_at?: string
+          end_date?: string
+          hours?: number | null
+          id?: string
+          reason?: string | null
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          start_date?: string
+          status?: Database["public"]["Enums"]["leave_request_status"]
+          type?: Database["public"]["Enums"]["leave_request_type"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       qr_codes_public: {
@@ -2503,6 +2690,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_channel_member: {
+        Args: { _channel_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
       log_audit_event: {
         Args: {
@@ -2533,6 +2724,14 @@ export type Database = {
         | "sorveglianza_sanitaria"
         | "contratti"
         | "altro"
+      leave_request_status: "in_attesa" | "approvata" | "rifiutata"
+      leave_request_type:
+        | "ferie"
+        | "permesso_rol"
+        | "malattia"
+        | "permesso_retribuito"
+        | "altro"
+      worker_channel_type: "general" | "role" | "direct"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2679,6 +2878,15 @@ export const Constants = {
         "contratti",
         "altro",
       ],
+      leave_request_status: ["in_attesa", "approvata", "rifiutata"],
+      leave_request_type: [
+        "ferie",
+        "permesso_rol",
+        "malattia",
+        "permesso_retribuito",
+        "altro",
+      ],
+      worker_channel_type: ["general", "role", "direct"],
     },
   },
 } as const
