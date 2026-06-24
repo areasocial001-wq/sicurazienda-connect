@@ -35,6 +35,7 @@ import CRMOrphanedItems from "./pages/CRMOrphanedItems";
 import DepartmentDashboard from "./pages/DepartmentDashboard";
 import CourseManagement from "./pages/CourseManagement";
 import Medicina from "./pages/Medicina";
+import AreaLavoratori from "./pages/AreaLavoratori";
 import NotFound from "./pages/NotFound";
 import AuthConfirm from "./pages/AuthConfirm";
 import ResetPassword from "./pages/ResetPassword";
@@ -83,6 +84,7 @@ const App = () => (
           <Route path="/crm/departments" element={<ProtectedRoute><DepartmentDashboard /></ProtectedRoute>} />
           <Route path="/corsi" element={<ProtectedRoute><CourseManagement /></ProtectedRoute>} />
           <Route path="/medicina" element={<ProtectedRoute><Medicina /></ProtectedRoute>} />
+          <Route path="/area-lavoratori" element={<ProtectedRoute><AreaLavoratori /></ProtectedRoute>} />
           
           {/* Admin routes - require admin role */}
           <Route path="/admin" element={<ProtectedRoute requireAdmin><AdminDashboard /></ProtectedRoute>} />
