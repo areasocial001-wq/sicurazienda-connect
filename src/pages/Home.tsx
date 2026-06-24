@@ -14,7 +14,8 @@ import {
   Mail,
   MapPin,
   Clock,
-  Stethoscope
+  Stethoscope,
+  Briefcase
 } from "lucide-react";
 
 const Home = () => {
@@ -77,6 +78,13 @@ const Home = () => {
             description="Sorveglianza sanitaria e visite mediche"
             icon={Stethoscope}
             onClick={() => navigate("/medicina")}
+          />
+
+          <ServiceCard
+            title="Area Lavoratori"
+            description="Ferie, permessi e chat interna"
+            icon={Briefcase}
+            onClick={() => navigate("/area-lavoratori")}
           />
           
           <ServiceCard
