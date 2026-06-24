@@ -1,4 +1,4 @@
-import { Home, UserPlus, Users, FileText, FolderOpen, Contact, GraduationCap } from "lucide-react";
+import { Home, UserPlus, Users, FileText, FolderOpen, Contact, GraduationCap, Briefcase } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -33,6 +33,7 @@ const BottomNav = () => {
     getCRMNavItem(),
     // Show Corsi link for gestione_corsi, admin, and all business area users
     ...((isAdmin || isAreaAziendale) ? [{ path: "/corsi", label: "Corsi", icon: GraduationCap }] : []),
+    ...((isAdmin || isAreaAziendale) ? [{ path: "/area-lavoratori", label: "Lavoratori", icon: Briefcase }] : []),
   ];
 
   return (
