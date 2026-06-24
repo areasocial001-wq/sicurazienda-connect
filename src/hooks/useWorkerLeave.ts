@@ -21,6 +21,7 @@ export interface LeaveRequest {
   created_at: string;
   updated_at: string;
   requester_name?: string | null;
+  role?: string | null;
 }
 
 export interface LeaveBalance {
@@ -73,8 +74,19 @@ export function useWorkerLeave() {
         .from("profiles")
         .select("user_id, full_name")
         .in("user_id", ids);
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("user_id, role")
+        .in("user_id", ids);
       const map = new Map((profiles || []).map((p: any) => [p.user_id, p.full_name]));
-      setAllRequests(list.map((r) => ({ ...r, requester_name: map.get(r.user_id) || null })));
+      const roleMap = new Map((roles || []).map((p: any) => [p.user_id, p.role]));
+      setAllRequests(
+        list.map((r) => ({
+          ...r,
+          requester_name: map.get(r.user_id) || null,
+          role: roleMap.get(r.user_id) || null,
+        })),
+      );
     } else {
       setAllRequests([]);
     }
