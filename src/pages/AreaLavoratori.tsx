@@ -5,19 +5,22 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useWorkerLeave } from "@/hooks/useWorkerLeave";
+import { useLeaveNotifications } from "@/hooks/useLeaveNotifications";
 import { LeaveRequestForm } from "@/components/lavoratori/LeaveRequestForm";
 import { LeaveRequestList } from "@/components/lavoratori/LeaveRequestList";
 import { LeaveApprovalQueue } from "@/components/lavoratori/LeaveApprovalQueue";
 import { LeaveBalanceCard } from "@/components/lavoratori/LeaveBalanceCard";
 import { LeaveCalendar } from "@/components/lavoratori/LeaveCalendar";
+import { LeaveExportDialog } from "@/components/lavoratori/LeaveExportDialog";
 import { ChatPanel } from "@/components/lavoratori/ChatPanel";
 import { Briefcase } from "lucide-react";
 
 export default function AreaLavoratori() {
   const { isAdmin, isContabilita, loading } = useUserRole();
   const canApprove = isAdmin || isContabilita;
-  const { myRequests, allRequests, myBalance, cancelRequest } = useWorkerLeave();
+  const { myRequests, allRequests, myBalance, cancelRequest, refresh } = useWorkerLeave();
   const [tab, setTab] = useState("richieste");
+  useLeaveNotifications();
 
   return (
     <div className="min-h-screen bg-background">
@@ -28,7 +31,14 @@ export default function AreaLavoratori() {
           <h1 className="text-2xl font-bold">Area Lavoratori</h1>
         </div>
 
-        <Tabs value={tab} onValueChange={setTab}>
+        <Tabs
+          value={tab}
+          onValueChange={(v) => {
+            // Hard guard: ignore the approvazioni tab for non-approvers (defence in depth).
+            if (v === "approvazioni" && !canApprove) return;
+            setTab(v);
+          }}
+        >
           <TabsList className="grid w-full" style={{ gridTemplateColumns: `repeat(${canApprove ? 4 : 3}, 1fr)` }}>
             <TabsTrigger value="richieste">Richieste</TabsTrigger>
             <TabsTrigger value="chat">Chat</TabsTrigger>
@@ -45,9 +55,12 @@ export default function AreaLavoratori() {
               <LeaveBalanceCard balance={myBalance} />
             </div>
             <Card>
-              <CardHeader><CardTitle className="text-base">Le mie richieste</CardTitle></CardHeader>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-base">Le mie richieste</CardTitle>
+                <LeaveExportDialog requests={myRequests} />
+              </CardHeader>
               <CardContent>
-                <LeaveRequestList requests={myRequests} onCancel={cancelRequest} />
+                <LeaveRequestList requests={myRequests} onCancel={cancelRequest} onChange={refresh} />
               </CardContent>
             </Card>
           </TabsContent>
@@ -65,7 +78,12 @@ export default function AreaLavoratori() {
 
           {canApprove && (
             <TabsContent value="approvazioni" className="mt-4">
-              <LeaveApprovalQueue />
+              <div className="space-y-2">
+                <div className="flex justify-end">
+                  <LeaveExportDialog requests={allRequests} />
+                </div>
+                <LeaveApprovalQueue />
+              </div>
             </TabsContent>
           )}
         </Tabs>
