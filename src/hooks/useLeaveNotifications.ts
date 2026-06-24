@@ -70,6 +70,28 @@ export function useLeaveNotifications(enabled = true) {
       },
     );
 
+    channel.on(
+      "postgres_changes",
+      {
+        event: "UPDATE",
+        schema: "public",
+        table: "worker_leave_balances",
+        filter: `user_id=eq.${user.id}`,
+      },
+      (payload) => {
+        const b: any = payload.new;
+        const o: any = payload.old;
+        const parts: string[] = [];
+        if (b.vacation_days_used !== o.vacation_days_used) {
+          parts.push(`Ferie residue: ${(b.vacation_days_total - b.vacation_days_used).toFixed(1)} gg`);
+        }
+        if (b.permit_hours_used !== o.permit_hours_used) {
+          parts.push(`Permessi residui: ${(b.permit_hours_total - b.permit_hours_used).toFixed(1)} h`);
+        }
+        if (parts.length) toast({ title: "Saldo aggiornato", description: parts.join(" · ") });
+      },
+    );
+
     channel.subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [user, isAdmin, isContabilita, enabled, toast]);
