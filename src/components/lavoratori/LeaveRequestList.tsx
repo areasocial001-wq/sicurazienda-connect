@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Trash2 } from "lucide-react";
 import type { LeaveRequest } from "@/hooks/useWorkerLeave";
+import { LeaveAttachment } from "./LeaveAttachment";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
 
@@ -30,10 +31,14 @@ export function LeaveRequestList({
   requests,
   showRequester,
   onCancel,
+  onChange,
+  canManageAttachments,
 }: {
   requests: LeaveRequest[];
   showRequester?: boolean;
   onCancel?: (id: string) => void;
+  onChange?: () => void;
+  canManageAttachments?: boolean;
 }) {
   if (!requests.length) {
     return <p className="text-sm text-muted-foreground text-center py-8">Nessuna richiesta.</p>;
@@ -62,6 +67,15 @@ export function LeaveRequestList({
               {r.review_note && (
                 <div className="text-xs mt-1 border-l-2 border-muted pl-2">Nota: {r.review_note}</div>
               )}
+              <div className="mt-2">
+                <LeaveAttachment
+                  requestId={r.id}
+                  requestOwnerId={r.user_id}
+                  attachmentPath={r.attachment_path}
+                  canEdit={canManageAttachments || (!!onCancel && r.status === "in_attesa")}
+                  onUpdated={onChange}
+                />
+              </div>
             </div>
             {onCancel && r.status === "in_attesa" && (
               <Button size="icon" variant="ghost" onClick={() => onCancel(r.id)} title="Annulla">

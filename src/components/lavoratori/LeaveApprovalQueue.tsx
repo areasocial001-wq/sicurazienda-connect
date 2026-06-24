@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Check, X } from "lucide-react";
 import { useWorkerLeave, type LeaveRequest } from "@/hooks/useWorkerLeave";
 import { useToast } from "@/hooks/use-toast";
+import { useUserRole } from "@/hooks/useUserRole";
+import { LeaveAttachment } from "./LeaveAttachment";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
 
@@ -18,7 +20,8 @@ const TYPE_LABEL: Record<string, string> = {
 };
 
 export function LeaveApprovalQueue() {
-  const { allRequests, reviewRequest } = useWorkerLeave();
+  const { allRequests, reviewRequest, refresh } = useWorkerLeave();
+  const { isAdmin, isContabilita } = useUserRole();
   const { toast } = useToast();
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<string | null>(null);
@@ -27,6 +30,10 @@ export function LeaveApprovalQueue() {
   const decided = allRequests.filter((r) => r.status !== "in_attesa").slice(0, 30);
 
   const handle = async (id: string, status: "approvata" | "rifiutata") => {
+    if (!isAdmin && !isContabilita) {
+      toast({ title: "Non autorizzato", description: "Solo admin o contabilità possono evadere richieste.", variant: "destructive" });
+      return;
+    }
     setBusy(id);
     try {
       await reviewRequest(id, status, notes[id]);
@@ -60,6 +67,13 @@ export function LeaveApprovalQueue() {
           {r.hours ? ` · ${r.hours}h` : ""}
         </div>
         {r.reason && <div className="text-xs italic text-muted-foreground">{r.reason}</div>}
+        <LeaveAttachment
+          requestId={r.id}
+          requestOwnerId={r.user_id}
+          attachmentPath={r.attachment_path}
+          canEdit
+          onUpdated={refresh}
+        />
         {r.status === "in_attesa" ? (
           <>
             <Textarea
