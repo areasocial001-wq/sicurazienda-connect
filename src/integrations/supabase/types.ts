@@ -2540,6 +2540,39 @@ export type Database = {
           },
         ]
       }
+      worker_leave_audit: {
+        Row: {
+          action: string
+          actor_id: string | null
+          actor_name: string | null
+          created_at: string
+          details: Json
+          id: string
+          request_id: string | null
+          request_owner_id: string
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          actor_name?: string | null
+          created_at?: string
+          details?: Json
+          id?: string
+          request_id?: string | null
+          request_owner_id: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          actor_name?: string | null
+          created_at?: string
+          details?: Json
+          id?: string
+          request_id?: string | null
+          request_owner_id?: string
+        }
+        Relationships: []
+      }
       worker_leave_balances: {
         Row: {
           created_at: string
@@ -2627,6 +2660,66 @@ export type Database = {
         }
         Relationships: []
       }
+      worker_notification_prefs: {
+        Row: {
+          notify_balance: boolean
+          notify_decision: boolean
+          notify_new_request: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          notify_balance?: boolean
+          notify_decision?: boolean
+          notify_new_request?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          notify_balance?: boolean
+          notify_decision?: boolean
+          notify_new_request?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      worker_notifications: {
+        Row: {
+          body: string | null
+          created_at: string
+          id: string
+          meta: Json
+          read_at: string | null
+          request_id: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          meta?: Json
+          read_at?: string | null
+          request_id?: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          meta?: Json
+          read_at?: string | null
+          request_id?: string | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       qr_codes_public: {
@@ -2705,6 +2798,10 @@ export type Database = {
         Returns: string
       }
       resolve_my_note_shares: { Args: never; Returns: undefined }
+      worker_pref: {
+        Args: { _kind: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role:
