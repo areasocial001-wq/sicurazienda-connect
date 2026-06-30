@@ -406,6 +406,7 @@ const CourseDetail = ({ course, onBack }: Props) => {
               )}
             </TabsContent>
           </Tabs>
+
         </main>
         <BottomNav />
 
