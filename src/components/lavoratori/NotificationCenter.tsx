@@ -1,6 +1,6 @@
 import { formatDistanceToNow } from "date-fns";
 import { it } from "date-fns/locale";
-import { Bell, Check, CheckCheck, Trash2 } from "lucide-react";
+import { Bell, Check, CheckCheck, MailOpen, RotateCcw, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useWorkerNotifications } from "@/hooks/useWorkerNotifications";
@@ -13,7 +13,9 @@ const TYPE_BADGE: Record<string, { label: string; variant: "default" | "secondar
 };
 
 export function NotificationCenter() {
-  const { items, unreadCount, markRead, markAllRead, remove } = useWorkerNotifications();
+  const { items, unreadCount, markRead, markUnread, markAllRead, markAllUnread, remove } =
+    useWorkerNotifications();
+  const readCount = items.length - unreadCount;
 
   return (
     <div className="space-y-3">
@@ -23,11 +25,18 @@ export function NotificationCenter() {
           <h3 className="font-semibold">Notifiche</h3>
           {unreadCount > 0 && <Badge variant="destructive">{unreadCount} non lette</Badge>}
         </div>
-        {unreadCount > 0 && (
-          <Button variant="ghost" size="sm" onClick={markAllRead}>
-            <CheckCheck className="h-4 w-4 mr-1" /> Segna tutte come lette
-          </Button>
-        )}
+        <div className="flex gap-1">
+          {unreadCount > 0 && (
+            <Button variant="ghost" size="sm" onClick={markAllRead}>
+              <CheckCheck className="h-4 w-4 mr-1" /> Segna tutte lette
+            </Button>
+          )}
+          {readCount > 0 && (
+            <Button variant="ghost" size="sm" onClick={markAllUnread}>
+              <RotateCcw className="h-4 w-4 mr-1" /> Segna tutte non lette
+            </Button>
+          )}
+        </div>
       </div>
 
       {items.length === 0 ? (
@@ -54,9 +63,13 @@ export function NotificationCenter() {
                   </p>
                 </div>
                 <div className="flex flex-col gap-1">
-                  {unread && (
+                  {unread ? (
                     <Button variant="ghost" size="icon" onClick={() => markRead(n.id)} title="Segna come letta">
                       <Check className="h-4 w-4" />
+                    </Button>
+                  ) : (
+                    <Button variant="ghost" size="icon" onClick={() => markUnread(n.id)} title="Segna come non letta">
+                      <MailOpen className="h-4 w-4" />
                     </Button>
                   )}
                   <Button variant="ghost" size="icon" onClick={() => remove(n.id)} title="Elimina">
