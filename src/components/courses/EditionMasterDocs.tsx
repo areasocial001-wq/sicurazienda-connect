@@ -344,18 +344,49 @@ function registroPresenzePages(course: Course, edition: CourseEdition, enrollmen
     </table>
   </section>`;
   const lessonPages = (lessons.length ? lessons : [{ id: "x", lesson_date: edition.start_date, start_time: "", end_time: "", topic: "Lezione 1", instructor_name: edition.instructor_name } as any]).map(l => {
+    const docente = (l as any).instructor_name || edition.instructor_name || "";
+    const orario = `${(l as any).start_time ? (l as any).start_time.slice(0,5) : "____"} — ${(l as any).end_time ? (l as any).end_time.slice(0,5) : "____"}`;
+    const programma = `
+      <div style="font-size:10px;line-height:1.4">
+        <p style="margin:0 0 4px"><strong>Unità formativa:</strong> ${(l as any).topic || course.name}</p>
+        <p style="margin:0 0 4px">Fornire le principali nozioni sugli aspetti della salute e sicurezza dei lavoratori nei luoghi di lavoro, obblighi e divieti per la prevenzione dei possibili rischi presenti durante l'attività lavorativa, così come previsto dall'art. 37 del D.Lgs. 81/08.</p>
+        <p style="margin:6px 0 4px"><strong>Modulo generale</strong></p>
+        <p style="margin:0 0 8px">Concetti di rischio, danno, prevenzione, protezione. Organizzazione della prevenzione aziendale. Diritti, doveri e sanzioni per i vari soggetti aziendali. Organi di vigilanza, controllo e assistenza.</p>
+        <table style="width:100%;font-size:10px;border-collapse:collapse;margin-top:10px">
+          <tr><td style="width:60px"><strong>Dalle</strong></td><td style="border-bottom:1px solid #374151">${(l as any).start_time ? (l as any).start_time.slice(0,5) : ""}</td></tr>
+          <tr><td><strong>Alle</strong></td><td style="border-bottom:1px solid #374151">${(l as any).end_time ? (l as any).end_time.slice(0,5) : ""}</td></tr>
+        </table>
+        <table style="width:100%;font-size:10px;border-collapse:collapse;margin-top:14px">
+          <tr><td style="width:90px"><strong>Docente 1</strong></td><td style="border-bottom:1px solid #374151">${docente}</td></tr>
+          <tr><td><strong>Firma</strong></td><td style="height:24px;border-bottom:1px solid #374151"></td></tr>
+          <tr><td style="padding-top:8px"><strong>Docente 2</strong></td><td style="border-bottom:1px solid #374151;padding-top:8px"></td></tr>
+          <tr><td><strong>Firma</strong></td><td style="height:24px;border-bottom:1px solid #374151"></td></tr>
+        </table>
+      </div>`;
     const lessonRows = Array.from({ length: rows }).map((_, i) => {
       const e = enrollments[i];
-      return `<tr><td style="text-align:center;width:24px">${i+1}</td><td>${e ? studentName(e) : ""}</td><td style="height:22px"></td></tr>`;
+      const programCell = i === 0 ? `<td rowspan="${rows}" style="width:38%;vertical-align:top;padding:8px">${programma}</td>` : "";
+      return `<tr>
+        <td style="text-align:center;width:24px;height:30px">${i+1}</td>
+        <td style="width:25%">${e ? studentName(e) : ""}</td>
+        <td style="height:30px;min-width:140px"></td>
+        ${programCell}
+      </tr>`;
     }).join("");
     return `<section class="page">${head}
       <div class="doc-title">Presenze del giorno: ${fmt((l as any).lesson_date)}</div>
       <table class="data" style="margin-bottom:6px">
-        <tr><td class="row-label" style="width:18%">Orario</td><td>${(l as any).start_time ? (l as any).start_time.slice(0,5) : "____"} — ${(l as any).end_time ? (l as any).end_time.slice(0,5) : "____"}</td><td class="row-label" style="width:18%">Docente</td><td>${(l as any).instructor_name || edition.instructor_name || ""}</td></tr>
-        <tr><td class="row-label">Programma svolto</td><td colspan="3">${(l as any).topic || ""}</td></tr>
+        <tr><td class="row-label" style="width:18%">Codice corso</td><td>${edition.edition_code || ""}</td><td class="row-label" style="width:18%">Orario</td><td>${orario}</td></tr>
       </table>
       <table class="data">
-        <thead><tr><th style="width:24px">ID</th><th style="width:35%">Cognome e Nome allievo</th><th>Firma allievo</th></tr></thead>
+        <thead>
+          <tr>
+            <th style="width:24px">ID</th>
+            <th>Cognome e Nome allievo</th>
+            <th>Firma allievo</th>
+            <th>Programma svolto</th>
+          </tr>
+        </thead>
         <tbody>${lessonRows}</tbody>
       </table>
       <div class="sig"><div>Firma docente</div><div>Firma responsabile corso</div></div>
