@@ -25,6 +25,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { AttendancePDFButton } from "./CoursePDFGenerator";
 import CertificateTemplateDialog from "./CertificateTemplates";
+import EditionMasterDocs from "./EditionMasterDocs";
 
 interface Props {
   course: Course;
@@ -231,6 +232,7 @@ const CourseDetail = ({ course, onBack }: Props) => {
               <TabsTrigger value="iscritti" className="gap-1"><Users className="h-4 w-4" /> Iscritti ({enrollments.length})</TabsTrigger>
               <TabsTrigger value="lezioni" className="gap-1"><BookOpen className="h-4 w-4" /> Lezioni ({lessons.length})</TabsTrigger>
               <TabsTrigger value="presenze" className="gap-1"><CheckCircle2 className="h-4 w-4" /> Registro Presenze</TabsTrigger>
+              <TabsTrigger value="documenti" className="gap-1"><FileText className="h-4 w-4" /> Documentazione</TabsTrigger>
             </TabsList>
 
             {/* ISCRITTI TAB */}
