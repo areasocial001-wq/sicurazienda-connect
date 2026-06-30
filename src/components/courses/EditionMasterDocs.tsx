@@ -367,9 +367,9 @@ function registroPresenzePages(course: Course, edition: CourseEdition, enrollmen
       const e = enrollments[i];
       const programCell = i === 0 ? `<td rowspan="${rows}" style="width:38%;vertical-align:top;padding:8px">${programma}</td>` : "";
       return `<tr>
-        <td style="text-align:center;width:24px;height:30px">${i+1}</td>
-        <td style="width:25%">${e ? studentName(e) : ""}</td>
-        <td style="height:30px;min-width:140px"></td>
+        <td style="text-align:center;width:24px;height:42px">${i+1}</td>
+        <td style="width:24%;font-weight:500">${e ? studentName(e) : ""}</td>
+        <td class="firma-cell" style="width:22%;height:42px;min-width:150px;background:#fafafa"><span style="display:inline-block;border-bottom:1px dotted #9ca3af;width:96%;margin-top:24px">&nbsp;</span></td>
         ${programCell}
       </tr>`;
     }).join("");
@@ -383,7 +383,7 @@ function registroPresenzePages(course: Course, edition: CourseEdition, enrollmen
           <tr>
             <th style="width:24px">ID</th>
             <th>Cognome e Nome allievo</th>
-            <th>Firma allievo</th>
+            <th style="background:#dbeafe;color:#1e3a8a">Firma allievo</th>
             <th>Programma svolto</th>
           </tr>
         </thead>
