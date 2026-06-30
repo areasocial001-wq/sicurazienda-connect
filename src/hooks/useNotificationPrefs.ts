@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
+import { toast } from "sonner";
 
 export interface NotificationPrefs {
   notify_new_request: boolean;
@@ -37,12 +38,14 @@ export function useNotificationPrefs() {
       if (!user) return;
       const merged = { ...prefs, ...next };
       setPrefs(merged);
-      await (supabase as any)
+      const { error } = await (supabase as any)
         .from("worker_notification_prefs")
         .upsert(
           { user_id: user.id, ...merged, updated_at: new Date().toISOString() },
           { onConflict: "user_id" },
         );
+      if (error) toast.error("Preferenza non salvata");
+      else toast.success("Preferenza aggiornata");
     },
     [user, prefs],
   );

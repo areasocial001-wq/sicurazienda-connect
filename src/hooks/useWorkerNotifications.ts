@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
+import { toast } from "sonner";
 
 export interface WorkerNotification {
   id: string;
@@ -51,24 +52,50 @@ export function useWorkerNotifications() {
   const unreadCount = items.filter((n) => !n.read_at).length;
 
   const markRead = useCallback(async (id: string) => {
-    await (supabase as any)
+    const { error } = await (supabase as any)
       .from("worker_notifications")
       .update({ read_at: new Date().toISOString() })
       .eq("id", id);
+    if (error) toast.error("Impossibile segnare come letta");
+    else toast.success("Notifica segnata come letta");
+  }, []);
+
+  const markUnread = useCallback(async (id: string) => {
+    const { error } = await (supabase as any)
+      .from("worker_notifications")
+      .update({ read_at: null })
+      .eq("id", id);
+    if (error) toast.error("Impossibile segnare come non letta");
+    else toast.success("Notifica segnata come non letta");
   }, []);
 
   const markAllRead = useCallback(async () => {
     if (!user) return;
-    await (supabase as any)
+    const { error } = await (supabase as any)
       .from("worker_notifications")
       .update({ read_at: new Date().toISOString() })
       .eq("user_id", user.id)
       .is("read_at", null);
+    if (error) toast.error("Operazione non riuscita");
+    else toast.success("Tutte le notifiche segnate come lette");
+  }, [user]);
+
+  const markAllUnread = useCallback(async () => {
+    if (!user) return;
+    const { error } = await (supabase as any)
+      .from("worker_notifications")
+      .update({ read_at: null })
+      .eq("user_id", user.id)
+      .not("read_at", "is", null);
+    if (error) toast.error("Operazione non riuscita");
+    else toast.success("Tutte le notifiche segnate come non lette");
   }, [user]);
 
   const remove = useCallback(async (id: string) => {
-    await (supabase as any).from("worker_notifications").delete().eq("id", id);
+    const { error } = await (supabase as any).from("worker_notifications").delete().eq("id", id);
+    if (error) toast.error("Impossibile eliminare la notifica");
+    else toast.success("Notifica eliminata");
   }, []);
 
-  return { items, loading, unreadCount, markRead, markAllRead, remove, refresh: load };
+  return { items, loading, unreadCount, markRead, markUnread, markAllRead, markAllUnread, remove, refresh: load };
 }

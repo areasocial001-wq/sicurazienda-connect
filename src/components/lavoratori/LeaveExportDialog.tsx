@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { Download, FileText, FileSpreadsheet } from "lucide-react";
+import { toast } from "sonner";
 import {
   ALL_COLUMNS,
   DEFAULT_COLUMNS,
@@ -67,6 +68,23 @@ export function LeaveExportDialog({ requests }: { requests: LeaveRequest[] }) {
 
   const toggleColumn = (key: ExportColumn) =>
     setColumns((cur) => (cur.includes(key) ? cur.filter((c) => c !== key) : [...cur, key]));
+
+  const runCSV = () => {
+    try {
+      exportLeaveCSV(filtered, opts);
+      toast.success(`Esportate ${filtered.length} righe in CSV`);
+    } catch (e) {
+      toast.error("Esportazione CSV non riuscita");
+    }
+  };
+  const runPDF = () => {
+    try {
+      exportLeavePDF(filtered, filters, opts);
+      toast.success(`PDF generato (${filtered.length} righe)`);
+    } catch (e) {
+      toast.error("Generazione PDF non riuscita");
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -153,10 +171,10 @@ export function LeaveExportDialog({ requests }: { requests: LeaveRequest[] }) {
           </div>
 
           <div className="flex gap-2 pt-2">
-            <Button className="flex-1" onClick={() => exportLeaveCSV(filtered, opts)} disabled={!filtered.length || !columns.length}>
+            <Button className="flex-1" onClick={runCSV} disabled={!filtered.length || !columns.length}>
               <FileSpreadsheet className="h-4 w-4 mr-2" /> CSV
             </Button>
-            <Button className="flex-1" variant="secondary" onClick={() => exportLeavePDF(filtered, filters, opts)} disabled={!filtered.length || !columns.length}>
+            <Button className="flex-1" variant="secondary" onClick={runPDF} disabled={!filtered.length || !columns.length}>
               <FileText className="h-4 w-4 mr-2" /> PDF
             </Button>
           </div>
