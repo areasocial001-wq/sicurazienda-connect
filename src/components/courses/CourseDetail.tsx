@@ -405,6 +405,14 @@ const CourseDetail = ({ course, onBack }: Props) => {
                 </div>
               )}
             </TabsContent>
+            <TabsContent value="documenti">
+              <EditionMasterDocs
+                course={course}
+                edition={selectedEdition}
+                enrollments={enrollments}
+                lessons={lessons}
+              />
+            </TabsContent>
           </Tabs>
 
         </main>
