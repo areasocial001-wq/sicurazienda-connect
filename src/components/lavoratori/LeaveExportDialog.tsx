@@ -4,8 +4,20 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { Download, FileText, FileSpreadsheet } from "lucide-react";
-import { applyFilters, exportLeaveCSV, exportLeavePDF, type ExportFilters } from "@/lib/leaveExport";
+import {
+  ALL_COLUMNS,
+  DEFAULT_COLUMNS,
+  applyFilters,
+  exportLeaveCSV,
+  exportLeavePDF,
+  summarisePeriod,
+  type ExportColumn,
+  type ExportFilters,
+  type GroupBy,
+} from "@/lib/leaveExport";
 import type { LeaveRequest } from "@/hooks/useWorkerLeave";
 
 const ROLE_OPTIONS = [
@@ -45,15 +57,23 @@ export function LeaveExportDialog({ requests }: { requests: LeaveRequest[] }) {
     type: "all",
     status: "all",
   });
+  const [columns, setColumns] = useState<ExportColumn[]>(DEFAULT_COLUMNS);
+  const [groupBy, setGroupBy] = useState<GroupBy>("none");
+  const [includeSummary, setIncludeSummary] = useState(true);
 
   const filtered = useMemo(() => applyFilters(requests, filters), [requests, filters]);
+  const summary = useMemo(() => summarisePeriod(filtered), [filtered]);
+  const opts = { columns, groupBy, includeSummary };
+
+  const toggleColumn = (key: ExportColumn) =>
+    setColumns((cur) => (cur.includes(key) ? cur.filter((c) => c !== key) : [...cur, key]));
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="outline" size="sm"><Download className="h-4 w-4 mr-2" /> Esporta</Button>
       </DialogTrigger>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Esporta ferie e permessi</DialogTitle></DialogHeader>
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
@@ -89,12 +109,54 @@ export function LeaveExportDialog({ requests }: { requests: LeaveRequest[] }) {
               </Select>
             </div>
           </div>
-          <p className="text-sm text-muted-foreground">{filtered.length} record corrispondono ai filtri.</p>
+
+          <div>
+            <Label>Raggruppamento</Label>
+            <Select value={groupBy} onValueChange={(v) => setGroupBy(v as GroupBy)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Nessuno</SelectItem>
+                <SelectItem value="role">Per ruolo / turno</SelectItem>
+                <SelectItem value="type">Per tipo</SelectItem>
+                <SelectItem value="status">Per stato</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label className="block mb-2">Colonne</Label>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 rounded-md border p-3">
+              {ALL_COLUMNS.map((c) => (
+                <label key={c.key} className="flex items-center gap-2 text-sm cursor-pointer">
+                  <Checkbox
+                    checked={columns.includes(c.key)}
+                    onCheckedChange={() => toggleColumn(c.key)}
+                  />
+                  {c.label}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between rounded-md border p-3">
+            <div>
+              <Label className="text-sm">Includi riepilogo finale</Label>
+              <p className="text-xs text-muted-foreground">Totali di ferie, permessi e residui per il periodo.</p>
+            </div>
+            <Switch checked={includeSummary} onCheckedChange={setIncludeSummary} />
+          </div>
+
+          <div className="rounded-md bg-muted/40 p-3 text-xs space-y-1">
+            <p className="font-medium text-sm">Anteprima riepilogo · {filtered.length} richieste</p>
+            <p>Approvate {summary.approved} · In attesa {summary.pending} · Rifiutate {summary.rejected}</p>
+            <p>Ferie {summary.vacationDays} gg · Permessi {summary.permitHours} h · Malattia {summary.sickDays} gg</p>
+          </div>
+
           <div className="flex gap-2 pt-2">
-            <Button className="flex-1" onClick={() => exportLeaveCSV(filtered)} disabled={!filtered.length}>
+            <Button className="flex-1" onClick={() => exportLeaveCSV(filtered, opts)} disabled={!filtered.length || !columns.length}>
               <FileSpreadsheet className="h-4 w-4 mr-2" /> CSV
             </Button>
-            <Button className="flex-1" variant="secondary" onClick={() => exportLeavePDF(filtered, filters)} disabled={!filtered.length}>
+            <Button className="flex-1" variant="secondary" onClick={() => exportLeavePDF(filtered, filters, opts)} disabled={!filtered.length || !columns.length}>
               <FileText className="h-4 w-4 mr-2" /> PDF
             </Button>
           </div>
