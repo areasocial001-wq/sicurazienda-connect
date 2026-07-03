@@ -3152,6 +3152,10 @@ export type Database = {
         Args: { _channel_id: string; _user_id: string }
         Returns: boolean
       }
+      is_own_employee_record: {
+        Args: { _employee_id: string }
+        Returns: boolean
+      }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
       log_audit_event: {
         Args: {
