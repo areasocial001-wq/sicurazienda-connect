@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { Plus, Trash2, FlaskConical, Search, Filter } from 'lucide-react';
 import { useExamHistory, EXAM_OUTCOMES, MedicalExam } from '@/hooks/useExamHistory';
 import { supabase } from '@/integrations/supabase/client';
+import { applyExamFilters } from '@/lib/examFilters';
 import { format, parseISO } from 'date-fns';
 import { it } from 'date-fns/locale';
 
@@ -41,23 +42,16 @@ export const ExamHistoryPanel = ({ employeeId }: Props) => {
   const [form, setForm] = useState<Partial<MedicalExam>>({});
   const openNew = () => { setForm({ exam_date: new Date().toISOString().slice(0, 10), outcome: 'normale' }); setAddOpen(true); };
 
-  const filtered = useMemo(() => {
-    let list = exams;
-    if (textFilter) {
-      const s = textFilter.toLowerCase();
-      list = list.filter((e) => (e.exam_type || '').toLowerCase().includes(s) || (e.outcome_value || '').toLowerCase().includes(s));
-    }
-    if (typeFilter) {
-      const s = typeFilter.toLowerCase();
-      list = list.filter((e) => (e.exam_type || '').toLowerCase().includes(s));
-    }
-    if (outcomeFilter) list = list.filter((e) => e.outcome === outcomeFilter);
-    const sorted = [...list];
-    if (sortBy === 'date_asc') sorted.sort((a, b) => a.exam_date.localeCompare(b.exam_date));
-    else if (sortBy === 'date_desc') sorted.sort((a, b) => b.exam_date.localeCompare(a.exam_date));
-    else if (sortBy === 'outcome') sorted.sort((a, b) => (a.outcome || '').localeCompare(b.outcome || ''));
-    return sorted;
-  }, [exams, textFilter, typeFilter, outcomeFilter, sortBy]);
+  const filtered = useMemo(
+    () =>
+      applyExamFilters(exams, {
+        text: textFilter,
+        type: typeFilter,
+        outcome: outcomeFilter,
+        sortBy,
+      }),
+    [exams, textFilter, typeFilter, outcomeFilter, sortBy],
+  );
 
   return (
     <Card>
