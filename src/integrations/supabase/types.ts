@@ -1554,6 +1554,120 @@ export type Database = {
         }
         Relationships: []
       }
+      medical_convocations: {
+        Row: {
+          body_html: string | null
+          contact_id: string | null
+          created_at: string
+          doctor_id: string | null
+          employee_id: string | null
+          error_message: string | null
+          id: string
+          location: string | null
+          notes: string | null
+          pdf_path: string | null
+          protocol_id: string | null
+          recipient_email: string | null
+          recipient_pec: string | null
+          scheduled_date: string | null
+          scheduled_time: string | null
+          sent_at: string | null
+          sent_channel: string | null
+          status: string
+          subject: string | null
+          updated_at: string
+          user_id: string
+          visit_id: string | null
+          visit_type: string | null
+        }
+        Insert: {
+          body_html?: string | null
+          contact_id?: string | null
+          created_at?: string
+          doctor_id?: string | null
+          employee_id?: string | null
+          error_message?: string | null
+          id?: string
+          location?: string | null
+          notes?: string | null
+          pdf_path?: string | null
+          protocol_id?: string | null
+          recipient_email?: string | null
+          recipient_pec?: string | null
+          scheduled_date?: string | null
+          scheduled_time?: string | null
+          sent_at?: string | null
+          sent_channel?: string | null
+          status?: string
+          subject?: string | null
+          updated_at?: string
+          user_id: string
+          visit_id?: string | null
+          visit_type?: string | null
+        }
+        Update: {
+          body_html?: string | null
+          contact_id?: string | null
+          created_at?: string
+          doctor_id?: string | null
+          employee_id?: string | null
+          error_message?: string | null
+          id?: string
+          location?: string | null
+          notes?: string | null
+          pdf_path?: string | null
+          protocol_id?: string | null
+          recipient_email?: string | null
+          recipient_pec?: string | null
+          scheduled_date?: string | null
+          scheduled_time?: string | null
+          sent_at?: string | null
+          sent_channel?: string | null
+          status?: string
+          subject?: string | null
+          updated_at?: string
+          user_id?: string
+          visit_id?: string | null
+          visit_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medical_convocations_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medical_convocations_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "medical_doctors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medical_convocations_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "crm_employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medical_convocations_protocol_id_fkey"
+            columns: ["protocol_id"]
+            isOneToOne: false
+            referencedRelation: "medical_protocols"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medical_convocations_visit_id_fkey"
+            columns: ["visit_id"]
+            isOneToOne: false
+            referencedRelation: "medical_visits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       medical_doctors: {
         Row: {
           created_at: string
@@ -1818,9 +1932,50 @@ export type Database = {
         }
         Relationships: []
       }
+      medical_risk_catalog: {
+        Row: {
+          category: string | null
+          created_at: string
+          default_periodicity_months: number | null
+          id: string
+          legal_reference: string | null
+          notes: string | null
+          risk_code: string
+          risk_name: string
+          suggested_exams: Json
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          default_periodicity_months?: number | null
+          id?: string
+          legal_reference?: string | null
+          notes?: string | null
+          risk_code: string
+          risk_name: string
+          suggested_exams?: Json
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          default_periodicity_months?: number | null
+          id?: string
+          legal_reference?: string | null
+          notes?: string | null
+          risk_code?: string
+          risk_name?: string
+          suggested_exams?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       medical_visits: {
         Row: {
           contact_id: string | null
+          convocation_id: string | null
+          convocation_sent_at: string | null
           cost: number | null
           created_at: string
           doctor_id: string | null
@@ -1840,6 +1995,8 @@ export type Database = {
         }
         Insert: {
           contact_id?: string | null
+          convocation_id?: string | null
+          convocation_sent_at?: string | null
           cost?: number | null
           created_at?: string
           doctor_id?: string | null
@@ -1859,6 +2016,8 @@ export type Database = {
         }
         Update: {
           contact_id?: string | null
+          convocation_id?: string | null
+          convocation_sent_at?: string | null
           cost?: number | null
           created_at?: string
           doctor_id?: string | null
@@ -1876,7 +2035,15 @@ export type Database = {
           user_id?: string
           visit_type?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "medical_visits_convocation_id_fkey"
+            columns: ["convocation_id"]
+            isOneToOne: false
+            referencedRelation: "medical_convocations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       message_templates: {
         Row: {
