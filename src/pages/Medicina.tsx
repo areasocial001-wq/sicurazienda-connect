@@ -617,6 +617,16 @@ const Medicina = () => {
           defaultVisitId={defaultJudgmentVisitId}
           onSave={(d) => editingJudgment ? m.updateJudgment(editingJudgment.id, d) : m.createJudgment(d)}
         />
+        {convocationVisit && (
+          <ConvocationDialog
+            open={convocationOpen}
+            onOpenChange={(o) => { setConvocationOpen(o); if (!o) setConvocationVisit(null); }}
+            visit={convocationVisit}
+            contactName={convocationVisit.contact_name}
+            doctorName={convocationVisit.doctor_name}
+            onSent={() => m.fetchVisits()}
+          />
+        )}
       </main>
       <BottomNav />
     </div>
