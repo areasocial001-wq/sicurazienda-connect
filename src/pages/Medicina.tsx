@@ -25,6 +25,8 @@ import { AnnualReportDialog } from '@/components/medicina/AnnualReportDialog';
 import { HealthFolderPanel } from '@/components/medicina/HealthFolderPanel';
 import { JudgmentDialog, JUDGMENT_OPTIONS } from '@/components/medicina/JudgmentDialog';
 import { MedicalCalendar } from '@/components/medicina/MedicalCalendar';
+import { ConvocationDialog } from '@/components/medicina/ConvocationDialog';
+import { Mail } from 'lucide-react';
 import { useCRM } from '@/hooks/useCRM';
 import { format, differenceInDays, parseISO } from 'date-fns';
 import { it } from 'date-fns/locale';
@@ -52,6 +54,8 @@ const Medicina = () => {
   const [defaultJudgmentVisitId, setDefaultJudgmentVisitId] = useState<string | null>(null);
   const [judgmentSearch, setJudgmentSearch] = useState('');
   const [protocolSearch, setProtocolSearch] = useState('');
+  const [convocationOpen, setConvocationOpen] = useState(false);
+  const [convocationVisit, setConvocationVisit] = useState<any>(null);
 
   const upcomingVisits = useMemo(() => {
     const today = new Date();
@@ -381,6 +385,7 @@ const Medicina = () => {
                           <TableCell>
                             <div className="flex gap-1">
                               <Button size="icon" variant="ghost" title="Aggiungi giudizio" onClick={() => { setEditingJudgment(null); setDefaultJudgmentVisitId(v.id); setJudgmentOpen(true); }}><Gavel className="h-4 w-4" /></Button>
+                              <Button size="icon" variant="ghost" title="Convoca via email" onClick={() => { setConvocationVisit(v); setConvocationOpen(true); }}><Mail className="h-4 w-4 text-primary" /></Button>
                               <Button size="icon" variant="ghost" onClick={() => { setEditingVisit(v); setVisitOpen(true); }}><Pencil className="h-4 w-4" /></Button>
                               <Button size="icon" variant="ghost" onClick={() => m.deleteVisit(v.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                             </div>
