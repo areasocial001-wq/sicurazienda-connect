@@ -7,10 +7,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { Check, ChevronsUpDown, Gavel } from 'lucide-react';
+import { Check, ChevronsUpDown, Gavel, Printer, Upload, PenTool } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { MedicalJudgment, MedicalDoctor, MedicalVisit } from '@/hooks/useMedicina';
+import type { MedicalJudgment, MedicalDoctor, MedicalVisit, MedicalProtocol } from '@/hooks/useMedicina';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { generateJudgmentPDF } from './judgmentPDF';
+import { useAuth } from '@/hooks/useAuth';
+import { Badge } from '@/components/ui/badge';
 
 interface Props {
   open: boolean;
@@ -18,6 +22,7 @@ interface Props {
   judgment?: MedicalJudgment | null;
   doctors: MedicalDoctor[];
   visits: MedicalVisit[];
+  protocols?: MedicalProtocol[];
   /** When set, pre-fills visit + employee + doctor. */
   defaultVisitId?: string | null;
   defaultEmployeeId?: string | null;
@@ -33,24 +38,38 @@ export const JUDGMENT_OPTIONS = [
   { value: 'sospeso', label: 'Giudizio sospeso (accertamenti)', color: 'text-muted-foreground' },
 ];
 
-export const JudgmentDialog = ({ open, onOpenChange, judgment, doctors, visits, defaultVisitId, defaultEmployeeId, onSave }: Props) => {
+export const JudgmentDialog = ({ open, onOpenChange, judgment, doctors, visits, protocols = [], defaultVisitId, defaultEmployeeId, onSave }: Props) => {
+  const { user } = useAuth();
   const [form, setForm] = useState<Partial<MedicalJudgment>>({});
   const [employees, setEmployees] = useState<{ id: string; first_name: string; last_name: string; contact_id: string | null }[]>([]);
   const [empOpen, setEmpOpen] = useState(false);
   const [visitOpen, setVisitOpen] = useState(false);
+  const [signatureFile, setSignatureFile] = useState<File | null>(null);
+  const [signaturePreview, setSignaturePreview] = useState<string | null>(null);
+  const [printing, setPrinting] = useState(false);
 
   useEffect(() => {
     if (judgment) {
       setForm(judgment);
+      setSignaturePreview(null); setSignatureFile(null);
     } else {
       const v = defaultVisitId ? visits.find((x) => x.id === defaultVisitId) : null;
+      const proto = v?.protocol_id ? protocols.find((p) => p.id === v.protocol_id) : null;
       setForm({
         judgment: 'idoneo',
         judgment_date: new Date().toISOString().slice(0, 10),
         visit_id: defaultVisitId ?? null,
         employee_id: defaultEmployeeId ?? v?.employee_id ?? null,
         doctor_id: v?.doctor_id ?? null,
+        protocol_id: v?.protocol_id ?? null,
+        contact_id: v?.contact_id ?? null,
+        visit_type: v?.visit_type ?? null,
+        visit_date: v?.execution_date ?? v?.scheduled_date ?? null,
+        job_role: proto?.job_role ?? null,
+        risks_evaluated: proto?.risks ?? [],
+        exams_evaluated: v?.exams_performed ?? proto?.exams ?? null,
       });
+      setSignaturePreview(null); setSignatureFile(null);
     }
   }, [judgment, defaultVisitId, defaultEmployeeId, open, visits]);
 
@@ -64,6 +83,8 @@ export const JudgmentDialog = ({ open, onOpenChange, judgment, doctors, visits, 
 
   const selectedEmp = employees.find((e) => e.id === form.employee_id);
   const selectedVisit = visits.find((v) => v.id === form.visit_id);
+  const selectedDoctor = doctors.find((d) => d.id === form.doctor_id);
+  const selectedProtocol = protocols.find((p) => p.id === form.protocol_id);
 
   // Filter visits by employee if selected
   const filteredVisits = useMemo(() => {
@@ -71,15 +92,127 @@ export const JudgmentDialog = ({ open, onOpenChange, judgment, doctors, visits, 
     return visits.filter((v) => v.employee_id === form.employee_id);
   }, [visits, form.employee_id]);
 
+  const onVisitSelected = (v: MedicalVisit) => {
+    const proto = v.protocol_id ? protocols.find((p) => p.id === v.protocol_id) : null;
+    setForm((f) => ({
+      ...f,
+      visit_id: v.id,
+      employee_id: v.employee_id ?? f.employee_id,
+      doctor_id: v.doctor_id ?? f.doctor_id,
+      protocol_id: v.protocol_id ?? f.protocol_id,
+      contact_id: v.contact_id ?? f.contact_id,
+      visit_type: v.visit_type ?? f.visit_type,
+      visit_date: v.execution_date ?? v.scheduled_date ?? f.visit_date,
+      job_role: proto?.job_role ?? f.job_role,
+      risks_evaluated: proto?.risks ?? f.risks_evaluated,
+      exams_evaluated: v.exams_performed ?? f.exams_evaluated,
+    }));
+    setVisitOpen(false);
+  };
+
+  const onSignatureFile = async (file: File) => {
+    setSignatureFile(file);
+    const reader = new FileReader();
+    reader.onloadend = () => setSignaturePreview(reader.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  const uploadSignature = async (): Promise<string | null> => {
+    if (!signatureFile || !user) return form.signature_path || null;
+    const path = `${user.id}/signatures/judgment_${Date.now()}_${signatureFile.name.replace(/\s+/g, '_')}`;
+    const { error } = await supabase.storage.from('medical-records').upload(path, signatureFile, { upsert: true });
+    if (error) { toast.error('Errore upload firma'); return null; }
+    return path;
+  };
+
   const handle = async () => {
     if (!form.judgment || !form.judgment_date) return;
-    await onSave(form);
+    let payload = { ...form };
+    if (signatureFile) {
+      const p = await uploadSignature();
+      if (p) payload.signature_path = p;
+    }
+    await onSave(payload);
     onOpenChange(false);
+  };
+
+  const handlePrintAndArchive = async () => {
+    if (!user || !form.employee_id || !form.judgment_date) { toast.error('Compila dipendente e data'); return; }
+    setPrinting(true);
+    try {
+      let sigPath = form.signature_path || null;
+      if (signatureFile) sigPath = await uploadSignature();
+      const payload: any = { ...form, signature_path: sigPath };
+
+      // Save/create judgment first to obtain id
+      const saved = await onSave(payload);
+      const judgmentRow: any = saved || payload;
+
+      // Load company / employee full data
+      const { data: emp } = await supabase.from('crm_employees').select('first_name,last_name,fiscal_code,birth_date,birth_place,contact_id').eq('id', form.employee_id).maybeSingle();
+      let company: any = null;
+      if (emp?.contact_id) {
+        const { data: c } = await supabase.from('crm_contacts').select('name,company,vat_number,address').eq('id', emp.contact_id).maybeSingle();
+        company = c;
+      }
+
+      const blob = await generateJudgmentPDF({
+        judgment: judgmentRow,
+        employee: emp as any,
+        company,
+        doctor: selectedDoctor ? { first_name: selectedDoctor.first_name, last_name: selectedDoctor.last_name, medical_order: selectedDoctor.medical_order, order_number: selectedDoctor.order_number, signature_path: selectedDoctor.signature_path as any } : null,
+        protocol: selectedProtocol ? { name: selectedProtocol.name, job_role: selectedProtocol.job_role, risks: selectedProtocol.risks } : null,
+        visit: selectedVisit ? { visit_type: selectedVisit.visit_type, execution_date: selectedVisit.execution_date, scheduled_date: selectedVisit.scheduled_date } : null,
+        signatureDataUrl: signaturePreview,
+      });
+
+      const version = ((judgmentRow.signed_pdf_version || 0) as number) + 1;
+      const fname = `giudizio_${(emp?.last_name || 'lav').toLowerCase()}_${form.judgment_date}_v${version}.pdf`;
+      const path = `${user.id}/${form.employee_id}/judgments/${Date.now()}_${fname}`;
+      const { error: upErr } = await supabase.storage.from('medical-records').upload(path, blob, { contentType: 'application/pdf', upsert: false });
+      if (upErr) throw upErr;
+
+      // Register file in health folder
+      const { data: hf, error: hfErr } = await (supabase as any).from('medical_health_files').insert({
+        user_id: user.id,
+        uploaded_by: user.id,
+        employee_id: form.employee_id,
+        contact_id: emp?.contact_id || null,
+        visit_id: form.visit_id || null,
+        document_type: 'certificato_idoneita',
+        document_date: form.judgment_date,
+        description: `Giudizio idoneità v${version} — ${form.judgment}`,
+        file_name: fname,
+        file_path: path,
+        file_size: blob.size,
+        file_type: 'application/pdf',
+      }).select().single();
+      if (hfErr) throw hfErr;
+
+      // Update judgment with PDF version + link
+      if (judgmentRow.id) {
+        await (supabase as any).from('medical_judgments').update({
+          signed_pdf_path: path,
+          signed_pdf_version: version,
+          health_file_id: hf.id,
+          signature_path: sigPath,
+        }).eq('id', judgmentRow.id);
+      }
+
+      // Preview download
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+
+      toast.success('Giudizio stampato e archiviato in cartella sanitaria');
+      onOpenChange(false);
+    } catch (e: any) {
+      console.error(e); toast.error(e.message || 'Errore stampa/archiviazione');
+    } finally { setPrinting(false); }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Gavel className="h-5 w-5 text-primary" />
