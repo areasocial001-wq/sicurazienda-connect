@@ -1685,6 +1685,7 @@ export type Database = {
           order_number: string | null
           pec: string | null
           phone: string | null
+          signature_path: string | null
           updated_at: string
           user_id: string
           visit_rate: number | null
@@ -1705,6 +1706,7 @@ export type Database = {
           order_number?: string | null
           pec?: string | null
           phone?: string | null
+          signature_path?: string | null
           updated_at?: string
           user_id: string
           visit_rate?: number | null
@@ -1725,9 +1727,73 @@ export type Database = {
           order_number?: string | null
           pec?: string | null
           phone?: string | null
+          signature_path?: string | null
           updated_at?: string
           user_id?: string
           visit_rate?: number | null
+        }
+        Relationships: []
+      }
+      medical_exam_history: {
+        Row: {
+          created_at: string
+          doctor_id: string | null
+          employee_id: string
+          exam_category: string | null
+          exam_date: string
+          exam_type: string
+          file_id: string | null
+          id: string
+          job_role: string | null
+          notes: string | null
+          outcome: string | null
+          outcome_value: string | null
+          protocol_id: string | null
+          reference_range: string | null
+          risk_category: string | null
+          updated_at: string
+          user_id: string
+          visit_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          doctor_id?: string | null
+          employee_id: string
+          exam_category?: string | null
+          exam_date: string
+          exam_type: string
+          file_id?: string | null
+          id?: string
+          job_role?: string | null
+          notes?: string | null
+          outcome?: string | null
+          outcome_value?: string | null
+          protocol_id?: string | null
+          reference_range?: string | null
+          risk_category?: string | null
+          updated_at?: string
+          user_id: string
+          visit_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          doctor_id?: string | null
+          employee_id?: string
+          exam_category?: string | null
+          exam_date?: string
+          exam_type?: string
+          file_id?: string | null
+          id?: string
+          job_role?: string | null
+          notes?: string | null
+          outcome?: string | null
+          outcome_value?: string | null
+          protocol_id?: string | null
+          reference_range?: string | null
+          risk_category?: string | null
+          updated_at?: string
+          user_id?: string
+          visit_id?: string | null
         }
         Relationships: []
       }
@@ -1782,6 +1848,105 @@ export type Database = {
           uploaded_by?: string
           user_id?: string
           visit_id?: string | null
+        }
+        Relationships: []
+      }
+      medical_health_records: {
+        Row: {
+          abitudini_alcol: string | null
+          abitudini_fumo: string | null
+          abitudini_sport: string | null
+          allergie: string | null
+          anamnesi_familiare: string | null
+          anamnesi_fisiologica: string | null
+          anamnesi_lavorativa: string | null
+          anamnesi_patologica_prossima: string | null
+          anamnesi_patologica_remota: string | null
+          birth_date: string | null
+          birth_place: string | null
+          blood_group: string | null
+          contact_id: string | null
+          created_at: string
+          current_job_role: string | null
+          current_risks: string[] | null
+          dominant_hand: string | null
+          employee_id: string
+          gender: string | null
+          height_cm: number | null
+          id: string
+          interventi_chirurgici: string | null
+          last_review_date: string | null
+          notes: string | null
+          protocol_id: string | null
+          terapie_in_corso: string | null
+          updated_at: string
+          user_id: string
+          vaccinazioni: string | null
+          weight_kg: number | null
+        }
+        Insert: {
+          abitudini_alcol?: string | null
+          abitudini_fumo?: string | null
+          abitudini_sport?: string | null
+          allergie?: string | null
+          anamnesi_familiare?: string | null
+          anamnesi_fisiologica?: string | null
+          anamnesi_lavorativa?: string | null
+          anamnesi_patologica_prossima?: string | null
+          anamnesi_patologica_remota?: string | null
+          birth_date?: string | null
+          birth_place?: string | null
+          blood_group?: string | null
+          contact_id?: string | null
+          created_at?: string
+          current_job_role?: string | null
+          current_risks?: string[] | null
+          dominant_hand?: string | null
+          employee_id: string
+          gender?: string | null
+          height_cm?: number | null
+          id?: string
+          interventi_chirurgici?: string | null
+          last_review_date?: string | null
+          notes?: string | null
+          protocol_id?: string | null
+          terapie_in_corso?: string | null
+          updated_at?: string
+          user_id: string
+          vaccinazioni?: string | null
+          weight_kg?: number | null
+        }
+        Update: {
+          abitudini_alcol?: string | null
+          abitudini_fumo?: string | null
+          abitudini_sport?: string | null
+          allergie?: string | null
+          anamnesi_familiare?: string | null
+          anamnesi_fisiologica?: string | null
+          anamnesi_lavorativa?: string | null
+          anamnesi_patologica_prossima?: string | null
+          anamnesi_patologica_remota?: string | null
+          birth_date?: string | null
+          birth_place?: string | null
+          blood_group?: string | null
+          contact_id?: string | null
+          created_at?: string
+          current_job_role?: string | null
+          current_risks?: string[] | null
+          dominant_hand?: string | null
+          employee_id?: string
+          gender?: string | null
+          height_cm?: number | null
+          id?: string
+          interventi_chirurgici?: string | null
+          last_review_date?: string | null
+          notes?: string | null
+          protocol_id?: string | null
+          terapie_in_corso?: string | null
+          updated_at?: string
+          user_id?: string
+          vaccinazioni?: string | null
+          weight_kg?: number | null
         }
         Relationships: []
       }
@@ -1841,49 +2006,82 @@ export type Database = {
       }
       medical_judgments: {
         Row: {
+          contact_id: string | null
           created_at: string
           doctor_id: string | null
           employee_id: string | null
+          exams_evaluated: Json | null
+          health_file_id: string | null
           id: string
+          job_role: string | null
           judgment: string
           judgment_date: string
           limitations: string | null
           notes: string | null
           prescriptions: string | null
+          protocol_id: string | null
+          risks_evaluated: string[] | null
+          signature_path: string | null
+          signed_pdf_path: string | null
+          signed_pdf_version: number | null
           updated_at: string
           user_id: string
           valid_until: string | null
+          visit_date: string | null
           visit_id: string | null
+          visit_type: string | null
         }
         Insert: {
+          contact_id?: string | null
           created_at?: string
           doctor_id?: string | null
           employee_id?: string | null
+          exams_evaluated?: Json | null
+          health_file_id?: string | null
           id?: string
+          job_role?: string | null
           judgment?: string
           judgment_date?: string
           limitations?: string | null
           notes?: string | null
           prescriptions?: string | null
+          protocol_id?: string | null
+          risks_evaluated?: string[] | null
+          signature_path?: string | null
+          signed_pdf_path?: string | null
+          signed_pdf_version?: number | null
           updated_at?: string
           user_id: string
           valid_until?: string | null
+          visit_date?: string | null
           visit_id?: string | null
+          visit_type?: string | null
         }
         Update: {
+          contact_id?: string | null
           created_at?: string
           doctor_id?: string | null
           employee_id?: string | null
+          exams_evaluated?: Json | null
+          health_file_id?: string | null
           id?: string
+          job_role?: string | null
           judgment?: string
           judgment_date?: string
           limitations?: string | null
           notes?: string | null
           prescriptions?: string | null
+          protocol_id?: string | null
+          risks_evaluated?: string[] | null
+          signature_path?: string | null
+          signed_pdf_path?: string | null
+          signed_pdf_version?: number | null
           updated_at?: string
           user_id?: string
           valid_until?: string | null
+          visit_date?: string | null
           visit_id?: string | null
+          visit_type?: string | null
         }
         Relationships: []
       }
