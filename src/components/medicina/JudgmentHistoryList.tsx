@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { History, ExternalLink, Printer } from 'lucide-react';
+import { History, ExternalLink, Printer, RefreshCw } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { format, parseISO } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { toast } from 'sonner';
+import { logJudgmentAudit } from '@/lib/judgmentAudit';
 import type { MedicalDoctor } from '@/hooks/useMedicina';
 
 interface Props {
@@ -19,6 +21,8 @@ interface Props {
 export const JudgmentHistoryList = ({ visitId, protocolId, employeeId, doctors }: Props) => {
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewRow, setPreviewRow] = useState<any | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -35,11 +39,33 @@ export const JudgmentHistoryList = ({ visitId, protocolId, employeeId, doctors }
     })();
   }, [visitId, protocolId, employeeId]);
 
-  const openPdf = async (path?: string | null) => {
+  const openPdf = async (row: any, action: 'view' | 'reprint' = 'view') => {
+    const path = row?.signed_pdf_path;
     if (!path) { toast.info('Nessun PDF firmato per questa versione'); return; }
     const { data, error } = await supabase.storage.from('medical-records').createSignedUrl(path, 60);
     if (error || !data) { toast.error('Impossibile aprire il PDF'); return; }
-    window.open(data.signedUrl, '_blank');
+    void logJudgmentAudit({
+      judgment_id: row.id, action,
+      protocol_id: row.protocol_id, doctor_id: row.doctor_id,
+      employee_id: row.employee_id, visit_id: row.visit_id,
+      version: row.signed_pdf_version, file_path: path,
+    });
+    setPreviewRow(row);
+    setPreviewUrl(data.signedUrl);
+  };
+
+  const reprintFromPreview = () => {
+    if (!previewUrl) return;
+    const w = window.open(previewUrl, '_blank');
+    if (w) setTimeout(() => { try { w.print(); } catch { /* cross-origin */ } }, 800);
+    if (previewRow) {
+      void logJudgmentAudit({
+        judgment_id: previewRow.id, action: 'reprint',
+        protocol_id: previewRow.protocol_id, doctor_id: previewRow.doctor_id,
+        employee_id: previewRow.employee_id, visit_id: previewRow.visit_id,
+        version: previewRow.signed_pdf_version, file_path: previewRow.signed_pdf_path,
+      });
+    }
   };
 
   if (!visitId && !protocolId && !employeeId) return null;
@@ -69,14 +95,37 @@ export const JudgmentHistoryList = ({ visitId, protocolId, employeeId, doctors }
                   <span className="mx-1">·</span>
                   <Badge variant="outline" className="text-[10px]">{r.judgment}</Badge>
                 </div>
-                <Button size="sm" variant="ghost" onClick={() => openPdf(r.signed_pdf_path)}>
-                  {r.signed_pdf_path ? <><ExternalLink className="h-3 w-3 mr-1" />Apri</> : <><Printer className="h-3 w-3 mr-1" />No PDF</>}
-                </Button>
+                <div className="flex items-center gap-1">
+                  <Button size="sm" variant="ghost" onClick={() => openPdf(r, 'view')} disabled={!r.signed_pdf_path}
+                    aria-label={`Apri versione ${r.signed_pdf_version || 1}`}>
+                    <ExternalLink className="h-3 w-3 mr-1" />Apri
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => openPdf(r, 'reprint')} disabled={!r.signed_pdf_path}
+                    aria-label={`Ristampa versione ${r.signed_pdf_version || 1}`}>
+                    <RefreshCw className="h-3 w-3 mr-1" />Ristampa
+                  </Button>
+                </div>
               </li>
             );
           })}
         </ul>
       )}
+
+      <Dialog open={!!previewUrl} onOpenChange={(o) => { if (!o) { setPreviewUrl(null); setPreviewRow(null); } }}>
+        <DialogContent className="max-w-4xl h-[85vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-between gap-2">
+              <span>Anteprima giudizio v{previewRow?.signed_pdf_version || 1}</span>
+              <Button size="sm" onClick={reprintFromPreview}>
+                <Printer className="h-3 w-3 mr-1" />Stampa questa versione
+              </Button>
+            </DialogTitle>
+          </DialogHeader>
+          {previewUrl && (
+            <iframe src={previewUrl} className="flex-1 w-full border rounded" title="Anteprima PDF giudizio" />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
