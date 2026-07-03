@@ -16,6 +16,7 @@ import { generateJudgmentPDF } from './judgmentPDF';
 import { useAuth } from '@/hooks/useAuth';
 import { Badge } from '@/components/ui/badge';
 import { JudgmentHistoryList } from './JudgmentHistoryList';
+import { logJudgmentAudit } from '@/lib/judgmentAudit';
 
 interface Props {
   open: boolean;
@@ -198,6 +199,25 @@ export const JudgmentDialog = ({ open, onOpenChange, judgment, doctors, visits, 
           health_file_id: hf.id,
           signature_path: sigPath,
         }).eq('id', judgmentRow.id);
+      }
+
+      // Audit: sign + print
+      if (judgmentRow.id) {
+        if (sigPath) {
+          void logJudgmentAudit({
+            judgment_id: judgmentRow.id, action: 'sign',
+            protocol_id: form.protocol_id, doctor_id: form.doctor_id,
+            employee_id: form.employee_id, visit_id: form.visit_id,
+            version, file_path: path,
+          });
+        }
+        void logJudgmentAudit({
+          judgment_id: judgmentRow.id, action: 'print',
+          protocol_id: form.protocol_id, doctor_id: form.doctor_id,
+          employee_id: form.employee_id, visit_id: form.visit_id,
+          version, file_path: path,
+          meta: { file_name: fname },
+        });
       }
 
       // Preview download
