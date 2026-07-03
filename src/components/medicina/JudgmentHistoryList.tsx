@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { History, ExternalLink, Printer, RefreshCw } from 'lucide-react';
+import { History, ExternalLink, Printer, RefreshCw, Download } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { format, parseISO } from 'date-fns';
 import { it } from 'date-fns/locale';
@@ -54,6 +54,23 @@ export const JudgmentHistoryList = ({ visitId, protocolId, employeeId, doctors }
     setPreviewUrl(data.signedUrl);
   };
 
+  const downloadPdf = async (row: any) => {
+    const path = row?.signed_pdf_path;
+    if (!path) { toast.info('Nessun PDF firmato per questa versione'); return; }
+    const { data, error } = await supabase.storage.from('medical-records').createSignedUrl(path, 60, { download: true });
+    if (error || !data) { toast.error('Impossibile scaricare il PDF'); return; }
+    void logJudgmentAudit({
+      judgment_id: row.id, action: 'download',
+      protocol_id: row.protocol_id, doctor_id: row.doctor_id,
+      employee_id: row.employee_id, visit_id: row.visit_id,
+      version: row.signed_pdf_version, file_path: path,
+    });
+    const a = document.createElement('a');
+    a.href = data.signedUrl;
+    a.download = `giudizio-v${row.signed_pdf_version || 1}.pdf`;
+    a.click();
+  };
+
   const reprintFromPreview = () => {
     if (!previewUrl) return;
     const w = window.open(previewUrl, '_blank');
@@ -103,6 +120,10 @@ export const JudgmentHistoryList = ({ visitId, protocolId, employeeId, doctors }
                   <Button size="sm" variant="outline" onClick={() => openPdf(r, 'reprint')} disabled={!r.signed_pdf_path}
                     aria-label={`Ristampa versione ${r.signed_pdf_version || 1}`}>
                     <RefreshCw className="h-3 w-3 mr-1" />Ristampa
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => downloadPdf(r)} disabled={!r.signed_pdf_path}
+                    aria-label={`Scarica versione ${r.signed_pdf_version || 1}`}>
+                    <Download className="h-3 w-3 mr-1" />Scarica
                   </Button>
                 </div>
               </li>

@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { useMedicina } from '@/hooks/useMedicina';
 import { useUserRole } from '@/hooks/useUserRole';
 import { Navigate } from 'react-router-dom';
-import { Plus, Stethoscope, ClipboardList, CalendarClock, MapPinned, FileText, AlertTriangle, Pencil, Trash2, ShieldAlert, Loader2, Search, FolderLock, Gavel, CalendarDays, Euro, BarChart3, Download, Database, FileSpreadsheet } from 'lucide-react';
+import { Plus, Stethoscope, ClipboardList, CalendarClock, MapPinned, FileText, AlertTriangle, Pencil, Trash2, ShieldAlert, Loader2, Search, FolderLock, Gavel, CalendarDays, Euro, BarChart3, Download, Database, FileSpreadsheet, ShieldCheck } from 'lucide-react';
 import { MedicalCRMImporter } from '@/components/medicina/MedicalCRMImporter';
 import { AgendaExcelImporter } from '@/components/medicina/AgendaExcelImporter';
 import { DoctorDialog } from '@/components/medicina/DoctorDialog';
@@ -23,6 +23,7 @@ import { VisitDialog } from '@/components/medicina/VisitDialog';
 import { InspectionDialog } from '@/components/medicina/InspectionDialog';
 import { AnnualReportDialog } from '@/components/medicina/AnnualReportDialog';
 import { HealthDossierPanel } from '@/components/medicina/HealthDossierPanel';
+import { JudgmentAuditLog } from '@/components/medicina/JudgmentAuditLog';
 import { JudgmentDialog, JUDGMENT_OPTIONS } from '@/components/medicina/JudgmentDialog';
 import { MedicalCalendar } from '@/components/medicina/MedicalCalendar';
 import { ConvocationDialog } from '@/components/medicina/ConvocationDialog';
@@ -154,6 +155,7 @@ const Medicina = () => {
             <TabsTrigger value="analytics" className="gap-1"><BarChart3 className="h-4 w-4" />Statistiche</TabsTrigger>
             <TabsTrigger value="billing" className="gap-1"><Euro className="h-4 w-4" />Fatturazione</TabsTrigger>
             <TabsTrigger value="export" className="gap-1"><Download className="h-4 w-4" />Esporta</TabsTrigger>
+            <TabsTrigger value="audit" className="gap-1"><ShieldCheck className="h-4 w-4" />Audit Giudizi</TabsTrigger>
             <TabsTrigger value="import" className="gap-1"><Database className="h-4 w-4" />Importa CRM</TabsTrigger>
             <TabsTrigger value="import-excel" className="gap-1"><FileSpreadsheet className="h-4 w-4" />Importa Excel</TabsTrigger>
           </TabsList>
@@ -168,6 +170,10 @@ const Medicina = () => {
 
           <TabsContent value="export" className="space-y-4">
             <MedicalDataExport visits={m.visits} judgments={m.judgments} inspections={m.inspections} doctors={m.doctors} />
+          </TabsContent>
+
+          <TabsContent value="audit" className="space-y-4">
+            <JudgmentAuditLog doctors={m.doctors} protocols={m.protocols} limit={1000} />
           </TabsContent>
 
           <TabsContent value="import" className="space-y-4">
