@@ -270,8 +270,7 @@ export const JudgmentDialog = ({ open, onOpenChange, judgment, doctors, visits, 
                         <CommandItem onSelect={() => { setForm({ ...form, visit_id: null }); setVisitOpen(false); }}>— Nessuna —</CommandItem>
                         {filteredVisits.map((v) => (
                           <CommandItem key={v.id} value={`${v.visit_type} ${v.execution_date}`} onSelect={() => {
-                            setForm({ ...form, visit_id: v.id, employee_id: v.employee_id ?? form.employee_id, doctor_id: v.doctor_id ?? form.doctor_id });
-                            setVisitOpen(false);
+                            onVisitSelected(v);
                           }}>
                             <Check className={cn('mr-2 h-4 w-4', form.visit_id === v.id ? 'opacity-100' : 'opacity-0')} />
                             {v.visit_type} · {v.execution_date || v.scheduled_date || '—'}
@@ -346,10 +345,61 @@ export const JudgmentDialog = ({ open, onOpenChange, judgment, doctors, visits, 
             <Label>Note</Label>
             <Textarea rows={2} value={form.notes ?? ''} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
           </div>
+
+          {/* Protocollo + Mansione + Rischi */}
+          <div className="border-t pt-3 grid md:grid-cols-2 gap-3">
+            <div>
+              <Label>Protocollo sanitario</Label>
+              <Select value={form.protocol_id ?? 'none'} onValueChange={(v) => {
+                if (v === 'none') { setForm({ ...form, protocol_id: null }); return; }
+                const p = protocols.find((x) => x.id === v);
+                setForm({ ...form, protocol_id: v, job_role: p?.job_role ?? form.job_role, risks_evaluated: p?.risks ?? form.risks_evaluated, exams_evaluated: form.exams_evaluated ?? p?.exams ?? null });
+              }}>
+                <SelectTrigger><SelectValue placeholder="— Seleziona —" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">— Nessuno —</SelectItem>
+                  {protocols.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Mansione</Label>
+              <Input value={form.job_role ?? ''} onChange={(e) => setForm({ ...form, job_role: e.target.value })} />
+            </div>
+          </div>
+          {(form.risks_evaluated || []).length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {(form.risks_evaluated || []).map((r) => <Badge key={r} variant="outline">{r}</Badge>)}
+            </div>
+          )}
+
+          {/* Firma grafica */}
+          <div className="border-t pt-3">
+            <Label className="flex items-center gap-2"><PenTool className="h-4 w-4" />Firma medico (immagine PNG/JPG)</Label>
+            <div className="flex items-center gap-3 mt-1">
+              <Input type="file" accept="image/png,image/jpeg" onChange={(e) => e.target.files?.[0] && onSignatureFile(e.target.files[0])} className="max-w-xs" />
+              {(signaturePreview || form.signature_path || selectedDoctor?.signature_path) && (
+                <div className="text-xs text-muted-foreground">
+                  {signaturePreview ? <img src={signaturePreview} alt="firma" className="h-12 border rounded bg-white p-1" /> :
+                    <span>Firma già presente {form.signature_path ? '(giudizio)' : '(medico)'}</span>}
+                </div>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">Se non caricata verrà utilizzata la firma predefinita del medico competente.</p>
+          </div>
+
+          {form.signed_pdf_path && (
+            <div className="text-xs text-muted-foreground border rounded p-2 bg-muted/30">
+              PDF firmato archiviato — versione {form.signed_pdf_version || 1}
+            </div>
+          )}
         </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Annulla</Button>
+          <Button variant="secondary" onClick={handlePrintAndArchive} disabled={printing}>
+            <Printer className="h-4 w-4 mr-1" />{printing ? 'Generazione...' : 'Stampa + Archivia'}
+          </Button>
           <Button onClick={handle}>Salva giudizio</Button>
         </DialogFooter>
       </DialogContent>
