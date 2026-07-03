@@ -10,6 +10,8 @@ import { FolderLock, Lock } from 'lucide-react';
 import { HealthFolderPanel } from './HealthFolderPanel';
 import { AnamnesiPanel } from './AnamnesiPanel';
 import { ExamHistoryPanel } from './ExamHistoryPanel';
+import { JudgmentAuditLog } from './JudgmentAuditLog';
+import { useMedicina } from '@/hooks/useMedicina';
 
 interface Employee { id: string; first_name: string; last_name: string; contact_id?: string | null; }
 
@@ -17,6 +19,7 @@ export const HealthDossierPanel = () => {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [employeeId, setEmployeeId] = useState<string | undefined>(undefined);
   const [filter, setFilter] = useState('');
+  const { doctors, protocols } = useMedicina();
 
   useEffect(() => {
     (async () => {
@@ -79,10 +82,12 @@ export const HealthDossierPanel = () => {
             <TabsTrigger value="anamnesi">Anamnesi</TabsTrigger>
             <TabsTrigger value="exams">Storico esami</TabsTrigger>
             <TabsTrigger value="docs">Documenti</TabsTrigger>
+            <TabsTrigger value="audit">Audit giudizi</TabsTrigger>
           </TabsList>
           <TabsContent value="anamnesi"><AnamnesiPanel employeeId={employeeId} contactId={employee?.contact_id ?? null} /></TabsContent>
           <TabsContent value="exams"><ExamHistoryPanel employeeId={employeeId} /></TabsContent>
           <TabsContent value="docs"><HealthFolderPanel initialEmployeeId={employeeId} /></TabsContent>
+          <TabsContent value="audit"><JudgmentAuditLog doctors={doctors} protocols={protocols} employeeId={employeeId} /></TabsContent>
         </Tabs>
       )}
     </div>

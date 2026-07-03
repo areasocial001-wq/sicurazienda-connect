@@ -2004,6 +2004,59 @@ export type Database = {
         }
         Relationships: []
       }
+      medical_judgment_audit: {
+        Row: {
+          action: string
+          created_at: string
+          doctor_id: string | null
+          employee_id: string | null
+          file_path: string | null
+          id: string
+          judgment_id: string
+          meta: Json | null
+          protocol_id: string | null
+          user_id: string
+          version: number | null
+          visit_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          doctor_id?: string | null
+          employee_id?: string | null
+          file_path?: string | null
+          id?: string
+          judgment_id: string
+          meta?: Json | null
+          protocol_id?: string | null
+          user_id: string
+          version?: number | null
+          visit_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          doctor_id?: string | null
+          employee_id?: string | null
+          file_path?: string | null
+          id?: string
+          judgment_id?: string
+          meta?: Json | null
+          protocol_id?: string | null
+          user_id?: string
+          version?: number | null
+          visit_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medical_judgment_audit_judgment_id_fkey"
+            columns: ["judgment_id"]
+            isOneToOne: false
+            referencedRelation: "medical_judgments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       medical_judgments: {
         Row: {
           contact_id: string | null
