@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 import { generateJudgmentPDF } from './judgmentPDF';
 import { useAuth } from '@/hooks/useAuth';
 import { Badge } from '@/components/ui/badge';
+import { JudgmentHistoryList } from './JudgmentHistoryList';
 
 interface Props {
   open: boolean;
@@ -393,6 +394,32 @@ export const JudgmentDialog = ({ open, onOpenChange, judgment, doctors, visits, 
               PDF firmato archiviato — versione {form.signed_pdf_version || 1}
             </div>
           )}
+
+          {/* Riepilogo pre-firma */}
+          <div className="border-2 border-primary/30 rounded p-3 bg-primary/5 space-y-1 text-sm">
+            <div className="font-semibold text-primary mb-1">Riepilogo pre-firma</div>
+            <div className="grid md:grid-cols-2 gap-x-4 gap-y-1">
+              <div><span className="text-muted-foreground">Dipendente:</span> <strong>{selectedEmp ? `${selectedEmp.last_name} ${selectedEmp.first_name}` : '—'}</strong></div>
+              <div><span className="text-muted-foreground">Visita:</span> <strong>{selectedVisit ? `${selectedVisit.visit_type} · ${selectedVisit.execution_date || selectedVisit.scheduled_date || '—'}` : '—'}</strong></div>
+              <div><span className="text-muted-foreground">Protocollo:</span> <strong>{selectedProtocol?.name || '—'}</strong></div>
+              <div><span className="text-muted-foreground">Mansione:</span> <strong>{form.job_role || '—'}</strong></div>
+              <div className="md:col-span-2">
+                <span className="text-muted-foreground">Rischi valutati:</span>{' '}
+                {(form.risks_evaluated || []).length > 0
+                  ? (form.risks_evaluated || []).map((r) => <Badge key={r} variant="outline" className="mr-1">{r}</Badge>)
+                  : <span className="text-muted-foreground italic">nessuno</span>}
+              </div>
+              <div><span className="text-muted-foreground">Esito:</span> <strong>{JUDGMENT_OPTIONS.find((o) => o.value === form.judgment)?.label || form.judgment}</strong></div>
+              <div><span className="text-muted-foreground">Medico:</span> <strong>{selectedDoctor ? `Dr. ${selectedDoctor.first_name} ${selectedDoctor.last_name}` : '—'}</strong></div>
+            </div>
+          </div>
+
+          <JudgmentHistoryList
+            visitId={form.visit_id}
+            protocolId={form.protocol_id}
+            employeeId={form.employee_id}
+            doctors={doctors}
+          />
         </div>
 
         <DialogFooter>

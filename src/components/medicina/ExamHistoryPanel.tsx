@@ -20,6 +20,9 @@ export const ExamHistoryPanel = ({ employeeId }: Props) => {
   const [riskFilter, setRiskFilter] = useState<string>('');
   const [roleFilter, setRoleFilter] = useState<string>('');
   const [textFilter, setTextFilter] = useState('');
+  const [typeFilter, setTypeFilter] = useState('');
+  const [outcomeFilter, setOutcomeFilter] = useState<string>('');
+  const [sortBy, setSortBy] = useState<'date_desc' | 'date_asc' | 'outcome'>('date_desc');
   const { exams, create, remove } = useExamHistory({ employeeId, riskCategory: riskFilter || undefined, jobRole: roleFilter || undefined });
 
   const [risks, setRisks] = useState<{ risk_code: string; risk_name: string }[]>([]);
@@ -39,10 +42,22 @@ export const ExamHistoryPanel = ({ employeeId }: Props) => {
   const openNew = () => { setForm({ exam_date: new Date().toISOString().slice(0, 10), outcome: 'normale' }); setAddOpen(true); };
 
   const filtered = useMemo(() => {
-    if (!textFilter) return exams;
-    const s = textFilter.toLowerCase();
-    return exams.filter((e) => (e.exam_type || '').toLowerCase().includes(s) || (e.outcome_value || '').toLowerCase().includes(s));
-  }, [exams, textFilter]);
+    let list = exams;
+    if (textFilter) {
+      const s = textFilter.toLowerCase();
+      list = list.filter((e) => (e.exam_type || '').toLowerCase().includes(s) || (e.outcome_value || '').toLowerCase().includes(s));
+    }
+    if (typeFilter) {
+      const s = typeFilter.toLowerCase();
+      list = list.filter((e) => (e.exam_type || '').toLowerCase().includes(s));
+    }
+    if (outcomeFilter) list = list.filter((e) => e.outcome === outcomeFilter);
+    const sorted = [...list];
+    if (sortBy === 'date_asc') sorted.sort((a, b) => a.exam_date.localeCompare(b.exam_date));
+    else if (sortBy === 'date_desc') sorted.sort((a, b) => b.exam_date.localeCompare(a.exam_date));
+    else if (sortBy === 'outcome') sorted.sort((a, b) => (a.outcome || '').localeCompare(b.outcome || ''));
+    return sorted;
+  }, [exams, textFilter, typeFilter, outcomeFilter, sortBy]);
 
   return (
     <Card>
@@ -67,6 +82,22 @@ export const ExamHistoryPanel = ({ employeeId }: Props) => {
             </SelectContent>
           </Select>
           <Input className="w-[200px]" placeholder="Filtra mansione" value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)} />
+          <Input className="w-[180px]" placeholder="Filtra tipologia" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} />
+          <Select value={outcomeFilter || 'all'} onValueChange={(v) => setOutcomeFilter(v === 'all' ? '' : v)}>
+            <SelectTrigger className="w-[170px]"><SelectValue placeholder="Esito" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tutti gli esiti</SelectItem>
+              {EXAM_OUTCOMES.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={sortBy} onValueChange={(v) => setSortBy(v as any)}>
+            <SelectTrigger className="w-[170px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="date_desc">Data ↓ (recenti)</SelectItem>
+              <SelectItem value="date_asc">Data ↑ (vecchi)</SelectItem>
+              <SelectItem value="outcome">Ordina per esito</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </CardHeader>
       <CardContent className="p-0">
