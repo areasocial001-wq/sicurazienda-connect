@@ -19,6 +19,7 @@ export interface MedicalDoctor {
   hourly_rate?: number | null;
   visit_rate?: number | null;
   notes?: string | null;
+  signature_path?: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -76,6 +77,17 @@ export interface MedicalJudgment {
   doctor_id?: string | null;
   notes?: string | null;
   created_at: string;
+  protocol_id?: string | null;
+  contact_id?: string | null;
+  job_role?: string | null;
+  risks_evaluated?: string[] | null;
+  exams_evaluated?: any;
+  visit_type?: string | null;
+  visit_date?: string | null;
+  signature_path?: string | null;
+  signed_pdf_path?: string | null;
+  signed_pdf_version?: number | null;
+  health_file_id?: string | null;
 }
 
 export interface MedicalInspection {
