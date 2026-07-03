@@ -321,6 +321,7 @@ const Medicina = () => {
                           <TableHead>Tipo</TableHead>
                           <TableHead>Scadenza</TableHead>
                           <TableHead>Giorni</TableHead>
+                          <TableHead className="w-16"></TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -334,6 +335,9 @@ const Medicina = () => {
                               <Badge variant={v.daysLeft < 0 ? 'destructive' : v.daysLeft <= 30 ? 'secondary' : 'outline'}>
                                 {v.daysLeft < 0 ? `Scaduta da ${-v.daysLeft}gg` : `${v.daysLeft}gg`}
                               </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Button size="icon" variant="ghost" title="Convoca via email" onClick={() => { setConvocationVisit(v); setConvocationOpen(true); }}><Mail className="h-4 w-4 text-primary" /></Button>
                             </TableCell>
                           </TableRow>
                         ))}
