@@ -22,7 +22,7 @@ import { ProtocolDialog } from '@/components/medicina/ProtocolDialog';
 import { VisitDialog } from '@/components/medicina/VisitDialog';
 import { InspectionDialog } from '@/components/medicina/InspectionDialog';
 import { AnnualReportDialog } from '@/components/medicina/AnnualReportDialog';
-import { HealthFolderPanel } from '@/components/medicina/HealthFolderPanel';
+import { HealthDossierPanel } from '@/components/medicina/HealthDossierPanel';
 import { JudgmentDialog, JUDGMENT_OPTIONS } from '@/components/medicina/JudgmentDialog';
 import { MedicalCalendar } from '@/components/medicina/MedicalCalendar';
 import { ConvocationDialog } from '@/components/medicina/ConvocationDialog';
@@ -202,7 +202,7 @@ const Medicina = () => {
 
           {/* HEALTH FILES */}
           <TabsContent value="health-files" className="space-y-4">
-            <HealthFolderPanel />
+            <HealthDossierPanel />
           </TabsContent>
 
           {/* JUDGMENTS */}
@@ -618,6 +618,7 @@ const Medicina = () => {
           judgment={editingJudgment}
           doctors={m.doctors}
           visits={m.visits}
+          protocols={m.protocols}
           defaultVisitId={defaultJudgmentVisitId}
           onSave={(d) => editingJudgment ? m.updateJudgment(editingJudgment.id, d) : m.createJudgment(d)}
         />
